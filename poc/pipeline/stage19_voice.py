@@ -171,9 +171,17 @@ class StyleStore:
     """
 
     def __init__(self, path="mailbox.db"):
-        self.db = sqlite3.connect(path)
-        self.db.executescript(SCHEMA)
-        self.db.commit()
+        import os
+        if os.environ.get("DATABASE_URL") and os.environ.get("CUSTODIAN_STORE", "pg") != "sqlite":
+            # Same database as everything else: the account's own schema on
+            # Postgres. The tables are created there by PgStore from this
+            # file's SCHEMA, and the proxy translates the SQL below.
+            from pg_store import PgStore
+            self.db = PgStore().db
+        else:
+            self.db = sqlite3.connect(path)
+            self.db.executescript(SCHEMA)
+            self.db.commit()
         self.vec = Vectoriser()
 
     def learn(self, sent: list[dict]) -> dict:

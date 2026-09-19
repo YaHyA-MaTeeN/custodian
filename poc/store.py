@@ -8,6 +8,7 @@ is read, acted on, and the text is dropped; what persists is typed facts.
 SQLite for the proof of concept. Postgres in production — same shape.
 """
 
+import os
 import sqlite3
 from connectors.base import Envelope
 
@@ -243,6 +244,24 @@ CREATE INDEX IF NOT EXISTS idx_reply  ON messages(in_reply_to);
 
 
 class Store:
+    """
+    The store — whichever database is configured.
+
+    ⚠️ ONE NAME, TWO BACKENDS. With DATABASE_URL set this hands back a
+    PgStore on Postgres (one schema per account); without it, the SQLite
+    file the POC has always used. Every script says `Store()` and never
+    learns which — the same rule the connectors follow for mailboxes.
+    CUSTODIAN_STORE=sqlite forces the file for a single run.
+    """
+    def __new__(cls, path="mailbox.db"):
+        if cls is Store and os.environ.get("DATABASE_URL") \
+                and os.environ.get("CUSTODIAN_STORE", "pg").lower() != "sqlite":
+            from pg_store import PgStore
+            return PgStore()
+        return SqliteStore(path)
+
+
+class SqliteStore:
     def __init__(self, path="mailbox.db"):
         self.db = sqlite3.connect(path, check_same_thread=False)
         self.db.executescript(SCHEMA)
