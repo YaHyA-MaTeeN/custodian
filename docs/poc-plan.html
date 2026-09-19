@@ -1,0 +1,436 @@
+<title>Custodian Build Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#EFF2F4; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#10222B; --ink-2:#566B76; --ink-3:#85979F;
+    --rule:#D4DFE4; --rule-soft:#E4ECEF;
+    --accent:#0F5673; --accent-soft:#E0EDF3;
+    --ok:#1C6647; --ok-soft:#DFEFE7;
+    --warn:#8A6110; --warn-soft:#F8EEDA;
+    --no:#A32C22; --no-soft:#F7E4E1;
+    --f-display:"IBM Plex Serif",Georgia,serif;
+    --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+      --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+      --rule:#223945; --rule-soft:#1A2E38;
+      --accent:#64B8DB; --accent-soft:#13303E;
+      --ok:#6DBF97; --ok-soft:#163025;
+      --warn:#DCAE5C; --warn-soft:#332916;
+      --no:#E8897C; --no-soft:#37201D;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+    --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+    --rule:#223945; --rule-soft:#1A2E38;
+    --accent:#64B8DB; --accent-soft:#13303E;
+    --ok:#6DBF97; --ok-soft:#163025;
+    --warn:#DCAE5C; --warn-soft:#332916;
+    --no:#E8897C; --no-soft:#37201D;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1000px; margin:0 auto; padding:0 24px 80px; }
+
+  header.top { padding:44px 0 20px; border-bottom:2px solid var(--accent); margin-bottom:28px; }
+  .eyebrow { font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--f-display); font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:10px 0 0; }
+  .one { font-size:17px; margin:12px 0 0; max-width:62ch; }
+  .meta { font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); margin-top:14px; letter-spacing:.03em; }
+
+  h2 { font-family:var(--f-mono); font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:36px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--rule); }
+  h3 { font-size:15px; font-weight:600; margin:22px 0 8px; }
+  p { max-width:70ch; margin:0 0 12px; }
+  ul, ol { max-width:70ch; padding-left:20px; margin:0 0 14px; }
+  li { margin-bottom:5px; }
+  code { font-family:var(--f-mono); font-size:.87em; background:var(--surface-2); border:1px solid var(--rule-soft); border-radius:3px; padding:1px 4px; color:var(--accent); }
+
+  .tw { overflow-x:auto; margin:0 0 16px; border:1px solid var(--rule); border-radius:5px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13px; min-width:640px; }
+  th { text-align:left; font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); padding:9px 12px; border-bottom:1px solid var(--rule); background:var(--surface-2); white-space:nowrap; vertical-align:bottom; }
+  td { padding:9px 12px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.45; }
+  tbody tr:last-child td { border-bottom:none; }
+  .mono { font-family:var(--f-mono); font-size:12px; color:var(--accent); }
+  td.num { font-family:var(--f-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .tier { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); background:var(--surface-2); }
+
+  .box { border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 4px 4px 0; padding:13px 18px; margin:0 0 16px; max-width:74ch; }
+  .box p { margin:0; max-width:none; }
+  .box p + p { margin-top:8px; }
+  .box.warn { border-color:var(--warn); background:var(--warn-soft); }
+
+  .chip { display:inline-block; font-family:var(--f-mono); font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:2px 6px; border-radius:3px; white-space:nowrap; border:1px solid transparent; }
+  .chip.ok { background:var(--ok-soft); color:var(--ok); border-color:color-mix(in srgb,var(--ok) 28%,transparent); }
+  .chip.warn { background:var(--warn-soft); color:var(--warn); border-color:color-mix(in srgb,var(--warn) 30%,transparent); }
+  .chip.no { background:var(--no-soft); color:var(--no); border-color:color-mix(in srgb,var(--no) 28%,transparent); }
+
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+  .col { background:var(--surface); border:1px solid var(--rule); border-radius:5px; padding:14px 16px; }
+  .col h4 { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; margin:0 0 8px; }
+  .col.ok h4 { color:var(--ok); }
+  .col.warn h4 { color:var(--warn); }
+  .col ul { margin:0; padding-left:17px; font-size:13.5px; }
+  .col li { margin-bottom:4px; color:var(--ink-2); }
+
+  footer { margin-top:38px; padding-top:16px; border-top:1px solid var(--rule); font-family:var(--f-mono); font-size:11px; color:var(--ink-3); line-height:1.7; }
+  @media (max-width:640px) { .two { grid-template-columns:1fr; } }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Build plan — every choice decided</span>
+  <h1>Custodian</h1>
+  <p class="one">An agent that runs your inbox for you. It clears the rubbish by itself, and asks you on WhatsApp before it sends anything as you.</p>
+  <p class="meta">Yahya · 31 Aug 2026</p>
+</header>
+
+<!-- ══════ MAILBOXES ══════ -->
+<h2>1 · Which mailboxes we support</h2>
+<p>Not Gmail alone. <strong>One connector per mailbox family, all speaking one common language inside our system.</strong> Adding a new provider later means writing one connector — nothing else changes.</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Mailbox</th><th>How we connect</th><th>What we get</th><th>Coverage</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Gmail · Google Workspace</strong></td><td class="mono">Gmail API + OAuth</td><td>Instant notification, labels, search, calendar</td><td><span class="chip ok">Full</span></td></tr>
+    <tr><td><strong>Outlook.com · Microsoft 365</strong></td><td class="mono">Microsoft Graph + OAuth</td><td>Instant notification, folders + categories, calendar</td><td><span class="chip ok">Full</span></td></tr>
+    <tr><td><strong>Zoho Mail</strong></td><td class="mono">Zoho Mail REST API + OAuth</td><td>Folders, labels, send, calendar</td><td><span class="chip ok">Full</span></td></tr>
+    <tr><td><strong>Fastmail</strong></td><td class="mono">JMAP</td><td>Instant notification, keywords, best protocol of the four</td><td><span class="chip ok">Full</span></td></tr>
+    <tr><td><strong>Yahoo · AOL · GMX · Yandex</strong><br><span style="color:var(--ink-3);font-size:11.5px">and any company or university server — cPanel, Roundcube, on-site Exchange</span></td><td class="mono">IMAP + SMTP</td><td>Read, move, flag, send. <strong>Folders instead of labels. Checked every 1–5 min instead of instant.</strong></td><td><span class="chip warn">Reduced</span></td></tr>
+    <tr><td><strong>Proton Mail</strong></td><td>—</td><td>End-to-end encrypted. Proton's own servers cannot read it either. <strong>Impossible, not unsupported.</strong></td><td><span class="chip no">Not served</span></td></tr>
+    <tr><td><strong>iCloud Mail</strong></td><td>—</td><td>No API exists. Only route is asking users for a password, which contradicts what we sell.</td><td><span class="chip no">Declined</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>Build order:</strong> Gmail and Microsoft Graph first — between them they cover the overwhelming majority of work email, including every Pakistani university and company running Workspace or Microsoft 365. Then <strong>one IMAP connector</strong>, which brings in Yahoo, AOL, and every self-hosted company server at once. Zoho and Fastmail after.</p>
+
+<div class="box">
+  <p><strong>Every connector declares what it can do</strong> — <code>push</code>, <code>labels</code>, <code>folders</code>, <code>search</code>, <code>calendar</code>. The product reads that list and adapts, and tells the user plainly: <em>"On this mailbox I'll check every 2 minutes and use folders instead of labels."</em> Better to say it than to silently do less.</p>
+</div>
+
+<!-- ══════ STACK ══════ -->
+<h2>2 · The stack</h2>
+<div class="tw">
+<table>
+  <thead><tr><th>Job</th><th>Choice</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Language</td><td class="mono">Python 3.12</td><td>One language for the app and the model.</td></tr>
+    <tr><td>Web / API</td><td class="mono">FastAPI</td><td>Signup page, OAuth callbacks, WhatsApp webhook.</td></tr>
+    <tr><td>Database</td><td class="mono">PostgreSQL 16 + pgvector</td><td>Conclusions, sender history, jobs, and writing-style search — one service.</td></tr>
+    <tr><td>Background jobs</td><td class="mono">Postgres jobs table + worker</td><td>Reminders are a row with a <code>run_at</code> time. No Redis.</td></tr>
+    <tr><td>Email parsing</td><td class="mono">email (stdlib)</td><td>Correct, zero dependencies, handles MIME and encodings.</td></tr>
+    <tr><td>Dates, money, durations</td><td class="mono">duckling</td><td><strong>Returns a probability per answer</strong> — that is our escalation signal. Nothing else does.</td></tr>
+    <tr><td>Dates, wider languages</td><td class="mono">dateparser</td><td>200+ locales, relative dates. Backs up duckling.</td></tr>
+    <tr><td><strong>Our model</strong></td><td class="mono">SetFit on all-MiniLM-L6-v2</td><td><strong>22M parameters.</strong> See section 3.</td></tr>
+    <tr><td>Model runtime</td><td class="mono">ONNX Runtime</td><td>Fastest CPU inference for this model type. No GPU.</td></tr>
+    <tr><td>Priority score</td><td class="mono">scikit-learn logistic regression</td><td>The method Google published for Gmail Priority Inbox.</td></tr>
+    <tr><td>Name stripping</td><td class="mono">Presidio</td><td>Replaces names, numbers, addresses before anything leaves.</td></tr>
+    <tr><td>Writing replies</td><td class="mono">Claude Sonnet 5</td><td>$2 / $10 per million tokens. Swappable interface.</td></tr>
+    <tr><td>Talking to the user</td><td class="mono">WhatsApp Cloud API</td><td>See section 5.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════ THE MODEL ══════ -->
+<h2>3 · The model — what it is and why</h2>
+
+<h3>What it is</h3>
+<p>A <strong>text classifier</strong>: an embedding model with a small classification head on top. Base is <code>all-MiniLM-L6-v2</code> — <strong>22 million parameters, about 90 MB on disk</strong>. Trained using a method called <strong>SetFit</strong>. Runs on an ordinary CPU in about <strong>5 milliseconds per email</strong>.</p>
+
+<h3>What it does — exactly three jobs</h3>
+<ol>
+  <li><strong>Two labels per email.</strong> <em>What does the sender want from me?</em> (asking · proposing · promising · delivering · telling) and <em>what is it about?</em> (meeting · money · work · account · personal · bulk). Everything downstream is decided by that pair.</li>
+  <li><strong>Which date is the real deadline</strong>, when an email contains several and the libraries can't tell which one is being asked of you.</li>
+  <li><strong>Is this a real person or automated?</strong> — the one case headers cannot settle, because transactional mail and cold sales email deliberately look personal.</li>
+</ol>
+
+<h3>Why 22 million parameters is the right size</h3>
+<ul>
+  <li><strong>It only classifies. It never writes.</strong> Sorting short text into a fixed set of labels is what encoder models are best at — this is not a hard problem for them.</li>
+  <li><strong>Published benchmarks back the size.</strong> DistilBERT at 66M reaches 93–95% accuracy on classification tasks; MiniLM is faster again with only minor loss.</li>
+  <li><strong>It runs on CPU in 5 ms.</strong> No graphics card, at any scale. That is what keeps the running cost near zero.</li>
+  <li><strong>A larger model would cost more and add nothing</strong> for a fixed set of eleven labels.</li>
+  <li>It sits inside the <strong>10–100M parameter range</strong> sir specified, and it does so because we removed writing from its job — not by compromising.</li>
+</ul>
+
+<h3>Why SetFit, and why this solves the hard part</h3>
+<p>The usual objection to training your own classifier is that you need thousands of labelled examples before it works. <strong>SetFit removes that problem.</strong></p>
+<div class="box">
+  <p>Published result: <strong>SetFit reaches around 92.7% accuracy from 8 labelled examples per class</strong> — competitive with fully fine-tuning a model three times larger on 3,000 examples, and roughly 19× faster to train.</p>
+  <p>We have 11 labels. <strong>8 examples each is about 90 hand-labelled emails</strong> — one afternoon of work — and it trains on a laptop.</p>
+</div>
+
+<h3>Why not just send everything to the frontier model instead</h3>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>Calls per user / month</th><th>Cost</th><th>Privacy</th></tr></thead>
+  <tbody>
+    <tr><td>Frontier model classifies everything</td><td class="num">~3,800</td><td class="num">~$37</td><td>Every email leaves our servers</td></tr>
+    <tr><td><strong>Our model classifies, frontier writes</strong></td><td class="num">~240</td><td class="num"><strong>~$2.40</strong></td><td><strong>Only replies leave, with names removed</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>How it gets better without us doing anything</h3>
+<ul>
+  <li>Every time a user corrects it — reverses a filing, changes a priority — that is a new labelled example.</li>
+  <li>Every time it escalates to the frontier model, the frontier's answer is a new labelled example.</li>
+  <li><strong>Retrain monthly.</strong> Escalations fall. Cost falls with them. <strong>The system gets cheaper as it gets older.</strong></li>
+</ul>
+
+<h3>Why a small model is safe here</h3>
+<p>Every answer it gives is <strong>checked against the original email</strong> before we use it. If it reports a deadline of 15 September and quotes a sentence, we verify that sentence actually exists and that the date is in the future. <strong>If the check fails, the answer is discarded.</strong> Low confidence escalates rather than guesses.</p>
+<p>Writing a reply is the only job with no automatic check — which is precisely why it is the only job we pay a frontier model for.</p>
+
+<h3>Do we need RAG or a vector database?</h3>
+<p><strong>One small use. Nothing else.</strong></p>
+<div class="tw">
+<table>
+  <thead><tr><th>Use</th><th>Verdict</th><th>Reasoning</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Finding your writing style</strong> — which 4–5 of your past emails are most like this situation</td><td><span class="chip ok">Yes — pgvector</span></td><td>Needs similarity search. Runs <strong>inside the PostgreSQL we already have</strong> — no separate service. A few thousand vectors per user.</td></tr>
+    <tr><td><strong>A vector index over the whole inbox</strong></td><td><span class="chip no">No</span></td><td>Most expensive option; <strong>requires storing message content we've promised not to keep</strong>; and email tasks are thread-scoped, not corpus-scoped — replying needs <em>that thread</em>, not your last ten thousand emails.</td></tr>
+    <tr><td><strong>Searching your mail</strong></td><td><span class="chip no">No — use theirs</span></td><td>Gmail and Outlook already have excellent search. We call it. Building our own would mean storing content.</td></tr>
+    <tr><td><strong>Questions like "what did FBR send me?"</strong></td><td><span class="chip no">No</span></td><td>A plain database query over fields we already extracted — sender, type, date. SQL, not vectors.</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="box">
+  <p><strong>The same 22M model does both jobs.</strong> <code>all-MiniLM-L6-v2</code> is natively an embedding model — that is its original purpose — and SetFit adds a classification head on top. So one model gives us classification <em>and</em> the style search. No second model, no extra cost.</p>
+  <p><strong>And the vector store holds no content.</strong> One numeric fingerprint per sent email plus its ID. At draft time we fetch the actual text fresh from the mailbox, use it, and discard it.</p>
+</div>
+
+<!-- ══════ ACTIONS ══════ -->
+<h2>4 · Every action, and exactly how it is performed</h2>
+
+<h3>Tier 0 — on our server. Nothing in the mailbox changes. No approval.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>Performed by</th><th>Works on</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">read</td><td>Gmail <code>messages.get</code> · Graph <code>GET /me/messages/{id}</code> · JMAP <code>Email/get</code> · IMAP <code>FETCH</code></td><td>All doors</td></tr>
+    <tr><td class="mono">classify</td><td>Header rules (our code) → <strong>our model</strong> if unresolved</td><td>All doors</td></tr>
+    <tr><td class="mono">tag internally</td><td>A row written to our own database. <strong>Invisible in the mailbox.</strong></td><td>All doors</td></tr>
+    <tr><td class="mono">extract deadline / amount</td><td><strong>duckling</strong> (with probability) → <strong>dateparser</strong> → <strong>our model</strong>, then verified against the text</td><td>All doors</td></tr>
+    <tr><td class="mono">build sender memory</td><td>A query over history we already stored — <em>what share of this sender's mail do you reply to?</em></td><td>All doors</td></tr>
+    <tr><td class="mono">detect sensitive</td><td>Our rules: sender-domain list (banks, health, government) + subject pattern (<code>code|OTP|verification</code> near a 4–8 digit number). <strong>Runs first, so nothing can open it by accident.</strong></td><td>All doors</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 1 — changes your mailbox, only you see it. Approved once, per action type.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>Gmail</th><th>Microsoft Graph</th><th>IMAP</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">label</td><td><code>labels.create</code> once, then <code>messages.modify</code> with <code>addLabelIds</code></td><td><code>PATCH /messages/{id}</code> setting <code>categories</code></td><td><span class="chip warn">No labels</span> — folders instead</td></tr>
+    <tr><td class="mono">move to folder</td><td>Applying a label <em>is</em> the move</td><td><code>POST /messages/{id}/move</code></td><td><code>MOVE n FolderName</code></td></tr>
+    <tr><td class="mono">archive</td><td><code>messages.modify</code>, remove <code>INBOX</code></td><td>Move to the Archive folder</td><td><code>MOVE n Archive</code></td></tr>
+    <tr><td class="mono">move to Trash</td><td><code>messages.trash</code> — <strong>30-day recovery, no extra permission needed</strong></td><td>Move to Deleted Items</td><td><code>MOVE n Trash</code></td></tr>
+    <tr><td class="mono">mark read / unread</td><td>Add or remove the <code>UNREAD</code> label</td><td>Set <code>isRead</code></td><td><code>STORE n +FLAGS (\Seen)</code></td></tr>
+    <tr><td class="mono">star / flag</td><td>The <code>STARRED</code> label</td><td><code>flag</code> property</td><td><code>STORE n +FLAGS (\Flagged)</code></td></tr>
+    <tr><td class="mono">snooze</td><td colspan="3"><span class="chip warn">No API on any provider</span> <strong>We build it:</strong> archive now, and a scheduled job in our own database restores it to the inbox at the chosen time. Works identically on every door.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 2 — a signal reaches outside. Approved per type.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>How it is performed</th><th>Works on</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">unsubscribe</td><td>The <code>List-Unsubscribe</code> header <strong>contains the address</strong>. We send one <code>POST</code> to it (RFC 8058 one-click), or an email if only a <code>mailto:</code> is offered. <strong>No AI, no provider API — it's in the email itself.</strong></td><td><strong>All doors, identically</strong></td></tr>
+    <tr><td class="mono">RSVP to an invite</td><td>Google <code>events.patch</code> setting <code>responseStatus</code> · Graph <code>POST /events/{id}/accept</code> · IMAP: send an iCalendar REPLY over SMTP</td><td>All doors</td></tr>
+    <tr><td class="mono">create calendar event</td><td>Google <code>events.insert</code> · Graph <code>POST /me/events</code> · IMAP: CalDAV where the server offers it</td><td>Full API doors; <span class="chip warn">varies</span> on IMAP</td></tr>
+    <tr><td class="mono">set reminder</td><td><strong>Never touches the mailbox.</strong> One row in our jobs table; the worker fires it when due.</td><td><strong>All doors, identically</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 3 — speaks in your name. Approved every single time, no exceptions.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>How it is performed</th><th>Trap to handle</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">draft the reply</td><td><strong>1.</strong> Build the prompt — their email plus 4–5 of your own past replies as style examples · <strong>2.</strong> <strong>Presidio</strong> swaps names and numbers for placeholders · <strong>3.</strong> Call Sonnet 5 · <strong>4.</strong> Put real names back locally · <strong>5.</strong> Show it to you on WhatsApp</td><td><strong>The only step in the whole product where anything leaves our servers</strong> — and it leaves de-identified</td></tr>
+    <tr><td class="mono">send reply</td><td>Gmail <code>messages.send</code> with <code>threadId</code> · Graph <code>POST /messages/{id}/reply</code> · IMAP: send over <strong>SMTP</strong>, then <code>APPEND</code> a copy to Sent</td><td>Must carry <code>In-Reply-To</code> and <code>References</code> or it starts a new conversation. On IMAP, <strong>skip the APPEND and the user's own email is missing from their Sent folder</strong></td></tr>
+    <tr><td class="mono">forward</td><td>Same send call, original quoted or attached</td><td>Attachments must be re-attached, not referenced</td></tr>
+    <tr><td class="mono">CC / delegate</td><td>Same send call with a <code>cc</code> field</td><td>Adds a new person to the thread — always approved individually</td></tr>
+    <tr><td class="mono">decline a meeting</td><td>Google <code>events.patch</code> → declined · Graph <code>POST /events/{id}/decline</code> · IMAP: iCalendar REPLY</td><td>Organiser is notified immediately</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 4 — not built</h3>
+<p><code>messages.delete</code> (instant, permanent, bypasses Trash) · changing account settings · granting access to anyone · emailing a new recipient unprompted.</p>
+<div class="box">
+  <p><strong>These functions do not exist in our code, and we never request the permission that would allow them.</strong> Two independent barriers.</p>
+  <p>Note that <strong>delete is still available to the user</strong> — as <code>messages.trash</code>, which is exactly what the bin icon does, is recoverable for 30 days, and is covered by the permission we already ask for. Only instant permanent destruction is excluded, and asking for it would push us into a far more expensive annual security review for no benefit.</p>
+</div>
+
+<!-- ══════ INPUT ══════ -->
+<h2>5 · How the user gives instructions</h2>
+<p><strong>Everything is a plain WhatsApp message. There is no settings screen anywhere in the product.</strong> Four kinds of input, and most of them cost nothing to handle.</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Kind</th><th>Example</th><th>Handled by</th><th>Cost</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1. Answering us</strong></td><td><em>"send"</em> · <em>"ignore"</em> · a tap on a button</td><td>Word matching. <strong>No model at all</strong></td><td class="num">Free</td></tr>
+    <tr><td><strong>2. A command about what we just showed</strong></td><td><em>"archive that"</em> · <em>"remind me tomorrow"</em></td><td>Our own 22M classifier, using the context of the last message</td><td class="num">Free</td></tr>
+    <tr><td><strong>3. A standing rule</strong></td><td><em>"stop reminding me two days before doctor appointments, two hours is enough"</em></td><td>Three layers — see below</td><td class="num">Free → pennies</td></tr>
+    <tr><td><strong>4. A question</strong></td><td><em>"what did FBR send me?"</em> · <em>"what am I waiting on?"</em></td><td>A query against our own database</td><td class="num">Free</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Kind 3 in detail — and why it doesn't need a frontier model</h3>
+<p>A command looks like one hard problem. <strong>It is three easy ones.</strong></p>
+<div class="tw">
+<table>
+  <thead><tr><th>Piece of the sentence</th><th>What it is</th><th>What handles it</th></tr></thead>
+  <tbody>
+    <tr><td><em>"stop reminding me… is enough"</em></td><td>Which command — one of about ten</td><td><strong>Our existing 22M classifier</strong></td></tr>
+    <tr><td><em>"two days"</em> · <em>"two hours"</em></td><td>Time values</td><td><strong>duckling</strong> — already in the stack, and it reports its confidence</td></tr>
+    <tr><td><em>"doctor appointments"</em></td><td>Which category</td><td><strong>Our existing 22M classifier</strong></td></tr>
+  </tbody>
+</table>
+</div>
+<p>Assemble the three and you have the rule change. <strong>No new model, nothing extra to train.</strong></p>
+
+<h3>The models for input — decided</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Layer</th><th>Model</th><th>Size</th><th>Handles</th><th>Cost</th></tr></thead>
+  <tbody>
+    <tr><td><strong>1 · Common commands</strong></td><td class="mono">SetFit on all-MiniLM-L6-v2<br>+ duckling</td><td class="num">22M</td><td>The ~10 command shapes people actually use. <strong>The same model as everywhere else</strong> — nothing new</td><td class="num">Free</td></tr>
+    <tr><td><strong>2 · Unusual commands</strong></td><td class="mono">Qwen3-0.6B<br>+ GBNF grammar</td><td class="num">600M<br><span style="font-size:11px;color:var(--ink-3)">~400 MB at 4-bit</span></td><td>Anything phrased in a way we didn't anticipate. <strong>The grammar makes invalid output impossible</strong> — 100% valid structure, every time, at 5–15% throughput cost. Also handles <strong>Urdu and Roman Urdu</strong></td><td class="num">Free — our CPU</td></tr>
+    <tr><td><strong>3 · Genuinely novel</strong></td><td class="mono">Claude Sonnet 5</td><td>—</td><td>Commands neither layer can parse. Perhaps <strong>five times a month per user</strong></td><td class="num">Pennies</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box">
+  <p><strong>On the parameter count:</strong> the classifier is 22M because it only sorts into buckets. The command parser is 600M because it has to <em>produce</em> structured output rather than pick from a list. <strong>Both run on an ordinary CPU with no graphics card</strong> — which is the constraint that actually matters.</p>
+</div>
+
+<h3>Why a wrong parse is harmless</h3>
+<p><strong>The model never changes anything. It proposes, and the user confirms.</strong></p>
+<div class="box">
+  <p style="font-family:var(--f-mono); font-size:13px; line-height:1.7;">
+  <strong>You:</strong> stop reminding me 2 days before doctor appointments<br><br>
+  <strong>Agent:</strong> Found 4 rules of type "appointment".<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Changing 2 days → 2 hours.<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Affects: doctor, dentist, physiotherapy, lab tests<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Apply all] [Only doctor] [Cancel]</p>
+  <p>A wrong parse produces a wrong <em>proposal</em>, rejected with one tap. It can never produce a wrong <em>action</em>. That is why a small model is safe here — and why we never generalise a rule silently.</p>
+</div>
+
+<h3>Where settings actually live</h3>
+<p>Rules are created three ways, <strong>none of them a form</strong>: sensible defaults out of the box · the user correcting something · the user saying a sentence. At runtime only the stored rules execute — <strong>no model is involved</strong>. The web dashboard merely <em>lists</em> your rules in plain English with a delete button. You never have to visit it.</p>
+
+<!-- ══════ WHATSAPP ══════ -->
+<h2>6 · WhatsApp</h2>
+<p><strong>WhatsApp Cloud API, direct from Meta.</strong> This is the interface — the user approves replies, gets reminders, and changes settings by sending a message.</p>
+
+<h3>What is required to switch it on</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Requirement</th><th>Detail</th></tr></thead>
+  <tbody>
+    <tr><td>Meta Business account</td><td>Free to create</td></tr>
+    <tr><td><strong>Business verification</strong></td><td><strong>SECP or firm registration · FBR NTN · a live website with a privacy policy and contact page.</strong> All must match the Meta Business Manager records exactly</td></tr>
+    <tr><td>A dedicated phone number</td><td>Not already registered on regular WhatsApp</td></tr>
+    <tr><td>Review time</td><td>24 hours to 15 working days; most clear inside two weeks when documents match</td></tr>
+  </tbody>
+</table>
+</div>
+<p><strong>This is a company paperwork task, not an engineering one, and it should start immediately</strong> — it runs in parallel with development and is the only item on this plan with an external dependency.</p>
+
+<h3>How we keep the cost near zero</h3>
+<p>Meta bills for messages <em>we</em> start. But <strong>once the user replies, a 24-hour window opens in which everything is free-form and free.</strong> So the design is:</p>
+<ul>
+  <li><strong>One template message per user per day</strong> — <em>"4 things need you today. Reply to start."</em></li>
+  <li>The user replies. <strong>The window opens.</strong></li>
+  <li><strong>Every approval, reminder and setting change for the rest of the day rides inside it, free.</strong></li>
+</ul>
+<p>At South Asian rates that is a fraction of a cent per user per day. Interactive buttons are supported, so <em>Send · Edit · Ignore</em> are taps, not typing.</p>
+
+<!-- ══════ SERVER & COST ══════ -->
+<h2>7 · Where it runs and what it costs</h2>
+<div class="tw">
+<table>
+  <thead><tr><th>Stage</th><th>Machine</th><th>Cost</th></tr></thead>
+  <tbody>
+    <tr><td>Development</td><td>A laptop. Everything runs locally.</td><td class="num">$0</td></tr>
+    <tr><td>First 100 users</td><td><strong>One server: 4 vCPU, 8 GB RAM, 80 GB disk. No GPU.</strong></td><td class="num">~$25 / month</td></tr>
+    <tr><td>To 10,000 users</td><td>4–6 copies of the worker, a database replica, 2 model instances</td><td class="num">~$700 / month</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th></th></tr></thead>
+  <tbody>
+    <tr><td>Every library and model listed</td><td class="num"><strong>$0 — all open source</strong></td></tr>
+    <tr><td>Running cost per user per month</td><td class="num"><strong>$1–3</strong></td></tr>
+    <tr><td>Google security review, before public launch only</td><td class="num">~$675 / year, self-scanned</td></tr>
+    <tr><td>Comparable products charge</td><td class="num"><strong>$14–30 per user / month</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════ BUILD ORDER ══════ -->
+<h2>8 · Build order</h2>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>Build</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td class="num">Week 1</td><td>Gmail connector · backlog scan · header rules · clean &amp; unsubscribe. <strong>Measure what the free rules actually handle.</strong></td><td>The cleanup demo. No AI, no cost.</td></tr>
+    <tr><td class="num">Week 2</td><td>Label ~90 emails · train the model · priority score · duckling for deadlines · reminder engine · WhatsApp connected</td><td>Triage and reminders arriving on WhatsApp.</td></tr>
+    <tr><td class="num">Week 3</td><td>Style examples from Sent · Presidio · draft via Sonnet · approve on WhatsApp · send</td><td><strong>The full loop.</strong></td></tr>
+    <tr><td class="num">Week 4</td><td><strong>Microsoft Graph connector</strong> · undo · audit log · measure redaction accuracy</td><td>Two mailbox families, and defensible.</td></tr>
+    <tr><td class="num">Week 5–6</td><td>IMAP connector — brings in Yahoo, AOL, and every company and university server at once</td><td>Broad coverage.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ══════ NEED / HONEST ══════ -->
+<h2>9 · What is needed, and what is still unproven</h2>
+<div class="two">
+  <div class="col ok">
+    <h4>What I need</h4>
+    <ul>
+      <li>A real cluttered mailbox to demo on</li>
+      <li>~$20 for API calls during development</li>
+      <li>A Google Cloud project in Testing mode — free, 100 users, no review</li>
+      <li><strong>Business verification started for WhatsApp</strong> — the only external dependency</li>
+      <li>No server, no GPU, no paid tools to begin</li>
+    </ul>
+  </div>
+  <div class="col warn">
+    <h4>Must be measured in week 1 — not assumed</h4>
+    <ul>
+      <li>What share of a real inbox the free header rules handle. <strong>Assumed ~60%; the cost model depends on it</strong></li>
+      <li>How often Presidio misses a real name. <strong>The privacy claim must not be made publicly until this is measured</strong></li>
+      <li>Model accuracy on real Pakistani email, not benchmark data</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  One rule runs through the whole design: anything with a checkable answer is done by free tools on our own machine. Writing a reply is the only job that cannot be checked automatically, and it is the only thing we pay for.
+</footer>
+
+</div>

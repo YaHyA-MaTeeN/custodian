@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IMAP Test Report</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 14mm; }
+  :root{
+    --ink:#16202C; --mid:#41525F; --soft:#6D7D8A; --rule:#D9E1E7;
+    --paper:#fff; --tint:#F3F6F8; --tint2:#E9EFF3;
+    --pass:#1C6647; --pass-bg:#E4F1EA;
+    --fail:#A0341E; --fail-bg:#FAE7E1;
+    --part:#8A6516; --part-bg:#F8EEDA;
+    --na:#5C6B7A;   --na-bg:#EDF1F4;
+    --accent:#1B4F8A;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--ink); background:var(--paper);
+    font:10.5pt/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;
+    letter-spacing:-.01em;text-wrap:balance;margin:0}
+  h1{font-size:26pt;line-height:1.15}
+  h2{font-size:15pt;margin:0 0 3mm;padding-bottom:2mm;border-bottom:1.5pt solid var(--ink)}
+  h3{font-size:11.5pt;margin:6mm 0 2mm}
+  p{margin:0 0 2.6mm}
+  .lead{font-size:11.5pt;color:var(--mid);max-width:150mm}
+  code,kbd,.mono{font-family:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace}
+  code{font-size:9pt;background:var(--tint);padding:.4mm 1.2mm;border-radius:1mm}
+
+  section{page-break-inside:auto}
+  .sheet{page-break-before:always}
+
+  /* cover */
+  .cover{padding-top:6mm;border-bottom:3pt solid var(--ink);padding-bottom:6mm;margin-bottom:7mm}
+  .eyebrow{font-family:"Cascadia Mono",Consolas,monospace;font-size:8pt;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--soft);margin-bottom:3mm}
+  .meta{margin-top:4mm;font-size:9pt;color:var(--soft);
+    font-family:"Cascadia Mono",Consolas,monospace}
+
+  /* headline figures */
+  .figs{display:flex;gap:0;border:1pt solid var(--rule);border-radius:1.5mm;
+    overflow:hidden;margin:6mm 0}
+  .fig{flex:1;padding:4mm 4.5mm;border-right:1pt solid var(--rule)}
+  .fig:last-child{border-right:none}
+  .fig b{display:block;font-family:"Cascadia Mono",Consolas,monospace;
+    font-size:19pt;line-height:1;letter-spacing:-.03em}
+  .fig span{display:block;margin-top:1.6mm;font-size:8.5pt;color:var(--soft)}
+  .fig.g b{color:var(--pass)} .fig.a b{color:var(--part)} .fig.r b{color:var(--fail)}
+
+  /* result rows */
+  table{width:100%;border-collapse:collapse;margin:2mm 0 4mm}
+  th{text-align:left;font-size:8pt;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--soft);font-weight:600;padding:0 3mm 1.5mm 0;
+    border-bottom:1pt solid var(--rule)}
+  td{padding:1.9mm 3mm 1.9mm 0;border-bottom:.5pt solid var(--rule);
+    vertical-align:top;font-size:9.5pt}
+  tr:last-child td{border-bottom:none}
+  td.v{width:19mm;white-space:nowrap}
+  td.n{width:8mm;color:var(--soft);font-family:"Cascadia Mono",Consolas,monospace;
+    font-size:8.5pt}
+  .tag{display:inline-block;font-family:"Cascadia Mono",Consolas,monospace;
+    font-size:7.5pt;font-weight:600;letter-spacing:.04em;padding:.7mm 2mm;
+    border-radius:1mm;white-space:nowrap}
+  .yes{background:var(--pass-bg);color:var(--pass)}
+  .no{background:var(--fail-bg);color:var(--fail)}
+  .part{background:var(--part-bg);color:var(--part)}
+  .na{background:var(--na-bg);color:var(--na)}
+  .ev{display:block;color:var(--soft);font-size:8.5pt;margin-top:.8mm;
+    font-family:"Cascadia Mono",Consolas,monospace}
+
+  /* callouts */
+  .note{background:var(--tint);border-left:2.5pt solid var(--accent);
+    padding:3.4mm 4mm;margin:4mm 0;border-radius:0 1.5mm 1.5mm 0;font-size:9.5pt}
+  .note b{color:var(--accent)}
+  .warn{background:var(--fail-bg);border-left-color:var(--fail)}
+  .warn b{color:var(--fail)}
+  .quote{border-left:2.5pt solid var(--ink);padding:1mm 0 1mm 4mm;margin:4mm 0;
+    font-family:Georgia,serif;font-size:11pt;font-style:italic;color:var(--mid)}
+
+  /* command blocks */
+  .cmd{background:#111A24;color:#DDE6EE;border-radius:1.5mm;padding:3.2mm 4mm;
+    font-family:"Cascadia Mono",Consolas,monospace;font-size:9pt;line-height:1.6;
+    margin:2.5mm 0;overflow-x:auto}
+  .cmd .c{color:#7FB0DE}
+  .cmd .d{color:#7E93A5}
+
+  .two{display:flex;gap:6mm}
+  .two > div{flex:1}
+  ul{margin:0 0 3mm;padding-left:5mm}
+  li{margin-bottom:1.4mm}
+  .foot{margin-top:8mm;padding-top:3mm;border-top:1pt solid var(--rule);
+    font-size:8.5pt;color:var(--soft);font-family:"Cascadia Mono",Consolas,monospace}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ COVER ══════════════ -->
+<section>
+  <div class="cover">
+    <div class="eyebrow">Custodian · OCloud Solutions</div>
+    <h1>Gmail over IMAP:<br>what we tested, and what it proved</h1>
+    <p class="meta">login47015@gmail.com &nbsp;·&nbsp; 10 September 2026 &nbsp;·&nbsp;
+      43 capability tests + 16 document claims &nbsp;·&nbsp; every figure measured, none quoted</p>
+  </div>
+
+  <p class="lead">A comparison document says what someone believes a protocol
+  can do. These two scripts run the protocol and report what happened. They
+  took 51 seconds against a live mailbox of 7,832 messages, changed nothing,
+  and found six defects in our own code.</p>
+
+  <div class="figs">
+    <div class="fig g"><b>38</b><span>capabilities that work</span></div>
+    <div class="fig a"><b>4</b><span>partial</span></div>
+    <div class="fig r"><b>3</b><span>genuinely missing</span></div>
+    <div class="fig"><b>6</b><span>bugs the tests found</span></div>
+  </div>
+
+  <h3>The one thing to remember</h3>
+  <p>We did not choose <em>IMAP</em>. We chose an <b>app password</b> — and one
+  app password opens two doors:</p>
+
+  <div class="cmd">
+    imap.gmail.com:993 &nbsp;<span class="d">→ reading</span><br>
+    smtp.gmail.com:587 &nbsp;<span class="d">→ sending</span>
+  </div>
+
+  <p>Same credential, same account. No security audit, no annual fee, no
+  approval wait. Almost every claim that IMAP "cannot" do something is a
+  claim about plain IMAP — and Gmail's IMAP is not plain IMAP. It advertises
+  a capability called <code>X-GM-EXT-1</code>, which brings real labels, real
+  thread ids, and the entire Gmail search language.</p>
+
+  <div class="note">
+    <b>The headline for the meeting.</b> Everything the POC needs works over
+    the free route: the Primary tab (1,748 messages), every Gmail label,
+    Spam, the Important marker, applying and removing labels, marking read,
+    live polling, and sending — measured at 4.9 seconds for a real delivered
+    message. Three things are genuinely missing, and only one of them costs
+    us anything.
+  </div>
+
+  <h3>What is genuinely missing</h3>
+  <table>
+    <tr><td class="v"><span class="tag no">missing</span></td>
+      <td><b>Server-pushed notification.</b> Gmail's API can tell us the
+      instant mail arrives. IMAP has <code>IDLE</code>, which is close, but it
+      holds one open socket per mailbox — a thousand users means a thousand
+      held sockets. We poll every 20 seconds instead.
+      <span class="ev">cost: up to 20 seconds of delay. For a POC, none.</span></td></tr>
+    <tr><td class="v"><span class="tag no">missing</span></td>
+      <td><b>Snooze.</b> A Gmail-only concept with no IMAP equivalent.
+      <span class="ev">cost: none — it is not in any use case.</span></td></tr>
+    <tr><td class="v"><span class="tag no">missing</span></td>
+      <td><b>Forward.</b> SMTP is wired and working; the forward() function
+      itself is simply not written yet.
+      <span class="ev">cost: a morning's work, not a blocker.</span></td></tr>
+  </table>
+</section>
+
+<!-- ══════════════ TEST 1 ══════════════ -->
+<section class="sheet">
+  <h2>Test 1 &nbsp;·&nbsp; The capability audit</h2>
+  <p class="lead">43 tests across nine areas. Read-only by default; the tests
+  that write are off unless you ask for them, act on exactly one message, and
+  undo themselves.</p>
+
+  <div class="cmd"><span class="c">python</span> audit_imap.py<br>
+  <span class="c">python</span> audit_imap.py --write &nbsp;<span class="d">// also tests writes, then reverts them</span></div>
+
+  <h3>1 · What the server advertises</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Speaks Gmail's IMAP dialect
+      <span class="ev">X-GM-EXT-1 — this is the flag everything else depends on</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>IDLE, MOVE, UIDPLUS, CONDSTORE, QUOTA
+      <span class="ev">all five advertised</span></td></tr>
+  </table>
+
+  <h3>2 · Can it see every Gmail label?</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>List every folder and label
+      <span class="ev">19 total</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Gmail's own system folders
+      <span class="ev">All Mail · Drafts · Important · Sent Mail · Spam · Starred · Trash</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Your own labels
+      <span class="ev">10 — Custodian, Custodian.Flights, Custodian.Invoices, Custodian.Meetings …</span></td></tr>
+  </table>
+
+  <h3>3 · The Gmail tabs</h3>
+  <table>
+    <tr><td class="n">1,748</td><td class="v"><span class="tag yes">yes</span></td><td><code>category:primary</code> — the question sir asked</td></tr>
+    <tr><td class="n">2,834</td><td class="v"><span class="tag yes">yes</span></td><td><code>category:social</code></td></tr>
+    <tr><td class="n">1,260</td><td class="v"><span class="tag yes">yes</span></td><td><code>category:promotions</code></td></tr>
+    <tr><td class="n">3,558</td><td class="v"><span class="tag yes">yes</span></td><td><code>category:updates</code></td></tr>
+    <tr><td class="n">0</td><td class="v"><span class="tag part">empty</span></td><td><code>category:forums</code> — the query works; this mailbox has none</td></tr>
+  </table>
+
+  <h3>4 · Spam and the special folders</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Spam <span class="ev">[Gmail]/Spam — 1 message</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Sent <span class="ev">[Gmail]/Sent Mail — 33</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>All Mail <span class="ev">[Gmail]/All Mail — 7,877</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Trash, Starred <span class="ev">both open</span></td></tr>
+  </table>
+
+  <h3>5 · What we can read about one message</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Its Gmail labels
+      <span class="ev">X-GM-LABELS → Custodian/Machine mail</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Its thread id
+      <span class="ev">X-GM-THRID 1875946006072998074</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td><b>Read the body WITHOUT marking it read</b>
+      <span class="ev">BODY.PEEK — unread stayed True. A promise we make, so it is tested.</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Fetch attachments</td></tr>
+  </table>
+
+  <h3>6 · Live — can it notice new mail?</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Take a bookmark, poll for anything newer, bookmark survives
+      <span class="ev">UID 7870 → 7870. Gmail hands out a history id; IMAP has none, so we use the highest UID — which only ever increases and never repeats. Same promise, different mechanism.</span></td></tr>
+    <tr><td class="v"><span class="tag no">no</span></td><td>Server-pushed notification
+      <span class="ev">IDLE is advertised but costs a held socket per mailbox — we poll every 20s</span></td></tr>
+  </table>
+
+  <h3>7 · Search</h3>
+  <table>
+    <tr><td class="n">54</td><td class="v"><span class="tag yes">yes</span></td><td><code>newer_than:7d</code></td></tr>
+    <tr><td class="n">7,493</td><td class="v"><span class="tag yes">yes</span></td><td><code>is:unread</code></td></tr>
+    <tr><td class="n">24</td><td class="v"><span class="tag yes">yes</span></td><td><code>has:attachment</code></td></tr>
+    <tr><td class="n">5,186</td><td class="v"><span class="tag yes">yes</span></td><td><code>from:linkedin.com</code></td></tr>
+    <tr><td class="n">43</td><td class="v"><span class="tag yes">yes</span></td><td><code>category:primary newer_than:30d</code></td></tr>
+  </table>
+
+  <h3>8 · Actions that change the mailbox</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Apply a label <span class="ev">appeared on the message — and it stayed in the inbox</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Remove a label <span class="ev">reverted</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Mark read <span class="ev">unread True → False</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Mark unread again <span class="ev">reverted</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>The audit cleaned up after itself <span class="ev">probe label removed · inbox 7,832 before, 7,832 after</span></td></tr>
+  </table>
+
+  <h3>9 · Sending, and the remaining gaps</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td><b>Send a message</b> <span class="ev">smtp.gmail.com — same app password</span></td></tr>
+    <tr><td class="v"><span class="tag yes">yes</span></td><td>Save a draft <span class="ev">APPEND to [Gmail]/Drafts — no SMTP needed, cannot reach anyone</span></td></tr>
+    <tr><td class="v"><span class="tag part">partial</span></td><td>Forward <span class="ev">SMTP is wired; forward() not built yet</span></td></tr>
+    <tr><td class="v"><span class="tag part">partial</span></td><td>See labels you removed in Gmail <span class="ev">no history feed — we diff our own footprint instead. See page 4.</span></td></tr>
+    <tr><td class="v"><span class="tag part">partial</span></td><td>Rescue from spam <span class="ev">possible by MOVE, not built</span></td></tr>
+    <tr><td class="v"><span class="tag no">no</span></td><td>Snooze <span class="ev">Gmail-only concept</span></td></tr>
+  </table>
+</section>
+
+<!-- ══════════════ TEST 2 ══════════════ -->
+<section class="sheet">
+  <h2>Test 2 &nbsp;·&nbsp; The comparison document, claim by claim</h2>
+  <p class="lead">Sixteen claims from the handwritten IMAP&nbsp;vs&nbsp;API notes,
+  each one run against the live mailbox.</p>
+
+  <div class="cmd"><span class="c">python</span> verify_doc.py<br>
+  <span class="c">python</span> verify_doc.py --send &nbsp;<span class="d">// also sends one real mail to yourself</span></div>
+
+  <div class="figs">
+    <div class="fig g"><b>6</b><span>confirmed</span></div>
+    <div class="fig r"><b>3</b><span>wrong</span></div>
+    <div class="fig a"><b>3</b><span>partly right</span></div>
+    <div class="fig"><b>4</b><span>policy, not testable</span></div>
+  </div>
+
+  <h3>What the document says we CAN do — all confirmed</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">true</span></td><td>Read the entire mailbox <span class="ev">7,832 messages</span></td></tr>
+    <tr><td class="v"><span class="tag yes">true</span></td><td>Full read and write <span class="ev">X-GM-LABELS writes verified</span></td></tr>
+    <tr><td class="v"><span class="tag yes">true</span></td><td>Move messages between folders
+      <span class="ev">UID COPY works — though on Gmail we add a label instead, which is better: the message does not leave the inbox</span></td></tr>
+    <tr><td class="v"><span class="tag yes">true</span></td><td><b>Send mail</b>
+      <span class="ev">delivered via smtp.gmail.com:587 in 4.9s, copy filed in Sent</span></td></tr>
+    <tr><td class="v"><span class="tag yes">true</span></td><td>Can read old emails — all of them</td></tr>
+  </table>
+
+  <div class="note"><b>The document was right and I was wrong.</b> It lists
+  "send mail" under what the app-password route can do. I had said IMAP cannot
+  send. That is true about the protocol and misleading about the product —
+  the app password opens SMTP too, and sending now works.</div>
+
+  <h3>What it says we CANNOT do — three of the four are wrong</h3>
+  <table>
+    <tr><td class="v"><span class="tag no">false</span></td><td>"Will not get labels"
+      <span class="ev">X-GM-LABELS returned Custodian/Machine mail on a real message; 40 messages carry user labels</span></td></tr>
+    <tr><td class="v"><span class="tag no">false</span></td><td>"Will not get categories / Primary / Promo"
+      <span class="ev">primary 1,748 · promotions 1,260 · social 2,834 · updates 3,558</span></td></tr>
+    <tr><td class="v"><span class="tag no">false</span></td><td>"Will not get the Important marker"
+      <span class="ev">is:important 187 · is:starred 1</span></td></tr>
+    <tr><td class="v"><span class="tag part">partly</span></td><td>"Cannot know when mail arrives"
+      <span class="ev">no push — but polling works, and the server advertises IDLE. "Cannot know" is too strong.</span></td></tr>
+  </table>
+
+  <h3>The duplicate claim — real, and already handled</h3>
+  <p>The document notes that Gmail can put three labels on one message, so in
+  an older connection the same message appears three or four times. That is a
+  genuine trap, and it only springs when you scan every folder.</p>
+  <table>
+    <tr><td class="v"><span class="tag part">partly</span></td><td>"The same message appears 3–4 times"
+      <span class="ev">in a 300-message sample of All Mail: 0 repeated Message-IDs. We scan INBOX and key on Message-ID, so a repeat collapses to one row.</span></td></tr>
+  </table>
+
+  <h3>The daily limits — recomputed on this mailbox</h3>
+  <p>These figures depend entirely on how big an average message is, which is
+  a property of <em>this mailbox</em> and not of Gmail. So they were measured
+  rather than repeated.</p>
+  <table>
+    <tr><td class="v"><span class="tag part">partly</span></td><td>"Headers only: 500,000–600,000 msg/day"
+      <span class="ev">median header 5,836 bytes → 449,184/day. 11% below the stated low end.</span></td></tr>
+    <tr><td class="v"><span class="tag yes">true</span></td><td>"Full messages with body: 33,000 msg/day"
+      <span class="ev">median message 76,509 bytes → 34,263/day. At the stated figure.</span></td></tr>
+  </table>
+  <div class="note"><b>Read this one carefully.</b> The full-message figure is
+  sampled from the 25 newest messages and moves with the sample — an earlier
+  run measured 105,541 bytes and gave 24,838/day. The document's method is
+  sound; the answer swings by a third depending on what arrived that week. If
+  this number ever has to be defended, sample a few hundred, not 25.</div>
+
+  <h3>The API page — policy, not protocol</h3>
+  <table>
+    <tr><td class="v"><span class="tag na">n/a</span></td><td>$540–3,000/yr security audit; repeats annually; 2–3 months for approval; 100 users and 7-day tokens before approval
+      <span class="ev">All matches Google's published CASA tiers. Cannot be tested from code.</span></td></tr>
+  </table>
+  <div class="note"><b>The detail that matters most.</b> Every one of those
+  costs applies to the <b>OAuth consent screen</b>. An app password has no
+  audit, no expiry, and no 100-user cap. That is the whole reason this route
+  exists.</div>
+</section>
+
+<!-- ══════════════ BUGS ══════════════ -->
+<section class="sheet">
+  <h2>What the tests found in our own code</h2>
+  <p class="lead">Six defects. Every one of them looked correct from the
+  terminal, which is the point of writing tests that talk to a real server.</p>
+
+  <div class="note warn"><b>1 · Applying a label was moving the message out of
+  the inbox.</b> The old code did COPY, then <code>+FLAGS \Deleted</code>, then
+  EXPUNGE. On Gmail that is not filing — it is archiving.
+  <code>sort_mailbox.py</code> promises in writing that it "only applies labels;
+  never moves, archives or deletes", and it was archiving every message it
+  touched. <b>This happened once for real during the first audit run</b> — one
+  message left the inbox. It was restored immediately, the probe folder was
+  deleted, and the count verified: 7,831 before, 7,831 after. Labels now use
+  Gmail's own <code>X-GM-LABELS</code> and the message stays put.</div>
+
+  <div class="note warn"><b>2 · Sequence numbers where UIDs belonged.</b>
+  <code>list_ids()</code> returned a message's <em>position</em> in the folder;
+  <code>gmail_search()</code> returned UIDs. Both were stored as
+  <code>provider_id</code>. A position shifts whenever anything above it
+  arrives or leaves — so an id saved today points at a different email
+  tomorrow, and nothing raises an error when it does. The whole connector now
+  uses <code>UID</code> commands.</div>
+
+  <div class="note"><b>3 · The label parser dropped any label without a space.</b>
+  Gmail quotes a label that contains a space and sends a bare one otherwise.
+  The old pattern matched quoted strings, or bare runs of <code>\w</code> —
+  which does not include a slash. So <code>"Custodian/Machine mail"</code> read
+  fine and <code>Custodian/AuditProbe</code> vanished. The audit reported
+  "label did not appear" three times while the server was replying, in the
+  same breath, that the label was there. <b>Writing was never broken. Reading
+  it back was.</b></div>
+
+  <div class="note"><b>4 · <code>list_spam()</code> always returned empty.</b>
+  Gmail's folder is <code>[Gmail]/Spam</code>; we were looking for
+  <code>"Spam"</code>, <code>"Junk"</code> and <code>"Bulk Mail"</code>. An
+  empty answer from a spam check reads exactly like "no spam" — the answer
+  you least want to be wrong about.</div>
+
+  <div class="note"><b>5 · Gmail was missing from the folder map.</b> Trash
+  fell through to a default of <code>"Trash"</code>, which does not exist on
+  Gmail.</div>
+
+  <div class="note"><b>6 · The audit claimed "nothing was left changed" without
+  checking.</b> It printed that line unconditionally — including on the run
+  where it had moved a message. It now counts the inbox before and after and
+  prints the comparison, and it deletes the probe label it creates.</div>
+
+  <h3>The label-removal gap, and how it was closed</h3>
+  <p>UC-29 says that dragging a message out of one of our labels <em>is</em> a
+  correction — and it happens in the user's mail app, not ours. Gmail's API can
+  be asked "what changed since X" and will name every label removed. IMAP has
+  no such feed; it can only ever answer "what is true now".</p>
+  <p>But we never needed a change feed. <b>We know exactly which messages we
+  labelled, because we wrote it down when we did it.</b> So instead of
+  listening for events, we re-read the labels on our own footprint — tens of
+  messages a day — and look for ours going missing.</p>
+  <div class="quote">A feed tells you what changed. A short list you already
+  own can simply be checked again.</div>
+  <p><code>correct.py</code> never learns which door it is behind: the
+  signature is identical on both connectors.</p>
+</section>
+
+<!-- ══════════════ RUN IT YOURSELF ══════════════ -->
+<section class="sheet">
+  <h2>Run all of it yourself</h2>
+  <p class="lead">Nothing here needs setup beyond the two environment
+  variables already on this machine. Open a terminal and go.</p>
+
+  <h3>Step 1 — get to the right folder</h3>
+  <div class="cmd">cd c:\mob_ai\poc</div>
+
+  <h3>Step 2 — the capability audit (safe, changes nothing)</h3>
+  <div class="cmd"><span class="c">python</span> audit_imap.py</div>
+  <p><b>Takes about 25 seconds.</b> You will see nine sections and 43 rows
+  marked <code>[ YES ]</code>, <code>[ NO ]</code>, <code>[ PART]</code> or
+  <code>[ SKIP]</code>. The last line counts the inbox before and after and
+  tells you whether anything moved.</p>
+
+  <h3>Step 3 — the same audit, including writes</h3>
+  <div class="cmd"><span class="c">python</span> audit_imap.py --write</div>
+  <p>Now the five <code>[ SKIP]</code> rows in section 8 run for real: it
+  labels one message, checks the label arrived, removes it, marks the message
+  read, marks it unread again, and deletes the label it created. <b>Every write
+  is undone in a <code>finally</code> block</b>, and the closing line proves
+  the inbox count did not move.</p>
+
+  <h3>Step 4 — verify the comparison document</h3>
+  <div class="cmd"><span class="c">python</span> verify_doc.py</div>
+  <p>Sixteen claims, each marked <code>[ TRUE ]</code>, <code>[ FALSE ]</code>,
+  <code>[ PARTLY]</code> or <code>[ n/a ]</code>. It measures 25 real messages
+  to recompute the daily limits, so it takes about 30 seconds.</p>
+
+  <h3>Step 5 — prove sending actually works</h3>
+  <div class="cmd"><span class="c">python</span> verify_doc.py --send</div>
+  <p>This sends <b>one real email to your own address</b> through
+  smtp.gmail.com. Check your inbox for <b>"Custodian — SMTP proof"</b>, and
+  check Sent Mail for the filed copy. It goes nowhere else and to nobody else.</p>
+
+  <h3>Step 6 — see it all in a browser</h3>
+  <div class="cmd"><span class="c">python</span> web.py --watch<br>
+  <span class="c">python</span> web.py --watch --imap &nbsp;<span class="d">// same page, free door</span></div>
+  <p>Opens the mailbox view at <code>localhost:8000</code> and runs the agent
+  in the background at the same time. The pill at the top right names the door
+  you came in through &mdash; watch it change between the two commands while the
+  list stays identical.</p>
+
+  <div class="note"><b>If it says the variables are not set.</b> They were
+  added with <code>setx</code>, which only affects terminals opened
+  <em>afterwards</em>. Close the terminal, open a new one, and run it again.</div>
+
+  <h3>What each result marker means</h3>
+  <table>
+    <tr><td class="v"><span class="tag yes">yes / true</span></td><td>tested against the live server and it worked</td></tr>
+    <tr><td class="v"><span class="tag part">part / partly</span></td><td>works with a caveat, or works by a different mechanism than the document assumed</td></tr>
+    <tr><td class="v"><span class="tag no">no / false</span></td><td>genuinely does not work, or the claim is contradicted by measurement</td></tr>
+    <tr><td class="v"><span class="tag na">skip / n/a</span></td><td>not run — either a write test without <code>--write</code>, or a policy claim that no code can test</td></tr>
+  </table>
+</section>
+
+<!-- ══════════════ FOR THE MEETING ══════════════ -->
+<section class="sheet">
+  <h2>For the meeting</h2>
+
+  <h3>If asked: can it read all the Gmail labels?</h3>
+  <div class="quote">Yes — all nineteen. Every one of your own labels, every
+  Gmail system folder including Spam, and all four category tabs. Primary is
+  1,748 messages, measured over IMAP.</div>
+
+  <h3>If asked: do the actions still show up in Gmail?</h3>
+  <div class="quote">Yes, immediately — because we use Gmail's own
+  X-GM-LABELS, the same mechanism the API uses. Applying a label, removing it,
+  marking read and marking unread were all tested and all reverted cleanly.</div>
+
+  <h3>If asked: what are we sacrificing?</h3>
+  <div class="quote">Of 43 capabilities, 38 work. Three are genuinely missing:
+  push notification, which costs us up to twenty seconds of delay; snooze,
+  which no use case needs; and forward, which is a morning's work because SMTP
+  is already wired. Nothing on that list blocks the POC.</div>
+
+  <h3>If asked: is the comparison document wrong?</h3>
+  <div class="quote">It is right about the protocol and wrong about the
+  product. Plain IMAP genuinely has no labels, no categories and no Important
+  marker. Gmail's IMAP is not plain IMAP — it advertises X-GM-EXT-1, and those
+  three claims fail against a live server. The document is also right about
+  something I had got wrong: the app-password route can send.</div>
+
+  <h3>If asked: how do we know any of this?</h3>
+  <div class="quote">Two scripts, fifty-one seconds, on a real mailbox. They
+  found six bugs in our own code — including one where applying a label was
+  quietly taking the message out of the inbox. From the terminal it had looked
+  correct the whole time.</div>
+
+  <div class="note"><b>The line worth ending on.</b> A comparison document
+  tells you what someone believes a protocol can do. We ran it instead — and
+  the difference between those two things was six defects, one of which was
+  moving customers' mail.</div>
+
+  <div class="foot">
+    Custodian · IMAP test report · generated 10 September 2026 ·
+    audit_imap.py (43 tests) · verify_doc.py (16 claims) ·
+    login47015@gmail.com · 7,832 messages · inbox unchanged
+  </div>
+</section>
+
+</body>
+</html>

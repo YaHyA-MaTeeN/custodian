@@ -1,0 +1,433 @@
+<title>What the Agent Does</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#EFF2F4; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#10222B; --ink-2:#566B76; --ink-3:#85979F;
+    --rule:#D4DFE4; --rule-soft:#E4ECEF;
+    --accent:#0F5673; --accent-soft:#E0EDF3;
+    --safe:#1C6647; --safe-soft:#DFEFE7;
+    --warn:#8A6110; --warn-soft:#F8EEDA;
+    --danger:#A32C22; --danger-soft:#F7E4E1;
+    --f-display:"IBM Plex Serif",Georgia,serif;
+    --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+      --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+      --rule:#223945; --rule-soft:#1A2E38;
+      --accent:#64B8DB; --accent-soft:#13303E;
+      --safe:#6DBF97; --safe-soft:#163025;
+      --warn:#DCAE5C; --warn-soft:#332916;
+      --danger:#E8897C; --danger-soft:#37201D;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+    --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+    --rule:#223945; --rule-soft:#1A2E38;
+    --accent:#64B8DB; --accent-soft:#13303E;
+    --safe:#6DBF97; --safe-soft:#163025;
+    --warn:#DCAE5C; --warn-soft:#332916;
+    --danger:#E8897C; --danger-soft:#37201D;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:960px; margin:0 auto; padding:0 24px 100px; }
+
+  header.top { padding:52px 0 26px; border-bottom:1px solid var(--rule); margin-bottom:36px; }
+  .eyebrow { font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--f-display); font-weight:600; font-size:clamp(30px,4.6vw,44px); line-height:1.08; letter-spacing:-.02em; margin:12px 0 0; text-wrap:balance; }
+  .sub { max-width:64ch; color:var(--ink-2); font-size:16px; margin:13px 0 0; }
+
+  h2 { font-family:var(--f-display); font-size:23px; font-weight:600; letter-spacing:-.012em; margin:50px 0 8px; }
+  h3 { font-size:15px; font-weight:600; margin:26px 0 8px; }
+  p { max-width:68ch; margin:0 0 14px; }
+  code { font-family:var(--f-mono); font-size:.86em; background:var(--surface-2); border:1px solid var(--rule-soft); border-radius:3px; padding:1px 4px; color:var(--accent); }
+
+  figure { margin:0 0 14px; background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:22px 20px 16px; overflow-x:auto; }
+  figure svg { display:block; max-width:100%; height:auto; margin:0 auto; }
+  figcaption { font-size:13px; color:var(--ink-2); margin-top:16px; padding-top:12px; border-top:1px solid var(--rule-soft); line-height:1.55; }
+  figcaption b { color:var(--ink); font-weight:600; }
+
+  .tw { overflow-x:auto; margin:0 0 20px; border:1px solid var(--rule); border-radius:5px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:620px; }
+  th { text-align:left; font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); padding:10px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2); white-space:nowrap; vertical-align:bottom; }
+  td { padding:10px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.5; }
+  tbody tr:last-child td { border-bottom:none; }
+  .mono { font-family:var(--f-mono); font-size:12.5px; color:var(--accent); }
+
+  .chip { display:inline-block; font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; padding:2.5px 7px; border-radius:3px; white-space:nowrap; border:1px solid transparent; }
+  .chip.safe { background:var(--safe-soft); color:var(--safe); border-color:color-mix(in srgb,var(--safe) 28%,transparent); }
+  .chip.warn { background:var(--warn-soft); color:var(--warn); border-color:color-mix(in srgb,var(--warn) 30%,transparent); }
+  .chip.danger { background:var(--danger-soft); color:var(--danger); border-color:color-mix(in srgb,var(--danger) 28%,transparent); }
+
+  .key { background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:0 4px 4px 0; padding:15px 20px; margin:0 0 22px; max-width:74ch; }
+  .key p { margin:0; max-width:none; }
+  .key p + p { margin-top:10px; }
+  .key .tag { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:5px; }
+
+  footer { margin-top:52px; padding-top:20px; border-top:1px solid var(--rule); font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); letter-spacing:.03em; line-height:1.7; }
+</style>
+
+<div class="wrap">
+<div style="background:#F7E4E1;border:2px solid #A32C22;border-radius:6px;padding:16px 20px;margin:0 0 24px;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#10222B;line-height:1.55">
+<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#A32C22;margin-bottom:6px">Superseded &#183; 3 Sept 2026</div>
+<div style="font-size:15px"><strong>Do not use this page.</strong> The model sizes and pipeline stages here predate the research and are now wrong. Everything on it has been folded into the single current document, <a href="https://claude.ai/code/artifact/67463cd2-9ea1-4d9c-8068-ebe3c006b4c3" style="color:#0F5673;font-weight:600">Component Flow</a> &#8212; which also carries every action, every mailbox, every model size and every library.</div>
+</div>
+
+
+<header class="top">
+  <span class="eyebrow">Node D — the actions</span>
+  <h1>What the Agent Does</h1>
+  <p class="sub">Every action the agent can take, and the one thing that decides how much permission it needs: <strong>how far the effect travels.</strong> Something that only moves an email inside your own mailbox is nothing like something that sends a message in your name.</p>
+</header>
+
+<!-- ============ MAIN DIAGRAM ============ -->
+<h2>How far does the effect travel?</h2>
+
+<figure>
+<svg viewBox="0 0 880 620" role="img" aria-label="Five tiers of action shown as bars of increasing reach. Tier 0 stays on our server. Tier 1 reaches the user's mailbox. Tier 2 sends a small signal outside. Tier 3 sends a full message to another person and needs approval every time. Tier 4 is blocked and never built.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Sans, sans-serif" fill="currentColor">
+
+    <!-- zone bands -->
+    <rect x="60" y="62" width="280" height="470" fill="var(--surface-2)" opacity="0.55"/>
+    <rect x="600" y="62" width="260" height="470" fill="var(--surface-2)" opacity="0.55"/>
+
+    <!-- zone dividers -->
+    <line x1="340" y1="62" x2="340" y2="532" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" opacity="0.45"/>
+    <line x1="600" y1="62" x2="600" y2="532" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" opacity="0.45"/>
+
+    <!-- zone headers -->
+    <text x="200" y="44" text-anchor="middle" font-size="12" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">OUR SERVER</text>
+    <text x="470" y="44" text-anchor="middle" font-size="12" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">YOUR MAILBOX</text>
+    <text x="730" y="44" text-anchor="middle" font-size="12" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">OTHER PEOPLE</text>
+
+    <!-- ===== TIER 0 ===== -->
+    <rect x="60" y="82" width="280" height="56" rx="4" fill="var(--safe-soft)" stroke="var(--safe)" stroke-width="1.5"/>
+    <text x="76" y="104" font-size="12.5" font-weight="600" fill="var(--safe)">TIER 0 · thinking only</text>
+    <text x="76" y="124" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">read · classify · tag · extract</text>
+    <text x="360" y="115" font-size="11.5" fill="var(--ink-3)" font-style="italic">nothing leaves. nothing changes.</text>
+    <text x="640" y="115" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--safe)">no approval ever</text>
+
+    <!-- ===== TIER 1 ===== -->
+    <rect x="60" y="170" width="280" height="56" rx="4" fill="var(--safe-soft)" stroke="var(--safe)" stroke-width="1.5"/>
+    <text x="76" y="192" font-size="12.5" font-weight="600" fill="var(--safe)">TIER 1 · tidying</text>
+    <text x="76" y="212" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">label · archive · snooze · move</text>
+    <line x1="340" y1="198" x2="424" y2="198" stroke="var(--safe)" stroke-width="1.8" marker-end="url(#a)" color="var(--safe)"/>
+    <rect x="430" y="170" width="160" height="56" rx="4" fill="var(--surface)" stroke="var(--safe)" stroke-width="1.5"/>
+    <text x="510" y="195" text-anchor="middle" font-size="12" font-weight="600">mail is moved</text>
+    <text x="510" y="213" text-anchor="middle" font-size="11" fill="var(--ink-2)">only you see it</text>
+    <text x="640" y="192" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--safe)">approved once,</text>
+    <text x="640" y="208" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--safe)">at setup</text>
+
+    <!-- ===== TIER 2 ===== -->
+    <rect x="60" y="258" width="280" height="56" rx="4" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.5"/>
+    <text x="76" y="280" font-size="12.5" font-weight="600" fill="var(--warn)">TIER 2 · small signal out</text>
+    <text x="76" y="300" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">unsubscribe · RSVP · add event</text>
+    <line x1="340" y1="286" x2="684" y2="286" stroke="var(--warn)" stroke-width="1.8" marker-end="url(#a)" color="var(--warn)"/>
+    <rect x="690" y="258" width="170" height="56" rx="4" fill="var(--surface)" stroke="var(--warn)" stroke-width="1.5"/>
+    <text x="775" y="283" text-anchor="middle" font-size="12" font-weight="600">they see a signal</text>
+    <text x="775" y="301" text-anchor="middle" font-size="11" fill="var(--ink-2)">"unsubscribed" · "attending"</text>
+    <text x="352" y="277" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--warn)">approved per type</text>
+
+    <!-- ===== TIER 3 ===== -->
+    <rect x="60" y="346" width="280" height="56" rx="4" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="2"/>
+    <text x="76" y="368" font-size="12.5" font-weight="600" fill="var(--danger)">TIER 3 · speaks as you</text>
+    <text x="76" y="388" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">send reply · forward · decline</text>
+
+    <!-- approval gate -->
+    <line x1="368" y1="332" x2="368" y2="416" stroke="var(--danger)" stroke-width="2.5"/>
+    <circle cx="368" cy="374" r="13" fill="var(--surface)" stroke="var(--danger)" stroke-width="2.5"/>
+    <text x="368" y="379" text-anchor="middle" font-size="13" fill="var(--danger)" font-weight="600">✓</text>
+    <text x="368" y="428" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--danger)" font-weight="600">YOU</text>
+    <text x="368" y="442" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--danger)">every time</text>
+
+    <line x1="382" y1="374" x2="684" y2="374" stroke="var(--danger)" stroke-width="2" marker-end="url(#a)" color="var(--danger)"/>
+    <rect x="690" y="346" width="170" height="56" rx="4" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="1.5"/>
+    <text x="775" y="371" text-anchor="middle" font-size="12" font-weight="600">a person reads it</text>
+    <text x="775" y="389" text-anchor="middle" font-size="11" fill="var(--ink-2)">cannot be taken back</text>
+
+    <!-- ===== TIER 4 ===== -->
+    <rect x="60" y="462" width="280" height="56" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.5"/>
+    <text x="76" y="484" font-size="12.5" font-weight="600" opacity="0.6">TIER 4 · never built</text>
+    <text x="76" y="504" font-size="11.5" font-family="IBM Plex Mono, monospace" opacity="0.6">delete · change settings · grant access</text>
+
+    <!-- blocked -->
+    <line x1="356" y1="476" x2="384" y2="504" stroke="var(--danger)" stroke-width="3"/>
+    <line x1="384" y1="476" x2="356" y2="504" stroke="var(--danger)" stroke-width="3"/>
+    <text x="404" y="486" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--danger)" font-weight="600">these don't exist in our code —</text>
+    <text x="404" y="503" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--danger)">and Google would refuse them anyway</text>
+
+    <!-- bottom note -->
+    <line x1="60" y1="556" x2="860" y2="556" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+    <text x="60" y="582" font-size="12" fill="var(--ink-2)" font-weight="600">The further an action travels, the more permission it needs.</text>
+    <text x="60" y="602" font-size="11.5" fill="var(--ink-3)">Nothing that reaches another human being happens without you saying yes, that time, for that message.</text>
+  </g>
+</svg>
+<figcaption><b>Reach determines permission.</b> Tier 0 never leaves our server, so it needs no approval — nothing in your mailbox changes. Tier 1 moves mail inside your own mailbox, so you approve the rule once. Tier 2 lets a signal reach the outside world, so you approve that <em>type</em> of action. Tier 3 puts a message in front of another human in your name, so you approve <em>every single one</em>. Tier 4 was never built.</figcaption>
+</figure>
+
+<!-- ============ WHO DOES IT ============ -->
+<h2>Who actually performs each action?</h2>
+
+<p><strong>Always the same answer: our own code.</strong> No model ever touches a mailbox. The model produces a small answer; our code turns that answer into one instruction.</p>
+
+<figure>
+<svg viewBox="0 0 840 210" role="img" aria-label="A four-step chain: the model returns a label, our code turns it into an instruction, Gmail checks our permission, and Gmail performs the action.">
+  <defs>
+    <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Sans, sans-serif" fill="currentColor">
+
+    <rect x="20" y="60" width="160" height="66" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="100" y="86" text-anchor="middle" font-size="12.5" font-weight="600">The model</text>
+    <text x="100" y="106" text-anchor="middle" font-size="11" fill="var(--ink-2)">answers a question</text>
+
+    <line x1="180" y1="93" x2="216" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#b)"/>
+    <text x="198" y="82" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--accent)">"junk"</text>
+
+    <rect x="222" y="60" width="160" height="66" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="302" y="86" text-anchor="middle" font-size="12.5" font-weight="600">Our code</text>
+    <text x="302" y="106" text-anchor="middle" font-size="11" fill="var(--ink-2)">writes an instruction</text>
+
+    <line x1="382" y1="93" x2="418" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#b)"/>
+    <text x="400" y="82" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--accent)">"archive #4821"</text>
+
+    <rect x="424" y="60" width="180" height="66" rx="5" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="514" y="86" text-anchor="middle" font-size="12.5" font-weight="600">Gmail checks us</text>
+    <text x="514" y="106" text-anchor="middle" font-size="11" fill="var(--ink-2)">"are they allowed to?"</text>
+
+    <line x1="604" y1="93" x2="640" y2="93" stroke="currentColor" stroke-width="1.5" marker-end="url(#b)"/>
+    <text x="622" y="82" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--safe)">yes</text>
+
+    <rect x="646" y="60" width="170" height="66" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="731" y="86" text-anchor="middle" font-size="12.5" font-weight="600">Gmail does it</text>
+    <text x="731" y="106" text-anchor="middle" font-size="11" fill="var(--ink-2)">the mail moves</text>
+
+    <text x="420" y="168" text-anchor="middle" font-size="12" fill="var(--ink-2)">Two separate checks stand between a model's opinion and your mailbox:</text>
+    <text x="420" y="188" text-anchor="middle" font-size="12" font-weight="600">our own code, and then Gmail's own permission check.</text>
+  </g>
+</svg>
+<figcaption><b>The model never holds the steering wheel.</b> It hands back a word. Our code decides whether that word justifies an action, and then asks the mailbox provider to carry it out — and the provider independently checks that we were granted that permission in the first place.</figcaption>
+</figure>
+
+<!-- ============ FULL LIST ============ -->
+<h2>Every action, in full</h2>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>Where it lands</th><th>Approval</th><th>Undo?</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">read</td><td>Our server</td><td><span class="chip safe">None</span></td><td>—</td></tr>
+    <tr><td class="mono">classify · tag</td><td>Our server</td><td><span class="chip safe">None</span></td><td>—</td></tr>
+    <tr><td class="mono">extract deadline / amount</td><td>Our server</td><td><span class="chip safe">None</span></td><td>—</td></tr>
+    <tr><td class="mono">detect sensitive</td><td>Our server</td><td><span class="chip safe">None</span></td><td>—</td></tr>
+    <tr><td class="mono">label</td><td>Your mailbox</td><td><span class="chip safe">Once, at setup</span></td><td>✅ instantly</td></tr>
+    <tr><td class="mono">archive</td><td>Your mailbox</td><td><span class="chip safe">Once, at setup</span></td><td>✅ 30-day window</td></tr>
+    <tr><td class="mono">snooze · move · mark read</td><td>Your mailbox</td><td><span class="chip safe">Once, at setup</span></td><td>✅ instantly</td></tr>
+    <tr><td class="mono">set reminder</td><td>Our server</td><td><span class="chip safe">Once, at setup</span></td><td>✅ instantly</td></tr>
+    <tr><td class="mono">unsubscribe</td><td><strong>Outside</strong> — the sender is told</td><td><span class="chip warn">Per type</span></td><td>⚠️ resubscribe manually</td></tr>
+    <tr><td class="mono">RSVP to an invite</td><td><strong>Outside</strong> — organiser sees it</td><td><span class="chip warn">Per type</span></td><td>⚠️ change it manually</td></tr>
+    <tr><td class="mono">create calendar event</td><td>Your calendar</td><td><span class="chip warn">Per type</span></td><td>✅ delete it</td></tr>
+    <tr><td class="mono">send reply</td><td><strong>A person reads it</strong></td><td><span class="chip danger">Every single time</span></td><td>❌ <strong>never</strong></td></tr>
+    <tr><td class="mono">forward · CC someone</td><td><strong>A person reads it</strong></td><td><span class="chip danger">Every single time</span></td><td>❌ <strong>never</strong></td></tr>
+    <tr><td class="mono">decline a meeting</td><td><strong>Organiser sees it</strong></td><td><span class="chip danger">Every single time</span></td><td>⚠️ awkward</td></tr>
+    <tr style="opacity:.55"><td class="mono">permanent delete</td><td colspan="3"><strong>Not built. Not requested. Google would refuse the instruction.</strong></td></tr>
+    <tr style="opacity:.55"><td class="mono">change account settings</td><td colspan="3">Not built. Not requested.</td></tr>
+    <tr style="opacity:.55"><td class="mono">grant access to anyone</td><td colspan="3">Not built. Not requested.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="key">
+  <span class="tag">The one rule underneath all of it</span>
+  <p><strong>Look at the last column.</strong> The actions with no undo are exactly the actions that need approval every time. The actions that undo instantly need approval once.</p>
+  <p>That's the entire design principle: <strong>permission is set by how hard the mistake would be to fix</strong> — not by how clever the agent is, and not by how confident the model happens to be.</p>
+</div>
+
+<h3>And why Tier 4 pays for itself twice</h3>
+<p>Refusing to build <code>delete</code> isn't only about safety. Asking Google for full-mailbox access — which includes permanent delete — pushes an app into a much heavier annual security assessment. By never asking for it, we stay in the cheaper tier.</p>
+<p><strong>The safest choice and the cheapest choice turned out to be the same choice.</strong> That usually means the design is right.</p>
+
+<!-- ============ MECHANISMS ============ -->
+<h2>The actual mechanism for every action</h2>
+<p>Named calls and named tools, so every claim here can be checked. <strong>Door 1</strong> is Gmail, Outlook and the other full-API providers; <strong>Door 2</strong> is the older IMAP mailboxes.</p>
+
+<h3>Tier 0 — on our server. Nothing in the mailbox changes.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>What performs it</th><th>The actual call</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="mono">read</td>
+      <td>The mailbox API</td>
+      <td><strong>Gmail:</strong> <code>users.messages.get</code> — with <code>format=metadata</code> for envelope only, <code>format=full</code> to open it<br><strong>Graph:</strong> <code>GET /me/messages/{id}</code><br><strong>IMAP:</strong> <code>FETCH n (ENVELOPE)</code> or <code>FETCH n (BODY[])</code></td>
+    </tr>
+    <tr>
+      <td class="mono">parse</td>
+      <td><span class="mono">email</span> (stdlib) or <span class="mono">flanker</span></td>
+      <td>Turns raw text into sender, subject, headers, body, attachments. Handles MIME, encodings, nested parts.</td>
+    </tr>
+    <tr>
+      <td class="mono">classify</td>
+      <td>Our header rules → <span class="mono">ModernBERT + SetFit</span></td>
+      <td>Rules check <code>List-Unsubscribe</code>, <code>Precedence</code>, sender patterns. Unresolved cases go to the model.</td>
+    </tr>
+    <tr>
+      <td class="mono">extract deadline / amount</td>
+      <td><span class="mono">duckling</span> → <span class="mono">dateparser</span> → model</td>
+      <td>duckling returns candidates <em>with probabilities</em>; below 0.80 it escalates. Every answer is verified against the original text before use.</td>
+    </tr>
+    <tr>
+      <td class="mono">detect sensitive</td>
+      <td>Our own rules</td>
+      <td>Sender-domain list (banks, health, government) plus a pattern test on the subject — <code>code|OTP|verification</code> near a 4–8 digit number. Runs <strong>before everything else</strong> so nothing can open it by accident.</td>
+    </tr>
+    <tr>
+      <td class="mono">build sender memory</td>
+      <td>Our database</td>
+      <td>A query over history we already stored: <em>how many of this sender's messages did you reply to?</em> No AI, no mailbox call.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 1 — changes in your mailbox. Reversible.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>Door 1</th><th>Door 2 (IMAP)</th><th>Gotcha</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="mono">label</td>
+      <td><strong>Gmail:</strong> <code>users.labels.create</code> once, then <code>users.messages.modify</code> with <code>addLabelIds</code><br><strong>Graph:</strong> <code>PATCH /me/messages/{id}</code> setting <code>categories</code></td>
+      <td>No labels exist. We use folders instead — <code>CREATE</code> then <code>MOVE</code></td>
+      <td>Create the label once and <strong>store its ID</strong>. Creating it per message fails.</td>
+    </tr>
+    <tr>
+      <td class="mono">archive</td>
+      <td><strong>Gmail:</strong> <code>messages.modify</code>, <code>removeLabelIds: ["INBOX"]</code><br><strong>Graph:</strong> move to the Archive folder</td>
+      <td><code>MOVE n Archive</code></td>
+      <td>Gmail archiving is just removing one label. <strong>Nothing is deleted</strong> — which is why undo is instant.</td>
+    </tr>
+    <tr>
+      <td class="mono">mark read / unread</td>
+      <td><strong>Gmail:</strong> add or remove the <code>UNREAD</code> label<br><strong>Graph:</strong> set <code>isRead</code></td>
+      <td><code>STORE n +FLAGS (\Seen)</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td class="mono">snooze</td>
+      <td colspan="2"><strong>No API exists for this on any provider.</strong> We build it: archive the message now, and store a scheduled job that re-applies <code>INBOX</code> at the chosen time.</td>
+      <td><strong>Worth knowing.</strong> Gmail's own snooze is not exposed to apps. Ours is our own feature, not theirs.</td>
+    </tr>
+    <tr>
+      <td class="mono">star / flag</td>
+      <td><strong>Gmail:</strong> the <code>STARRED</code> label<br><strong>Graph:</strong> <code>flag</code> property</td>
+      <td><code>STORE n +FLAGS (\Flagged)</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td class="mono">set reminder</td>
+      <td colspan="2"><strong>Never touches the mailbox.</strong> One row in our own jobs table with a <code>run_at</code> time; <span class="mono">pg-boss</span> fires it when due.</td>
+      <td>Entirely ours, so it works identically on every door.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 2 — a signal reaches outside.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>What performs it</th><th>Gotcha</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="mono">unsubscribe</td>
+      <td>An ordinary HTTP request. The <code>List-Unsubscribe</code> header <strong>contains the address</strong>:<br><code>List-Unsubscribe: &lt;https://sender.com/unsub?t=abc&gt;</code><br>We send one <code>POST</code> to it (the RFC 8058 one-click standard).</td>
+      <td>Some senders only give a <code>mailto:</code> — then we send an email instead. <strong>Same header that identified the junk is the one that removes it.</strong> No AI involved.</td>
+    </tr>
+    <tr>
+      <td class="mono">RSVP to an invite</td>
+      <td><strong>Google:</strong> <code>events.patch</code> setting the attendee's <code>responseStatus</code><br><strong>Graph:</strong> <code>POST /me/events/{id}/accept</code></td>
+      <td>The organiser is notified automatically by the calendar system — which is exactly why this is Tier 2 and not Tier 1.</td>
+    </tr>
+    <tr>
+      <td class="mono">create calendar event</td>
+      <td><strong>Google:</strong> <code>events.insert</code><br><strong>Graph:</strong> <code>POST /me/events</code></td>
+      <td>Only visible to others if we add attendees — so by default we don't.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 3 — speaks in your name. Cannot be undone.</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Action</th><th>What performs it</th><th>Gotcha</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="mono">draft the reply</td>
+      <td><strong>1.</strong> Build the prompt — their email, plus 4–5 of your own past replies as style examples<br><strong>2.</strong> <span class="mono">Presidio</span> replaces names and numbers with placeholders<br><strong>3.</strong> Call the frontier model<br><strong>4.</strong> Put the real names back, locally<br><strong>5.</strong> Show it to you</td>
+      <td><strong>This is the only step in the entire product where anything leaves our servers</strong> — and it leaves with the identities already removed.</td>
+    </tr>
+    <tr>
+      <td class="mono">send reply</td>
+      <td><strong>Gmail:</strong> <code>users.messages.send</code> with the <code>threadId</code><br><strong>Graph:</strong> <code>POST /me/messages/{id}/reply</code><br><strong>IMAP door:</strong> send via <strong>SMTP</strong>, then <code>APPEND</code> a copy to the Sent folder</td>
+      <td><strong>Two traps.</strong> The reply must carry <code>In-Reply-To</code> and <code>References</code> headers or it appears as a brand-new conversation. And on the IMAP door, SMTP doesn't file a copy for you — <strong>if you skip the APPEND, the user's Sent folder is missing their own email.</strong></td>
+    </tr>
+    <tr>
+      <td class="mono">forward</td>
+      <td>Same send call, with the original message quoted or attached</td>
+      <td>Attachments must be re-attached, not just referenced.</td>
+    </tr>
+    <tr>
+      <td class="mono">decline a meeting</td>
+      <td><strong>Google:</strong> <code>events.patch</code> → <code>declined</code><br><strong>Graph:</strong> <code>POST /me/events/{id}/decline</code></td>
+      <td>The organiser sees it immediately. Approval every time.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Tier 4 — never built</h3>
+<p>There is no <code>delete</code> function anywhere in our code. Not disabled, not commented out — <strong>it does not exist</strong>. And we never requested the permission, so the provider would refuse the instruction even if a bug produced one. <strong>Two independent barriers.</strong></p>
+
+<h2>What runs when</h2>
+<div class="tw">
+<table>
+  <thead><tr><th>Trigger</th><th>What fires</th><th>Mechanism</th></tr></thead>
+  <tbody>
+    <tr><td>New mail arrives</td><td>Read, classify, act</td><td><strong>Door 1:</strong> the provider notifies us. <strong>Door 2:</strong> we check every 1–5 minutes</td></tr>
+    <tr><td>A reminder falls due</td><td>Message you</td><td><span class="mono">pg-boss</span> polls the jobs table every minute</td></tr>
+    <tr><td>Every morning</td><td>The daily summary</td><td>A scheduled job reading our own database — <strong>no mailbox call, no AI</strong></td></tr>
+    <tr><td>Every night</td><td>Recalculate who matters to you</td><td>Refits the priority maths on your recent behaviour</td></tr>
+    <tr><td>Every day</td><td>Renew the mailbox subscription</td><td>The silent-failure guard from node A</td></tr>
+    <tr><td>You reply in chat</td><td>Send, edit, or discard</td><td>Handled immediately, in the moment</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="key">
+  <span class="tag">What you can now claim</span>
+  <p>Every action above is <strong>a named API call or a named library</strong>. None of it is speculative, and none of it requires anything to be invented.</p>
+  <p>The three genuine engineering problems are named too, rather than glossed over: <strong>snooze doesn't exist as an API</strong> and must be built; <strong>replies need the right threading headers</strong> or they break conversations; and <strong>on IMAP mailboxes the Sent copy must be filed by us</strong> or it goes missing.</p>
+</div>
+
+<footer>
+  Companion to "How the Agent Thinks", which covers how each decision is reached. This page covers what happens once a decision is made. API method names are from current Gmail, Microsoft Graph and IMAP documentation.
+</footer>
+
+</div>

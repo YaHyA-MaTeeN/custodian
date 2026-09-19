@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Custodian Codebase</title>
+<link rel="stylesheet" href="_docstyle.css">
+</head>
+<body>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<section>
+  <div class="cover">
+    <div class="eyebrow">Custodian · Document 3 of 3 · Low level</div>
+    <h1>The code: how to find your way around it,<br>file by file and function by function</h1>
+    <p class="meta">OCloud Solutions &nbsp;·&nbsp; <code>c:\mob_ai\poc</code> on 11 September 2026 &nbsp;·&nbsp; 56 Python files · 12,017 lines · one database · two model folders</p>
+  </div>
+
+  <p class="lead">This is the document to have open while reading or changing
+  the code. It gives the map, the reading conventions, the entry points and
+  what they call, every data shape that crosses a function boundary, a
+  file-by-file reference, the database field by field, the files on disk, and
+  a "where do I change X" table.</p>
+
+  <table class="toc">
+    <tr><td class="n">A</td><td>The map &mdash; every file, one line each</td></tr>
+    <tr><td class="n">B</td><td>How to read this code &mdash; the conventions</td></tr>
+    <tr><td class="n">C</td><td>Entry points and what they call</td></tr>
+    <tr><td class="n">D</td><td>The data shapes that cross boundaries</td></tr>
+    <tr><td class="n">E</td><td>The walk through <code>agent.run_one</code>, in execution order</td></tr>
+    <tr><td class="n">F</td><td>File-by-file reference</td></tr>
+    <tr><td class="n">G</td><td>The database, field by field</td></tr>
+    <tr><td class="n">H</td><td>Files on disk that are not code</td></tr>
+    <tr><td class="n">I</td><td>Environment variables and flags</td></tr>
+    <tr><td class="n">J</td><td>Where do I change X</td></tr>
+    <tr><td class="n">K</td><td>How to add a connector, a stage, a prompt, an action</td></tr>
+    <tr><td class="n">L</td><td>Known gaps and sharp edges</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ A · MAP ═══════════════ -->
+<section class="sheet">
+  <h2>A &nbsp;·&nbsp; The map</h2>
+<div class="tree">c:\mob_ai\poc\
+│
+│  ── entry points (things a person runs) ──────────────────────────────
+├─ run.py              106   first scan: every envelope into the database → report.html
+├─ agent.py            399   the full pipeline over N newest messages, every stage printed
+├─ watch.py            273   live: poll, run the pipeline, label, optionally draft and ask
+├─ scan.py             154   catch up on the backlog by calling agent.run_one
+├─ web.py              687   the mailbox in a browser; --watch runs the agent behind it
+├─ chat.py             294   sentences → actions, through user_input and the gate
+├─ send_mail.py        156   send on the Owner's behalf, through stages 19-11-13-14
+├─ brief.py            244   the daily brief; --email sends it (UC-31)
+├─ waiting.py          191   unanswered outgoing mail (UC-22)
+├─ inbox.py            193   merged inbox, search, duplicates collapsed (UC-27/28)
+├─ mailbox.py          295   three-tier view in the terminal; --warm fills the 30-day store
+├─ correct.py          334   tell it it was wrong (UC-29)
+├─ history.py          158   what it did, and --undo (UC-30)
+├─ my_data.py          189   export or erase (UC-32)
+├─ sort_mailbox.py     238   apply labels in bulk; --undo removes exactly those
+│
+│  ── the spine ──────────────────────────────────────────────────────────
+├─ connect.py          180   picks the door; live_id / fetch_verified for safe reopen
+├─ store.py            402   the database: schema + every query
+├─ connectors\
+│   ├─ base.py         104   Envelope dataclass + the Connector protocol
+│   ├─ gmail.py        470   the Gmail API door (OAuth, history.list, thread-local clients)
+│   └─ imap.py         937   the IMAP door (X-GM-EXT-1, UID commands, SMTP send)
+├─ pipeline\
+│   ├─ stage02_strip.py         97   MIME → text; quoted history and signature removed
+│   ├─ stage03_sensitive.py    195   headers-only gate; four sources of sensitivity
+│   ├─ stage04_headers.py       91   facts from headers; the engagement exit
+│   ├─ stage05_forms.py        189   .ics, .pkpass, embedded invoice XML, layout fingerprint
+│   ├─ stage07_dates.py        219   find date phrases; resolve with code, never a model
+│   ├─ stage09_gate.py         236   needs a reply? hand weights blended with LightGBM
+│   ├─ stage10_redact.py       128   the one door out: patterns + known names → placeholders
+│   ├─ stage13_approval.py     201   the gate (Approval, check) and the executor (execute)
+│   ├─ stage15_unsubscribe.py   93   RFC 8058 one-click only
+│   ├─ stage16_commitments.py  231   date → reminder, lead time by kind
+│   ├─ stage17_quick.py         73   eight fixed replies, suggested by rules
+│   ├─ stage19_voice.py        239   writing profile + TF-IDF examples in SQLite
+│   ├─ model.py                324   Gemini client; classify (with the stage-6 router),
+│   │                                pick_deadline, draft_reply, read_command
+│   ├─ local_classifier.py     117   our XLM-R classifier, loaded once; topic by rules
+│   ├─ local_pii.py            108   our XLM-R token model; 113 labels → families
+│   ├─ user_input.py           177   typed text → one of a fixed set of actions
+│   ├─ prompts.py               94   loads prompts.md
+│   └─ batch_label.py           76   the teacher labels ten emails per request
+│
+│  ── training ─────────────────────────────────────────────────────────
+├─ train_classifier.py 272   label with Gemini (distillation), then fine-tune XLM-R
+├─ train_gate.py       176   LightGBM on this mailbox's own open/reply history
+├─ train_pii.py        153   token model on ai4privacy/pii-masking-200k
+├─ kaggle_train.py     226   the classifier training as a Kaggle notebook
+├─ kaggle_train_pii.py 192   the PII training as a Kaggle notebook
+├─ dump_for_labelling.py 97  numbered dump for hand labelling → to_label.txt
+├─ apply_labels.py     138   labels.txt + to_label.txt → labelled.jsonl
+├─ learn_voice.py       90   Sent folder → style profile + examples
+├─ shrink_model.py     133   PyTorch → ONNX 8-bit (written, not yet run)
+│
+│  ── proofs ───────────────────────────────────────────────────────────
+├─ test_imap.py        182   the first IMAP proof (Primary tab, same pipeline)
+├─ audit_imap.py       567   47 capabilities, writes on probe messages, self-verifying
+├─ verify_doc.py       308   the comparison notes, claim by claim
+├─ limits_imap.py      279   sizes, speed, caps, connections
+├─ runlog.py            48   tee every proof run into test_runs\
+├─ analyze.py           91   findings as header-only queries
+├─ report.py           173   findings → report.html
+│
+│  ── data and artefacts ────────────────────────────────────────────────
+├─ mailbox.db                the database (7,391 messages · 11 bodies · 12 decisions)
+├─ classifier\               stage-8 model, 547 MB (config, safetensors, tokenizer)
+├─ pii_model\                stage-10 model, 1.1 GB
+├─ gate_model.txt / .json    stage-9 LightGBM model + metadata (17 features, AUC 0.684)
+├─ prompts.md                every prompt, six sections
+├─ applied_labels.json       every label applied, with the door that applied it
+├─ labelled.jsonl · labels.txt · to_label.txt    classifier training data
+├─ credentials.json · token.json                OAuth client + the user's grant
+├─ requirements.txt
+└─ test_runs\                one file per proof run, timestamped</div>
+</section>
+
+<!-- ═══════════════ B · CONVENTIONS ═══════════════ -->
+<section class="sheet">
+  <h2>B &nbsp;·&nbsp; How to read this code</h2>
+
+  <div class="box"><h4>1 · Every file opens with why it exists</h4>
+  <p>The module docstring is the design note. It says what the file does, the
+  commands that run it, and the reasoning &mdash; usually with a measured number.
+  Read the docstring first; the code below it will then make sense.</p></div>
+
+  <div class="box"><h4>2 · <code>⚠️</code> marks a decision that was not obvious</h4>
+  <p>A <code>⚠️</code> comment sits beside code that was written the way it is
+  for a reason a reviewer would need: what was wrong before, how it was found,
+  why the fix is this and not the alternative. Many name the run in
+  <code>test_runs/</code> that found the problem. If you are about to change a
+  line under one of these, read it first.</p></div>
+
+  <div class="box"><h4>3 · Stage numbers are names, not an order</h4>
+  <p><code>stage09_gate.py</code> is "stage 9" everywhere: in the code, the
+  documents and the meeting notes. The execution order differs from the numbers
+  (3 before 2; 16 after 7; 6 after 8) and Part E gives the real order. There is
+  no stage 18.</p></div>
+
+  <div class="box"><h4>4 · No provider name above the connector line</h4>
+  <p>Only <code>connect.py</code> and <code>connectors/</code> contain "gmail" or
+  "imap". Everything else asks <code>conn.supports_*</code>. If you find yourself
+  writing <code>if conn.name == ...</code> in a stage, the capability flag you
+  need is missing from <code>base.py</code>; add it there.</p></div>
+
+  <div class="box"><h4>5 · Two kinds of id, and which is which</h4>
+  <p><code>message_id</code> is the RFC header (looks like
+  <code>&lt;abc@mail.example.com&gt;</code>) and is the real key.
+  <code>provider_id</code> is the door's handle: a 16-character hex string from
+  the API, or a short all-digit UID from IMAP. Never fetch by a stored
+  <code>provider_id</code> directly; go through <code>connect.fetch_verified</code>.</p></div>
+
+  <div class="box"><h4>6 · Reversible vs irreversible is a set, not a judgement</h4>
+  <p><code>stage13_approval.IRREVERSIBLE = {"send", "forward", "unsubscribe", "trash"}</code>
+  and <code>REVERSIBLE = {"label", "archive", "mark_read", "snooze", "remind",
+  "rescue_from_spam", "draft"}</code>. A new action must be added to one of them
+  or <code>check()</code> refuses it.</p></div>
+
+  <div class="box"><h4>7 · Print is not record</h4>
+  <p>A verdict is recorded only by <code>store.record_decision</code>, an action
+  only by <code>store.record_action</code>. Printing it is not enough; the watcher
+  printed verdicts for weeks and recorded none. If a surface makes a decision,
+  it writes it.</p></div>
+</section>
+
+<!-- ═══════════════ C · ENTRY POINTS ═══════════════ -->
+<section class="sheet">
+  <h2>C &nbsp;·&nbsp; Entry points and what they call</h2>
+
+<div class="flow">run.py ──────── connect.open_mailbox → conn.list_ids → conn.fetch_envelopes → store.save
+                → analyze.scan → report.write  (report.html)
+
+agent.py ────── connect.open_mailbox, Store
+                for each envelope: run_one(conn, store, env, names, want_draft, audit)
+                run_one is THE pipeline. Everything else that runs the pipeline calls it.
+
+scan.py ─────── unscanned(store) → for each: connect.live_id → conn.fetch_envelopes
+                → agent.run_one (stdout captured) → one log line
+
+watch.py ────── conn.current_history_id → loop: conn.new_since → conn.fetch_envelopes
+                → store.save → handle(...)  [its own compact stage walk; records stage-9]
+                → conn.apply_label → applied_labels.json → draft_and_ask (if --draft)
+
+web.py ──────── Store, connect.open_mailbox (quiet)
+                GET /        render_list  → rows() → classify() per row → HTML
+                GET /open    render_message → store.body or connect.fetch_verified → stage02.strip
+                GET /how     render_how  → live counts from store
+                --watch      thread: watcher() → own conn + Store → new_since / scan.scan → agent.run_one
+
+chat.py ─────── loop: input → user_input.read(text, state) → one of do_brief / do_search /
+                do_sort / do_watch / do_compose / do_send / do_edit / do_discard / do_help
+                do_compose → model.draft_reply → state["approval"] = Approval("send", body)
+                do_send    → approval.grant(typed) → stage13_approval.execute("send", …)
+
+send_mail.py ── stage19 (profile + similar) → model.draft_reply → Approval → execute("send")
+
+brief.py ────── rows → stage03/04 facts → local_classifier → stage09.score → top N
+                → model summarise (capped at 8) → print or conn.send (--email)
+
+correct.py ──── store.decision_for / add_correction; --scan: conn.label_removals_since
+history.py ──── store.action_history; --undo: the undo map → connector call → record_action("undo")
+my_data.py ──── store dump → JSON; --erase: delete rows, keep the mailbox untouched
+sort_mailbox.py ensure_labels → decide() per row → conn.apply_label → applied_labels.json
+mailbox.py ──── rows_for → worth_keeping → connect.fetch_verified → store.cache_body; trim_bodies</div>
+
+  <div class="note"><b>The one function that is the pipeline.</b>
+  <code>agent.run_one(conn, store, env, names, want_draft, audit)</code>. It is
+  called by <code>agent.py</code>, <code>scan.py</code> and the web watcher. If
+  you change what a stage does, change it in the stage module and every caller
+  gets it. <code>watch.py</code> has its own compact walk in <code>handle()</code>
+  for historical reasons; it records the stage-9 decision the same way and
+  should eventually call <code>run_one</code> too.</div>
+</section>
+
+<!-- ═══════════════ D · DATA SHAPES ═══════════════ -->
+<section class="sheet">
+  <h2>D &nbsp;·&nbsp; The data shapes that cross boundaries</h2>
+
+  <div class="box"><h4>Envelope &mdash; <code>connectors/base.py</code></h4>
+  <p>A dataclass. Required: <code>provider_id</code>, <code>message_id</code>. Then,
+  all defaulted: <code>thread_id</code>, <code>account</code>, <code>sender</code>,
+  <code>sender_name</code>, <code>sender_domain</code>, <code>recipients</code>,
+  <code>subject</code>, <code>date</code>, <code>size</code>, <code>unread</code>,
+  <code>in_inbox</code>, <code>categories</code>, <code>unsubscribe</code>,
+  <code>one_click</code>, <code>list_id</code>, <code>bulk</code>,
+  <code>auto_submitted</code>, <code>in_reply_to</code>, <code>references</code>.
+  The defaulted field <code>account</code> must stay after the required ones
+  (a dataclass cannot have a default before a required field). <b>No body.</b></p></div>
+
+  <div class="box"><h4>facts &mdash; from <code>stage04_headers.read(env)</code></h4>
+  <p><code>{machine_generated, has_unsubscribe, one_click_unsubscribe, list_id,
+  auto_reply, is_reply, addressed_only_to_me, auth: {checked, passed, note}}</code>.
+  Booleans and one nested dict. Consumed by stages 9, 16 and the surfaces.</p></div>
+
+  <div class="box"><h4>hist &mdash; from <code>store.history(address, me)</code></h4>
+  <p><code>{sent, opened, replied}</code> &mdash; counts of messages from this address,
+  how many were opened, how many we replied to. <code>replied</code> works only
+  because the <code>recipients</code> column exists; before it was added this
+  count was always zero and the gate's heaviest feature was permanently false.</p></div>
+
+  <div class="box"><h4>labels &mdash; from <code>local_classifier.classify()</code> or <code>model.classify()</code></h4>
+  <p><code>{intent, topic, confidence, by}</code> plus, when escalated,
+  <code>escalated_from</code>, or <code>note</code> when escalation was skipped.
+  <code>intent</code> is one of the two binary labels from our model or one of
+  the six from the Gemini prompt; <code>stage09_gate.REQUESTING</code> lists the
+  values that count as "a request" from <em>both</em> vocabularies.</p></div>
+
+  <div class="box"><h4>sc &mdash; from <code>stage09_gate.score(labels, facts, hist, env)</code></h4>
+  <p><code>{act_probability, needs_reply, first_contact, scored_by, signals, why}</code>.
+  <code>needs_reply = act_probability &gt;= 0.45 and signals["is_a_request"]</code>.
+  <code>why</code> is the comma-joined list of true signals and is what gets
+  recorded and shown.</p></div>
+
+  <div class="box"><h4>cands &mdash; from <code>stage07_dates.find_candidates(text)</code></h4>
+  <p>A list of <code>{phrase, resolved (ISO), days_away, looks_like_deadline, context}</code>.
+  Empty when nothing looked like a date.</p></div>
+
+  <div class="box"><h4>forms &mdash; from <code>stage05_forms.extract(attachments, html)</code></h4>
+  <p><code>{meetings: [...], passes: [...], invoices: [...], fingerprint}</code>.
+  <code>stage16.label_key(commitment, forms)</code> uses only these declared
+  sources to pick a category label.</p></div>
+
+  <div class="box"><h4>commitment &mdash; from <code>stage16_commitments.from_email(env, cands, forms, facts)</code></h4>
+  <p><code>{due, kind, remind_at, why, source}</code> or <code>None</code>.
+  <code>source</code> is "attached invite — declared, not inferred" or "found in the text".</p></div>
+
+  <div class="box"><h4>Approval &mdash; <code>stage13_approval.Approval(action, draft)</code></h4>
+  <p>Holds <code>hash = sha256(draft)[:16]</code>, <code>requested_at</code>,
+  <code>granted</code>. <code>grant(typed)</code> returns <code>(ok, reason)</code>;
+  it is an exact match against <code>AFFIRMATIVE</code> and expires after 24 h.
+  <code>check(action, draft, approval)</code> is the gate; <code>execute(...)</code>
+  is the only place a connector's write methods are called from the pipeline.</p></div>
+
+  <div class="box"><h4>state &mdash; in <code>chat.py</code></h4>
+  <p><code>{current_draft, draft_to, draft_subject, approval}</code>.
+  <code>user_input.allowed_actions(state)</code> builds the multiple-choice list
+  from this: with no <code>current_draft</code>, "send" and "edit" are not
+  offered, so no phrasing can produce them.</p></div>
+</section>
+
+<!-- ═══════════════ E · THE WALK ═══════════════ -->
+<section class="sheet">
+  <h2>E &nbsp;·&nbsp; The walk through <code>agent.run_one</code>, in execution order</h2>
+  <p class="lead">Line numbers are approximate to the current file; the order and
+  the calls are exact.</p>
+
+  <table>
+    <tr><th>Step</th><th>Stage</th><th>Call</th><th>Exit?</th></tr>
+    <tr><td class="n">1</td><td>1</td><td>print <code>conn.name</code> and the capability flags</td><td>&mdash;</td></tr>
+    <tr><td class="n">2</td><td>3</td><td><code>stage03_sensitive.check(env.sender, env.subject, env.sender_domain)</code></td><td><b>stop</b> if sensitive; body never fetched</td></tr>
+    <tr><td class="n">3</td><td>4</td><td><code>facts = stage04_headers.read(env)</code>; <code>hist = store.history(env.sender, me)</code>; <code>stage04_headers.engagement_exit(hist.sent, hist.opened)</code></td><td><b>exit</b> if ≥8 received and 0 opened</td></tr>
+    <tr><td class="n">4</td><td>2</td><td><code>raw = conn.fetch_raw(env.provider_id)</code>; <code>parsed = stage02_strip.strip(raw)</code> → <code>{text, html, attachments, ...}</code></td><td>&mdash;</td></tr>
+    <tr><td class="n">5</td><td>5</td><td><code>forms = stage05_forms.extract(attachments, "")</code></td><td>declared data noted</td></tr>
+    <tr><td class="n">6</td><td>7</td><td><code>cands = stage07_dates.find_candidates(parsed.text)</code></td><td>&mdash;</td></tr>
+    <tr><td class="n">7</td><td>16</td><td><code>commitment = stage16_commitments.from_email(env, cands, forms, facts)</code>; if any, <code>stage16_commitments.record(store, env, commitment)</code></td><td>reminder written, no approval</td></tr>
+    <tr><td class="n">8</td><td>8</td><td><code>labels = model.classify(parsed.text, env.subject, env.sender)</code> → tries <code>local_classifier</code> first</td><td>&mdash;</td></tr>
+    <tr><td class="n">9</td><td>6</td><td>report what <code>classify</code> did: kept ours / escalated (confidence &lt; 0.65) / no key</td><td>&mdash;</td></tr>
+    <tr><td class="n">10</td><td>9</td><td><code>sc = stage09_gate.score(labels, facts, hist, env)</code>; <code>store.record_decision(env.message_id, "9", ..., sc.why, sc.act_probability)</code></td><td><b>exit</b> if not needs_reply (unless drafting was asked for anyway)</td></tr>
+    <tr><td class="n">11</td><td>&mdash;</td><td><code>store.already_replied(env.message_id)</code></td><td><b>exit</b> if already answered</td></tr>
+    <tr><td class="n">12</td><td>10</td><td><code>redacted, mapping = stage10_redact.redact(stage10_redact.minimise(parsed.text), names)</code>; sender name redacted the same way</td><td>mapping stays in memory</td></tr>
+    <tr><td class="n">13</td><td>7/11</td><td><code>deadline = model.pick_deadline(cands, env.subject)</code> if any candidates</td><td>&mdash;</td></tr>
+    <tr><td class="n">14</td><td>19</td><td>profile and similar replies from <code>stage19_voice</code></td><td>&mdash;</td></tr>
+    <tr><td class="n">15</td><td>11</td><td><code>draft = model.draft_reply(redacted, env.subject, sender_tok, ...)</code></td><td>skipped without a key</td></tr>
+    <tr><td class="n">16</td><td>12</td><td><code>final, leftover = stage10_redact.restore(draft, mapping)</code></td><td><b>discard</b> if any placeholder unresolved</td></tr>
+    <tr><td class="n">17</td><td>13 (UC-25)</td><td>with <code>--drafts</code>: <code>stage13_approval.execute(conn, "draft", ...)</code> → Drafts folder; <code>store.record_action(..., "draft", ...)</code></td><td>done, reversible</td></tr>
+    <tr><td class="n">18</td><td>13</td><td><code>ap = Approval("send", final)</code>; show the draft; <code>ap.grant(input())</code></td><td>nothing unless an exact yes</td></tr>
+    <tr><td class="n">19</td><td>14</td><td><code>stage13_approval.execute(conn, "send", env.provider_id, final, ap, audit, to=..., subject=..., in_reply_to=..., references=..., thread_id=...)</code>; on success <code>store.mark_replied</code></td><td>the only send</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ F · FILE BY FILE ═══════════════ -->
+<section class="sheet">
+  <h2>F &nbsp;·&nbsp; File-by-file reference</h2>
+  <p class="lead">Purpose, the functions that matter, what each reads and writes,
+  and who calls it. Entry points are in Part C; this part covers the spine, the
+  pipeline and the helpers.</p>
+
+  <div class="box"><h4>connect.py</h4>
+  <table>
+    <tr><td class="k">HOSTS · host_for(address)</td><td>Domain → IMAP server. Unknown domains fall back to <code>imap.&lt;domain&gt;</code>.</td></tr>
+    <tr><td class="k">want_imap()</td><td><code>--imap</code> wins; <code>--api</code> wins; else IMAP if <code>IMAP_PASSWORD</code> is set and no <code>token.json</code>.</td></tr>
+    <tr><td class="k">open_mailbox(quiet)</td><td>Returns a connector. Prints the door unless quiet.</td></tr>
+    <tr><td class="k">describe(conn)</td><td>One line of capabilities for headers.</td></tr>
+    <tr><td class="k">looks_imap_uid(pid)</td><td>All digits and ≤10 characters. A 16-digit hex id that happens to have no letters is not a UID.</td></tr>
+    <tr><td class="k">live_id(conn, pid, mid)</td><td>The id to use on this door: <code>pid</code> on the API door for API ids; otherwise <code>conn.find_by_message_id(mid)</code>.</td></tr>
+    <tr><td class="k">fetch_verified(conn, pid, mid)</td><td>Fetches by <code>live_id</code>, then checks the Message-ID inside the bytes matches <code>mid</code>. Raises <code>LookupError</code> on missing or mismatch. <b>Use this, never <code>conn.fetch_raw(stored_pid)</code>.</b></td></tr>
+  </table></div>
+
+  <div class="box"><h4>store.py &mdash; class Store</h4>
+  <table>
+    <tr><td class="k">__init__(path="mailbox.db")</td><td>Opens with <code>check_same_thread=False</code>, runs <code>SCHEMA</code>, migrates old databases by <code>ALTER TABLE</code> (appending <code>recipients</code>, <code>account</code>, <code>date_iso</code>).</td></tr>
+    <tr><td class="k">save(envelopes) · have()</td><td>Upsert envelopes (22 columns, <code>date_iso</code> computed by <code>iso_date()</code>, which returns "" rather than a guess); the set of provider ids already held.</td></tr>
+    <tr><td class="k">record_decision · decision_for</td><td>Write / read the <code>decisions</code> table. Stage "9" is the reply gate; "sort" is the labeller.</td></tr>
+    <tr><td class="k">add_correction · correction_for · all_corrections</td><td>The corrections table; <code>correction_for(sender, domain)</code> returns the most recent matching correction, checked before any model is trusted.</td></tr>
+    <tr><td class="k">record_action · action_history · mark_undone</td><td>The actions table. <b><code>action_history</code>, not <code>history</code></b> &mdash; that name is the sender-history method.</td></tr>
+    <tr><td class="k">cache_body · body · has_body · trim_bodies(days) · body_stats</td><td>The bounded 30-day store. <code>trim_bodies</code> is called on every view open.</td></tr>
+    <tr><td class="k">add_reminder · due_reminders · clear_reminder · pending_reminders</td><td>Reminders and snoozes.</td></tr>
+    <tr><td class="k">already_replied · mark_replied</td><td>The <code>handled</code> table, so a second run never replies twice.</td></tr>
+    <tr><td class="k">history(address, me)</td><td><code>{sent, opened, replied}</code> for one sender. <code>replied</code> counts our messages whose <code>recipients</code> contains the address.</td></tr>
+    <tr><td class="k">q(sql, *args) · one(sql, *args)</td><td>Raw query helpers used by every surface.</td></tr>
+  </table></div>
+
+  <div class="box"><h4>connectors/gmail.py &mdash; class GmailConnector</h4>
+  <table>
+    <tr><td class="k">SCOPES · HEADERS</td><td>Two scopes; the thirteen header names fetched.</td></tr>
+    <tr><td class="k">__init__(credentials, token, workers=6)</td><td>OAuth flow or refresh; builds the service; thread-local services per worker; <code>errors</code> list.</td></tr>
+    <tr><td class="k">list_ids · fetch_envelopes · fetch_raw · fetch_body · fetch_attachment</td><td>Reading. <code>fetch_envelopes</code> uses a thread pool with <code>format=metadata</code>.</td></tr>
+    <tr><td class="k">apply_label · remove_label · ensure_label · archive · mark_read · trash</td><td>Writes through <code>messages.modify</code>. <code>trash</code> never calls <code>messages.delete</code>.</td></tr>
+    <tr><td class="k">send · create_draft · forward</td><td>Sending. Threading headers set so a reply lands in the conversation.</td></tr>
+    <tr><td class="k">list_spam · rescue_from_spam · unsnooze</td><td>Spam is read to rescue from, never to file into.</td></tr>
+    <tr><td class="k">current_history_id · new_since(history_id)</td><td>Polling via <code>history.list</code>; 404 on a stale id resets the bookmark.</td></tr>
+    <tr><td class="k">label_removals_since(history_id, our_label_ids)</td><td>UC-29's correction feed: labels the Owner removed in Gmail.</td></tr>
+    <tr><td class="k">find_by_message_id(mid)</td><td><code>messages.list(q="rfc822msgid:…")</code>.</td></tr>
+  </table></div>
+
+  <div class="box"><h4>connectors/imap.py &mdash; class ImapConnector</h4>
+  <table>
+    <tr><td class="k">KNOWN · DEFAULT_FOLDERS · SMTP_HOSTS · _SPAM_CANDIDATES</td><td>Per-provider folder and server names. Gmail's are <code>[Gmail]/Sent Mail</code>, <code>[Gmail]/Trash</code>, <code>[Gmail]/Spam</code>.</td></tr>
+    <tr><td class="k">__init__(host, user, password)</td><td>TLS login, <code>SELECT INBOX</code>, then <code>has_gmail_extensions()</code> flips the capability flags; <code>can_send()</code> sets <code>supports_send</code>.</td></tr>
+    <tr><td class="k">has_gmail_extensions · gmail_search(query) · gmail_labels(uid)</td><td><code>CAPABILITY</code> for <code>X-GM-EXT-1</code>; <code>UID SEARCH X-GM-RAW</code>; <code>X-GM-LABELS</code> parsed with a bracket-aware tokenizer (quoted or bare).</td></tr>
+    <tr><td class="k">list_ids · fetch_envelopes · _fetch_one · _envelope_from</td><td><code>UID SEARCH ALL</code>; batched <code>UID FETCH</code> of 100 with <code>(UID FLAGS BODY.PEEK[HEADER])</code>, yielded in the caller's order, falling back to one at a time if a batch fails.</td></tr>
+    <tr><td class="k">fetch_raw · fetch_attachment</td><td><code>UID FETCH (BODY.PEEK[])</code> &mdash; never marks read.</td></tr>
+    <tr><td class="k">apply_label · remove_label · ensure_label · _delimiter</td><td>On Gmail: <code>UID STORE ±X-GM-LABELS</code>, message stays put. Elsewhere: <code>UID COPY</code> into a folder named with the server's own separator, quoted.</td></tr>
+    <tr><td class="k">archive · trash · _move · _has_move</td><td>Archive is <code>MOVE</code> to All Mail on Gmail (removing <code>\Inbox</code> from inside INBOX silently does nothing). Trash is a <code>MOVE</code>. Fallback without MOVE uses <code>UID EXPUNGE</code> scoped to one UID, never plain EXPUNGE.</td></tr>
+    <tr><td class="k">mark_read · mark_unread</td><td><code>UID STORE ±FLAGS (\Seen)</code>.</td></tr>
+    <tr><td class="k">list_spam · _spam_folder · rescue_from_spam</td><td>Finds the spam folder by trying names; rescue selects it and issues one atomic <code>UID MOVE</code> to INBOX; refuses on a server without MOVE.</td></tr>
+    <tr><td class="k">send · create_draft · forward</td><td>SMTP on 587 with STARTTLS; copy APPENDed to Sent. Draft APPENDed to Drafts with <code>\Draft</code>. Forward quotes the original's plain text, never re-attaches.</td></tr>
+    <tr><td class="k">current_history_id · new_since</td><td>Highest UID as the bookmark; <code>UID SEARCH UID n+1:*</code> with the clamp-to-highest quirk filtered out; INBOX re-selected on every poll.</td></tr>
+    <tr><td class="k">label_removals_since(bookmark, our_labels, footprint=None) · _labelled_by_us</td><td>No feed on IMAP, so re-read <code>X-GM-LABELS</code> on the messages we labelled (from <code>applied_labels.json</code>, IMAP-door rows only) and report ours that are gone &mdash; skipping messages that are no longer in INBOX, which is not a correction.</td></tr>
+    <tr><td class="k">find_by_message_id(mid)</td><td><code>UID SEARCH HEADER Message-ID "&lt;…&gt;"</code> in the selected folder.</td></tr>
+  </table></div>
+
+  <div class="box"><h4>pipeline/model.py</h4>
+  <table>
+    <tr><td class="k">MODELS · ESCALATE_BELOW = 0.65 · INTENT · TOPIC</td><td>The Gemini fallback order, the router threshold, the two label sets.</td></tr>
+    <tr><td class="k">_client() · _generate(prompt) · _json_from(text)</td><td>One client per process; tries each model twice; pulls the first JSON object out of the reply.</td></tr>
+    <tr><td class="k">classify(text, subject, sender)</td><td>Stage 8 with the stage-6 router inside: our model → keep if confident → else Gemini with <code>escalated_from</code> → else keep ours with a <code>note</code>.</td></tr>
+    <tr><td class="k">pick_deadline(candidates, subject)</td><td>The model chooses which found phrase is the real deadline; code already resolved each one.</td></tr>
+    <tr><td class="k">draft_reply(redacted_text, subject, sender_placeholder, profile, examples, ...)</td><td>Stage 11.</td></tr>
+    <tr><td class="k">read_command(user_text, state)</td><td>The chat's multiple-choice interpreter; used only after <code>user_input.by_rules</code> found nothing.</td></tr>
+  </table></div>
+
+  <div class="box"><h4>pipeline/user_input.py</h4>
+  <table>
+    <tr><td class="k">ALL_ACTIONS · IRREVERSIBLE · RULES · NEGATIVE</td><td>The twelve actions; "send" is the irreversible one; word-boundary rules in priority order; refusals matched before anything else.</td></tr>
+    <tr><td class="k">allowed_actions(state)</td><td>Built by our code from state; the model only ever chooses from this list.</td></tr>
+    <tr><td class="k">by_rules(text, allowed)</td><td>Refusal → decline; an email address → compose; else the first rule that matches.</td></tr>
+    <tr><td class="k">read(text, state)</td><td>Rules first; model second; anything outside <code>allowed</code> becomes "nothing".</td></tr>
+  </table></div>
+
+  <div class="box"><h4>The other stages, in one line each</h4>
+  <table>
+    <tr><td class="k">stage02_strip</td><td><code>strip(raw_bytes) → {text, html, attachments, ...}</code>; <code>html_to_text</code>, <code>pick_body</code>.</td></tr>
+    <tr><td class="k">stage03_sensitive</td><td><code>check(sender, subject, domain) → {sensitive, reasons, notice}</code>; <code>user_marked()</code>, <code>mark_sensitive(domain)</code>. No body parameter, by design.</td></tr>
+    <tr><td class="k">stage04_headers</td><td><code>read(env, auth_results) → facts</code>; <code>read_auth</code>; <code>engagement_exit(sent, opened, min_messages=8)</code>.</td></tr>
+    <tr><td class="k">stage05_forms</td><td><code>extract(attachments, html) → forms</code>; <code>read_calendar</code>, <code>read_wallet_pass</code>, <code>find_invoice_xml</code>, <code>structure_fingerprint</code>, <code>validate_extraction</code>.</td></tr>
+    <tr><td class="k">stage07_dates</td><td><code>find_candidates(text)</code>, <code>resolve_relative</code>, <code>add_working_days</code>, <code>parse_exact</code>, <code>reminder_time</code>; <code>LOOKS_LIKE_DATE</code> and <code>RELATIVE</code> patterns around <code>dateparser</code>.</td></tr>
+    <tr><td class="k">stage09_gate</td><td><code>score(labels, facts, history, env) → sc</code>; <code>WEIGHTS</code>, <code>REQUESTING</code>, <code>TRAINED_FEATURES</code>; <code>_trained_score</code> loads <code>gate_model.txt</code> once.</td></tr>
+    <tr><td class="k">stage10_redact</td><td><code>minimise(text, 3000)</code>, <code>redact(text, known_names) → (text, mapping)</code>, <code>restore(draft, mapping) → (text, leftover)</code>; <code>PATTERNS</code> for nine identifier kinds.</td></tr>
+    <tr><td class="k">stage13_approval</td><td><code>Approval</code>, <code>is_approval</code>, <code>check</code>, <code>execute</code>; the sets <code>IRREVERSIBLE</code>, <code>REVERSIBLE</code>, <code>AFFIRMATIVE</code>; <code>APPROVAL_TTL</code>.</td></tr>
+    <tr><td class="k">stage15_unsubscribe</td><td><code>options(header, one_click) → {can_one_click, https, ...}</code>, <code>one_click(url)</code>, <code>describe(opts)</code>.</td></tr>
+    <tr><td class="k">stage16_commitments</td><td><code>from_email</code>, <code>record</code>, <code>classify_kind</code>, <code>reminder_time</code>, <code>label_key</code>, <code>learn_from_reaction</code>, <code>lead_for</code>; <code>LEAD</code>, <code>KIND_WORDS</code> (order is priority), <code>LABEL_FOR</code>.</td></tr>
+    <tr><td class="k">stage17_quick</td><td><code>suggest(text) → up to 3 keys</code>, <code>text_for(key)</code>; <code>ANSWERS</code>, <code>TRIGGERS</code>.</td></tr>
+    <tr><td class="k">stage19_voice</td><td><code>build_profile</code>, <code>describe</code>, class <code>Embedder</code> (TF-IDF, 384-dim), class <code>VoiceStore</code> (<code>learn</code>, <code>profile</code>, <code>find_similar</code>, <code>count</code>).</td></tr>
+    <tr><td class="k">local_classifier · local_pii</td><td><code>available()</code>, <code>_load()</code> once, <code>classify(text, subject, sender)</code> / <code>find(text)</code>; <code>TOPIC_RULES</code>; <code>FAMILY</code> map.</td></tr>
+    <tr><td class="k">prompts · batch_label</td><td><code>get(name, **fills)</code>, <code>names()</code>, <code>reload()</code>; <code>label_batch(emails)</code> ten per request.</td></tr>
+  </table></div>
+</section>
+
+<!-- ═══════════════ G · DATABASE ═══════════════ -->
+<section class="sheet">
+  <h2>G &nbsp;·&nbsp; The database, field by field</h2>
+
+  <table>
+    <tr><th>Table · key</th><th>Columns</th></tr>
+    <tr><td class="k">messages<br><span class="mono">PK provider_id</span></td><td><code>message_id</code> (the real key; indexed by sender, thread, in_reply_to) · <code>thread_id</code> · <code>sender</code> · <code>sender_name</code> · <code>sender_domain</code> · <code>subject</code> · <code>date</code> (raw RFC) · <code>size</code> · <code>unread</code> · <code>in_inbox</code> · <code>categories</code> · <code>unsubscribe</code> · <code>one_click</code> · <code>list_id</code> · <code>bulk</code> · <code>auto_sub</code> · <code>in_reply_to</code> · <code>refs</code> · <code>recipients</code> · <code>account</code> · <code>date_iso</code> (sortable). No body.</td></tr>
+    <tr><td class="k">bodies<br><span class="mono">PK message_id</span></td><td><code>provider_id</code> · <code>account</code> · <code>text</code> · <code>chars</code> · <code>fetched_at</code> (indexed; what <code>trim_bodies</code> uses).</td></tr>
+    <tr><td class="k">decisions<br><span class="mono">PK (message_id, stage)</span></td><td><code>decision</code> · <code>reason</code> · <code>score</code> · <code>at</code>. One row per stage per message; a re-run replaces.</td></tr>
+    <tr><td class="k">actions<br><span class="mono">PK id</span></td><td><code>message_id</code> · <code>provider_id</code> · <code>action</code> · <code>detail</code> · <code>before</code> · <code>undone</code> · <code>at</code> (indexed).</td></tr>
+    <tr><td class="k">corrections<br><span class="mono">PK id</span></td><td><code>scope</code> (sender · domain · message · reminder_lead) · <code>target</code> (lower-cased) · <code>was</code> · <code>should_be</code> · <code>source</code> (app · mailbox) · <code>at</code>. Indexed on (scope, target).</td></tr>
+    <tr><td class="k">reminders<br><span class="mono">PK (message_id, kind)</span></td><td><code>provider_id</code> · <code>kind</code> (remind · snooze) · <code>due</code> (ISO; indexed with done) · <code>subject</code> · <code>why</code> · <code>done</code>.</td></tr>
+    <tr><td class="k">handled<br><span class="mono">PK (message_id, action)</span></td><td><code>sent_id</code> · <code>at</code>.</td></tr>
+    <tr><td class="k">style_examples · style_profile</td><td>Stage 19: <code>text</code>, <code>subject</code>, <code>embedding BLOB</code>; and the profile's counted fields.</td></tr>
+  </table>
+
+  <div class="note"><b>Two things to know when querying.</b> Order by
+  <code>date_iso</code>, never <code>date</code>. And <code>provider_id</code> is
+  the primary key of <code>messages</code>, so the same email seen through both
+  doors is two rows; collapse on <code>message_id</code> when showing
+  (<code>inbox.collapse_duplicates</code>).</div>
+</section>
+
+<!-- ═══════════════ H · FILES ═══════════════ -->
+<section class="sheet">
+  <h2>H &nbsp;·&nbsp; Files on disk that are not code</h2>
+
+  <table>
+    <tr><th>File</th><th>Written by</th><th>Read by</th><th>Contents</th></tr>
+    <tr><td class="k">mailbox.db</td><td>store.py, stage19</td><td>everything</td><td>The database.</td></tr>
+    <tr><td class="k">classifier/</td><td>kaggle_train.py</td><td>local_classifier</td><td>config.json (2 labels), model.safetensors, tokenizer files. 547 MB.</td></tr>
+    <tr><td class="k">pii_model/</td><td>kaggle_train_pii.py</td><td>local_pii</td><td>config.json (113 labels), model.safetensors, tokenizer. 1.1 GB.</td></tr>
+    <tr><td class="k">gate_model.txt · gate_model.json</td><td>train_gate.py</td><td>stage09_gate</td><td>LightGBM model text; feature order, AUC 0.6841, 5,895/1,474 rows, trained 2026-09-05.</td></tr>
+    <tr><td class="k">prompts.md</td><td>a person</td><td>prompts.py</td><td>Six prompts. <code>{braces}</code> filled by code; <code>&gt;</code> lines are notes, never sent.</td></tr>
+    <tr><td class="k">applied_labels.json</td><td>sort_mailbox, watch</td><td>sort_mailbox --undo, imap.label_removals_since</td><td>[{id, door, label_id, label, subject, at}, …]</td></tr>
+    <tr><td class="k">user_sensitive.json</td><td>correct.py (never open this)</td><td>stage03 on every call</td><td>Domains the Owner marked private.</td></tr>
+    <tr><td class="k">labelled.jsonl</td><td>train_classifier label / apply_labels</td><td>train_classifier train, kaggle_train</td><td>199 lines: text, intent, topic.</td></tr>
+    <tr><td class="k">to_label.txt · labels.txt</td><td>dump_for_labelling; a person</td><td>apply_labels</td><td>The hand-labelling round trip; numbers must match.</td></tr>
+    <tr><td class="k">credentials.json · token.json</td><td>Google Cloud console; the OAuth flow</td><td>connectors/gmail</td><td>Secrets. Never commit.</td></tr>
+    <tr><td class="k">report.html</td><td>report.py</td><td>a browser</td><td>The first-scan findings.</td></tr>
+    <tr><td class="k">test_runs/*.txt</td><td>runlog.py</td><td>people</td><td>Verbatim output of every proof run, named <code>&lt;script&gt;_&lt;flags&gt;_&lt;timestamp&gt;.txt</code>.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ I · ENV ═══════════════ -->
+<section class="sheet">
+  <h2>I &nbsp;·&nbsp; Environment variables and flags</h2>
+
+  <table>
+    <tr><th>Name</th><th>Read in</th><th>Effect</th></tr>
+    <tr><td class="k">IMAP_USER</td><td>connect, imap, proofs</td><td>Which account; also the From address on SMTP.</td></tr>
+    <tr><td class="k">IMAP_PASSWORD</td><td>connect, imap.send</td><td>The app password. Its presence (with no token.json) makes IMAP the default door.</td></tr>
+    <tr><td class="k">GEMINI_API_KEY</td><td>model._client, agent, chat</td><td>Enables stage 11, escalation in stage 6, deadline picking, chat fallback, brief summaries.</td></tr>
+    <tr><td class="k">--imap / --api</td><td>connect.want_imap</td><td>Force the door.</td></tr>
+    <tr><td class="k">--draft / --drafts</td><td>agent, watch</td><td>Draft; draft into the Drafts folder without asking.</td></tr>
+    <tr><td class="k">--every N</td><td>watch</td><td>Poll interval, seconds (default 15).</td></tr>
+    <tr><td class="k">--watch / --port N</td><td>web</td><td>Background agent; port (default 8000).</td></tr>
+    <tr><td class="k">--write / --send / --no-connections</td><td>audit_imap, verify_doc, limits_imap</td><td>Enable write tests; send to yourself; skip the connection probe.</td></tr>
+    <tr><td class="k">python -X utf8</td><td>the Windows console</td><td>Needed so subjects with characters outside cp1252 print instead of crashing.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ J · WHERE TO CHANGE ═══════════════ -->
+<section class="sheet">
+  <h2>J &nbsp;·&nbsp; Where do I change X</h2>
+
+  <table>
+    <tr><th>I want to…</th><th>Change</th></tr>
+    <tr><td class="k">add a bank or a sensitive domain</td><td><code>stage03_sensitive.SENSITIVE_DOMAINS</code>, or a suffix in <code>SENSITIVE_SUFFIXES</code>; or let the user mark it (<code>correct.py</code> → <code>user_sensitive.json</code>).</td></tr>
+    <tr><td class="k">change when something "needs a reply"</td><td><code>stage09_gate.WEIGHTS</code> and the 0.45 threshold in <code>score()</code>; retrain with <code>train_gate.py</code>.</td></tr>
+    <tr><td class="k">change the escalation threshold</td><td><code>model.ESCALATE_BELOW</code>.</td></tr>
+    <tr><td class="k">change how a draft is worded</td><td><code>prompts.md</code>, section <code>draft_reply</code>. No code.</td></tr>
+    <tr><td class="k">change reminder lead times</td><td><code>stage16_commitments.LEAD</code>; per-person via <code>correct.py --timing</code>.</td></tr>
+    <tr><td class="k">add a quick reply</td><td><code>stage17_quick.ANSWERS</code> and a trigger in <code>TRIGGERS</code>.</td></tr>
+    <tr><td class="k">add a word that counts as "yes"</td><td><code>stage13_approval.AFFIRMATIVE</code>. Exact match only.</td></tr>
+    <tr><td class="k">add a chat command</td><td><code>user_input.ALL_ACTIONS</code>, a rule in <code>RULES</code>, a <code>do_*</code> in <code>chat.py</code>, and <code>allowed_actions</code> if it depends on state.</td></tr>
+    <tr><td class="k">change how long bodies are kept</td><td><code>WINDOW_DAYS</code> in <code>mailbox.py</code> and <code>web.py</code> (both call <code>store.trim_bodies</code>).</td></tr>
+    <tr><td class="k">change what the web page shows per row</td><td><code>web.classify()</code> for the verdict; <code>render_list()</code> for the HTML.</td></tr>
+    <tr><td class="k">add an IMAP provider</td><td><code>connect.HOSTS</code>, <code>imap.KNOWN</code> (sent/trash names), <code>imap.SMTP_HOSTS</code>.</td></tr>
+    <tr><td class="k">change the poll interval</td><td><code>watch.py --every</code>; <code>web.watcher(every=20)</code>.</td></tr>
+    <tr><td class="k">change the batch size for IMAP fetch</td><td><code>ImapConnector.BATCH</code> (100).</td></tr>
+    <tr><td class="k">add a header to the envelope</td><td><code>base.Envelope</code> (after the required fields), <code>gmail.HEADERS</code>, <code>imap._envelope_from</code>, <code>store.SCHEMA</code> + <code>save</code>, and the migration.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ K · HOW TO ADD ═══════════════ -->
+<section class="sheet">
+  <h2>K &nbsp;·&nbsp; How to add a connector, a stage, a prompt, an action</h2>
+
+  <div class="box"><h4>A connector (e.g. Microsoft Graph)</h4>
+  <ol>
+    <li>Create <code>connectors/graph.py</code> with a class that implements every method in <code>base.Connector</code> and sets every <code>supports_*</code> flag honestly.</li>
+    <li>Return an <code>Envelope</code> from <code>fetch_envelopes</code> with no body. Fill <code>account</code>.</li>
+    <li>Implement <code>find_by_message_id</code> so <code>connect.fetch_verified</code> works.</li>
+    <li>Add the choice to <code>connect.open_mailbox()</code>. Nothing else in the project changes.</li>
+    <li>Run <code>audit_imap.py</code>'s equivalent against it before claiming anything.</li>
+  </ol></div>
+
+  <div class="box"><h4>A stage</h4>
+  <ol>
+    <li>Create <code>pipeline/stageNN_name.py</code> with a module docstring saying why it exists and what it must never see.</li>
+    <li>Give it a pure function that takes the shapes from Part D and returns a dict.</li>
+    <li>Call it from <code>agent.run_one</code> at the right point in the <em>execution</em> order, and print a <code>stage(NN, ...)</code> line.</li>
+    <li>If it decides something, <code>store.record_decision</code>. If it acts, go through <code>stage13_approval.execute</code>, and add the action to <code>REVERSIBLE</code> or <code>IRREVERSIBLE</code>.</li>
+  </ol></div>
+
+  <div class="box"><h4>A prompt</h4>
+  <p>Add a <code>## name</code> section to <code>prompts.md</code>. Use
+  <code>{placeholders}</code>. Load it with <code>prompts.get("name", **fills)</code>.
+  Anything that reaches it from an email must have passed through
+  <code>stage10_redact.redact</code> first.</p></div>
+
+  <div class="box"><h4>An action the executor can take</h4>
+  <ol>
+    <li>Add the connector method to both connectors (or raise clearly on the one that cannot).</li>
+    <li>Add the name to <code>IRREVERSIBLE</code> or <code>REVERSIBLE</code> in <code>stage13_approval</code>.</li>
+    <li>Add its undo to the map in <code>execute()</code>, and a branch that calls the connector.</li>
+    <li>Add a plain-English name in <code>history.PLAIN</code>.</li>
+  </ol></div>
+</section>
+
+<!-- ═══════════════ L · GAPS ═══════════════ -->
+<section class="sheet">
+  <h2>L &nbsp;·&nbsp; Known gaps and sharp edges</h2>
+
+  <table>
+    <tr><td class="k">watch.py has its own stage walk</td><td><code>handle()</code> duplicates part of <code>run_one</code>. It records stage-9 decisions correctly now, but any new stage must be added in both places until it is made to call <code>run_one</code>.</td></tr>
+    <tr><td class="k">waiting.py is API-only</td><td>It calls <code>conn.svc.users().threads()</code> and the labels API directly. Needs a connector-level "thread of" and Sent-folder access to work over IMAP.</td></tr>
+    <tr><td class="k">IMAP UIDs are per folder</td><td>A UID from <code>list_spam()</code> is only meaningful with the spam folder selected. <code>rescue_from_spam</code> handles this; anything new that takes a UID from another folder must too.</td></tr>
+    <tr><td class="k">Old rows saved with sequence numbers</td><td>Repaired on 2026-09-11 (<code>test_runs/repair_stale_ids_*.txt</code>). Any database from before that date should be checked the same way before trusting its IMAP ids.</td></tr>
+    <tr><td class="k">Python heredocs in this shell eat backslashes</td><td>Writing Python source through a bash heredoc turned <code>\n</code> into a real newline and <code>\b</code> into a byte. Use the editor, or build escapes with <code>chr(92)</code>.</td></tr>
+    <tr><td class="k">The two model folders are large</td><td>547 MB + 1.1 GB. They are not in any repository; they are rebuilt from the Kaggle notebooks. <code>shrink_model.py</code> is the path to something shippable.</td></tr>
+    <tr><td class="k">The sample-based numbers move</td><td>Anything measured on "the 25 newest" changes daily. The limits test weighs every message for that reason; if a figure must be defended, measure everything.</td></tr>
+    <tr><td class="k">Gemini key hygiene</td><td>A key was exposed in a chat during the project. Rotate it, and never print it.</td></tr>
+  </table>
+
+  <div class="foot">Custodian · Document 3 · Code · 11 September 2026 · companion to Document 1 (components) and Document 2 (technology)</div>
+</section>
+</body>
+</html>

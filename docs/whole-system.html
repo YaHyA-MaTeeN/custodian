@@ -1,0 +1,403 @@
+<title>The Whole System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#EFF2F4; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#10222B; --ink-2:#566B76; --ink-3:#85979F;
+    --rule:#D4DFE4; --rule-soft:#E4ECEF;
+    --accent:#0F5673; --accent-soft:#E0EDF3;
+    --safe:#1C6647; --safe-soft:#DFEFE7;
+    --warn:#8A6110; --warn-soft:#F8EEDA;
+    --danger:#A32C22; --danger-soft:#F7E4E1;
+    --f-display:"IBM Plex Serif",Georgia,serif;
+    --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+      --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+      --rule:#223945; --rule-soft:#1A2E38;
+      --accent:#64B8DB; --accent-soft:#13303E;
+      --safe:#6DBF97; --safe-soft:#163025;
+      --warn:#DCAE5C; --warn-soft:#332916;
+      --danger:#E8897C; --danger-soft:#37201D;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+    --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+    --rule:#223945; --rule-soft:#1A2E38;
+    --accent:#64B8DB; --accent-soft:#13303E;
+    --safe:#6DBF97; --safe-soft:#163025;
+    --warn:#DCAE5C; --warn-soft:#332916;
+    --danger:#E8897C; --danger-soft:#37201D;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:0 24px 90px; }
+
+  header.top { padding:48px 0 24px; border-bottom:1px solid var(--rule); margin-bottom:32px; }
+  .eyebrow { font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--f-display); font-weight:600; font-size:clamp(30px,4.6vw,44px); line-height:1.08; letter-spacing:-.02em; margin:12px 0 0; }
+  .sub { max-width:66ch; color:var(--ink-2); font-size:16px; margin:13px 0 0; }
+  .hint { font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); margin-top:14px; }
+
+  figure { margin:0 0 16px; background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:20px 18px 14px; overflow-x:auto; }
+  figure svg { display:block; min-width:1000px; max-width:100%; height:auto; margin:0 auto; }
+  figcaption { font-size:13px; color:var(--ink-2); margin-top:16px; padding-top:12px; border-top:1px solid var(--rule-soft); line-height:1.55; }
+  figcaption b { color:var(--ink); font-weight:600; }
+
+  h2 { font-family:var(--f-display); font-size:22px; font-weight:600; letter-spacing:-.012em; margin:44px 0 10px; }
+  p { max-width:70ch; margin:0 0 14px; }
+  code { font-family:var(--f-mono); font-size:.86em; background:var(--surface-2); border:1px solid var(--rule-soft); border-radius:3px; padding:1px 4px; color:var(--accent); }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin-bottom:22px; }
+  .card { background:var(--surface); border:1px solid var(--rule); border-radius:5px; padding:14px 16px; }
+  .card .n { font-family:var(--f-mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); display:block; margin-bottom:5px; }
+  .card .t { font-weight:600; font-size:14px; margin-bottom:5px; }
+  .card .d { font-size:12.8px; color:var(--ink-2); line-height:1.48; }
+
+  .key { background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:0 4px 4px 0; padding:15px 20px; margin:0 0 22px; max-width:74ch; }
+  .key p { margin:0; max-width:none; }
+  .key p + p { margin-top:10px; }
+  .key .tag { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:5px; }
+
+  footer { margin-top:46px; padding-top:20px; border-top:1px solid var(--rule); font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); letter-spacing:.03em; line-height:1.7; }
+</style>
+
+<div class="wrap">
+<div style="background:#F7E4E1;border:2px solid #A32C22;border-radius:6px;padding:16px 20px;margin:0 0 24px;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#10222B;line-height:1.55">
+<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#A32C22;margin-bottom:6px">Superseded &#183; 3 Sept 2026</div>
+<div style="font-size:15px"><strong>Do not use this page.</strong> The model sizes and pipeline stages here predate the research and are now wrong. Everything on it has been folded into the single current document, <a href="https://claude.ai/code/artifact/67463cd2-9ea1-4d9c-8068-ebe3c006b4c3" style="color:#0F5673;font-weight:600">Component Flow</a> &#8212; which also carries every action, every mailbox, every model size and every library.</div>
+</div>
+
+
+<header class="top">
+  <span class="eyebrow">One picture — every tool, every action</span>
+  <h1>The Whole System</h1>
+  <p class="sub">From an email arriving to the mailbox changing: which tool reads it, which decides what it is, which performs the action, and exactly what call is made. Everything named, nothing invented.</p>
+  <p class="hint">↔ Scroll the diagram sideways on a narrow screen</p>
+</header>
+
+<figure>
+<svg viewBox="0 0 1080 1022" role="img" aria-label="Complete system diagram. An email is read through the mailbox API, parsed by standard libraries, then judged by four deciders in escalating order: header rules, date libraries, our own small model, and finally a frontier model for writing only. Our own code turns each decision into a single API call, producing actions grouped into four tiers by how far their effect travels. Background jobs run on timers.">
+  <defs>
+    <marker id="w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Sans, sans-serif" fill="currentColor">
+
+  <!-- ══════ EMAIL IN ══════ -->
+  <rect x="420" y="16" width="240" height="42" rx="5" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.8"/>
+  <text x="540" y="43" text-anchor="middle" font-size="15" font-weight="600">✉  An email arrives</text>
+  <line x1="540" y1="58" x2="540" y2="84" stroke="currentColor" stroke-width="1.5" marker-end="url(#w)"/>
+
+  <!-- ══════ STEP 1 READ ══════ -->
+  <rect x="40" y="88" width="1000" height="66" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.3"/>
+  <text x="58" y="110" font-size="12" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--accent)">STEP 1 — FETCH IT</text>
+  <text x="240" y="110" font-size="12" fill="var(--ink-2)">whichever door the mailbox is behind</text>
+  <text x="58" y="134" font-size="12" font-family="IBM Plex Mono, monospace">Gmail  <tspan fill="var(--accent)">users.messages.get</tspan></text>
+  <text x="360" y="134" font-size="12" font-family="IBM Plex Mono, monospace">Graph  <tspan fill="var(--accent)">GET /me/messages/{id}</tspan></text>
+  <text x="720" y="134" font-size="12" font-family="IBM Plex Mono, monospace">IMAP  <tspan fill="var(--accent)">FETCH n (ENVELOPE)</tspan></text>
+  <line x1="540" y1="154" x2="540" y2="178" stroke="currentColor" stroke-width="1.5" marker-end="url(#w)"/>
+
+  <!-- ══════ STEP 2 PARSE ══════ -->
+  <rect x="40" y="182" width="1000" height="52" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.3"/>
+  <text x="58" y="204" font-size="12" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--accent)">STEP 2 — TAKE IT APART</text>
+  <text x="290" y="204" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">email</text>
+  <text x="345" y="204" font-size="12" fill="var(--ink-3)">(stdlib)  ·</text>
+  <text x="425" y="204" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">flanker</text>
+  <text x="482" y="204" font-size="12" fill="var(--ink-3)">(20× faster)</text>
+  <text x="58" y="223" font-size="11.5" fill="var(--ink-2)">→ sender · subject · headers · body · attachments</text>
+  <line x1="540" y1="234" x2="540" y2="262" stroke="currentColor" stroke-width="1.5" marker-end="url(#w)"/>
+
+  <!-- ══════ DECIDERS HEADER ══════ -->
+  <text x="40" y="284" font-size="13" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">STEP 3 — WHAT IS IT?    each layer answers, or says "I don't know" and passes right →</text>
+
+  <!-- decider 1 -->
+  <rect x="40" y="296" width="235" height="164" rx="5" fill="var(--safe-soft)" stroke="var(--safe)" stroke-width="1.6"/>
+  <text x="56" y="318" font-size="12.5" font-weight="600" fill="var(--safe)">1 · HEADER RULES</text>
+  <text x="56" y="336" font-size="11" fill="var(--ink-2)">our own code, ~200 lines</text>
+  <text x="56" y="360" font-size="11" font-family="IBM Plex Mono, monospace">List-Unsubscribe?</text>
+  <text x="56" y="378" font-size="11" font-family="IBM Plex Mono, monospace">Precedence: bulk?</text>
+  <text x="56" y="396" font-size="11" font-family="IBM Plex Mono, monospace">noreply@ sender?</text>
+  <text x="56" y="414" font-size="11" font-family="IBM Plex Mono, monospace">replied before?</text>
+  <text x="56" y="438" font-size="11.5" font-weight="600" fill="var(--safe)">FREE · microseconds</text>
+  <text x="56" y="453" font-size="11.5" font-weight="600">handles ≈ 60%</text>
+  <line x1="275" y1="378" x2="289" y2="378" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+
+  <!-- decider 2 -->
+  <rect x="295" y="296" width="235" height="164" rx="5" fill="var(--safe-soft)" stroke="var(--safe)" stroke-width="1.6"/>
+  <text x="311" y="318" font-size="12.5" font-weight="600" fill="var(--safe)">2 · LIBRARIES</text>
+  <text x="311" y="336" font-size="11" fill="var(--ink-2)">free, open source</text>
+  <text x="311" y="360" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--accent)">duckling</text>
+  <text x="311" y="376" font-size="10.5" fill="var(--ink-2)">dates · money · durations</text>
+  <text x="311" y="390" font-size="10.5" fill="var(--ink-2)">+ a probability per answer</text>
+  <text x="311" y="410" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--accent)">dateparser</text>
+  <text x="311" y="425" font-size="10.5" fill="var(--ink-2)">200+ languages</text>
+  <text x="311" y="446" font-size="11.5" font-weight="600" fill="var(--safe)">FREE · milliseconds</text>
+  <text x="311" y="453" font-size="11.5" font-weight="600" opacity="0"> </text>
+  <text x="460" y="446" font-size="11.5" font-weight="600">≈ 10%</text>
+  <line x1="530" y1="378" x2="544" y2="378" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+
+  <!-- decider 3 -->
+  <rect x="550" y="296" width="235" height="164" rx="5" fill="var(--safe-soft)" stroke="var(--safe)" stroke-width="1.6"/>
+  <text x="566" y="318" font-size="12.5" font-weight="600" fill="var(--safe)">3 · OUR OWN MODEL</text>
+  <text x="566" y="336" font-size="11" fill="var(--ink-2)">runs on our machine</text>
+  <text x="566" y="360" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--accent)">ModernBERT</text>
+  <text x="566" y="378" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--accent)">trained with SetFit</text>
+  <text x="566" y="396" font-size="10.5" fill="var(--ink-2)">8 examples per class</text>
+  <text x="566" y="410" font-size="10.5" fill="var(--ink-2)">≈ 92.7% accuracy</text>
+  <text x="566" y="438" font-size="11.5" font-weight="600" fill="var(--safe)">OUR CPU · ~5 ms</text>
+  <text x="566" y="453" font-size="11.5" font-weight="600">handles ≈ 25%</text>
+  <line x1="785" y1="378" x2="799" y2="378" stroke="var(--danger)" stroke-width="1.6" marker-end="url(#w)" color="var(--danger)"/>
+
+  <!-- decider 4 -->
+  <rect x="805" y="296" width="235" height="164" rx="5" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="2"/>
+  <text x="821" y="318" font-size="12.5" font-weight="600" fill="var(--danger)">4 · FRONTIER MODEL</text>
+  <text x="821" y="336" font-size="11" fill="var(--ink-2)">the only paid step</text>
+  <text x="821" y="360" font-size="11.5" font-weight="600">writes replies — nothing else</text>
+  <text x="821" y="384" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--accent)">Presidio</text>
+  <text x="821" y="399" font-size="10.5" fill="var(--ink-2)">strips out names first</text>
+  <text x="821" y="413" font-size="10.5" fill="var(--ink-2)">and puts them back after</text>
+  <text x="821" y="438" font-size="11.5" font-weight="600" fill="var(--danger)">COSTS MONEY · leaves us</text>
+  <text x="821" y="453" font-size="11.5" font-weight="600">handles ≈ 5%</text>
+
+  <!-- nobody knew -->
+  <text x="40" y="482" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">if none of them is confident → show the email to the human. never guessed, never hidden.</text>
+
+  <!-- ══════ OUR CODE BAND ══════ -->
+  <line x1="157" y1="460" x2="157" y2="496" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+  <line x1="412" y1="460" x2="412" y2="496" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+  <line x1="667" y1="460" x2="667" y2="496" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+  <line x1="922" y1="460" x2="922" y2="496" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+
+  <rect x="40" y="500" width="1000" height="46" rx="5" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8"/>
+  <text x="540" y="521" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--accent)">OUR OWN CODE — turns every decision into exactly one instruction</text>
+  <text x="540" y="538" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">no model ever touches a mailbox · every change is a line of our code · every change is logged and undoable</text>
+
+  <line x1="157" y1="546" x2="157" y2="576" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+  <line x1="412" y1="546" x2="412" y2="576" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+  <line x1="667" y1="546" x2="667" y2="576" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+  <line x1="922" y1="546" x2="922" y2="576" stroke="currentColor" stroke-width="1.4" marker-end="url(#w)"/>
+
+  <!-- ══════ ACTIONS ══════ -->
+  <text x="40" y="596" font-size="13" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">STEP 4 — THE ACTION    grouped by how far the effect travels</text>
+
+  <!-- tier 0 -->
+  <rect x="40" y="608" width="235" height="228" rx="5" fill="var(--surface)" stroke="var(--safe)" stroke-width="1.6"/>
+  <text x="56" y="630" font-size="12.5" font-weight="600" fill="var(--safe)">TIER 0</text>
+  <text x="56" y="647" font-size="11" fill="var(--ink-2)">stays on our server</text>
+  <line x1="56" y1="656" x2="259" y2="656" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="56" y="676" font-size="11.5" font-family="IBM Plex Mono, monospace">read</text>
+  <text x="56" y="694" font-size="11.5" font-family="IBM Plex Mono, monospace">classify · tag</text>
+  <text x="56" y="712" font-size="11.5" font-family="IBM Plex Mono, monospace">extract deadline</text>
+  <text x="56" y="730" font-size="11.5" font-family="IBM Plex Mono, monospace">detect sensitive</text>
+  <text x="56" y="748" font-size="11.5" font-family="IBM Plex Mono, monospace">build sender memory</text>
+  <line x1="56" y1="762" x2="259" y2="762" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="56" y="782" font-size="11" fill="var(--ink-2)">nothing in the mailbox</text>
+  <text x="56" y="797" font-size="11" fill="var(--ink-2)">changes at all</text>
+  <text x="56" y="822" font-size="11.5" font-weight="600" fill="var(--safe)">NO APPROVAL EVER</text>
+
+  <!-- tier 1 -->
+  <rect x="295" y="608" width="235" height="228" rx="5" fill="var(--surface)" stroke="var(--safe)" stroke-width="1.6"/>
+  <text x="311" y="630" font-size="12.5" font-weight="600" fill="var(--safe)">TIER 1</text>
+  <text x="311" y="647" font-size="11" fill="var(--ink-2)">your mailbox — only you see it</text>
+  <line x1="311" y1="656" x2="514" y2="656" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="311" y="674" font-size="11.5" font-family="IBM Plex Mono, monospace">label · archive</text>
+  <text x="311" y="688" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">messages.modify</text>
+  <text x="311" y="706" font-size="11.5" font-family="IBM Plex Mono, monospace">mark read · star · snooze</text>
+  <text x="311" y="720" font-size="10" fill="var(--warn)" font-family="IBM Plex Mono, monospace">snooze: no API — we build it</text>
+  <text x="311" y="740" font-size="11.5" font-family="IBM Plex Mono, monospace" font-weight="600">move to Trash</text>
+  <text x="311" y="754" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">messages.trash — 30-day undo</text>
+  <line x1="311" y1="766" x2="514" y2="766" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="311" y="784" font-size="10.5" fill="var(--ink-2)">IMAP: MOVE · STORE +FLAGS</text>
+  <text x="311" y="806" font-size="11.5" font-weight="600" fill="var(--safe)">APPROVED ONCE, PER ACTION</text>
+  <text x="311" y="822" font-size="11" fill="var(--ink-2)">Trash is opt-in separately</text>
+
+  <!-- tier 2 -->
+  <rect x="550" y="608" width="235" height="228" rx="5" fill="var(--surface)" stroke="var(--warn)" stroke-width="1.6"/>
+  <text x="566" y="630" font-size="12.5" font-weight="600" fill="var(--warn)">TIER 2</text>
+  <text x="566" y="647" font-size="11" fill="var(--ink-2)">a signal reaches outside</text>
+  <line x1="566" y1="656" x2="769" y2="656" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="566" y="676" font-size="11.5" font-family="IBM Plex Mono, monospace">unsubscribe</text>
+  <text x="566" y="691" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">POST to the address in</text>
+  <text x="566" y="704" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">the List-Unsubscribe header</text>
+  <text x="566" y="724" font-size="11.5" font-family="IBM Plex Mono, monospace">RSVP to an invite</text>
+  <text x="566" y="739" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">events.patch</text>
+  <text x="566" y="757" font-size="11.5" font-family="IBM Plex Mono, monospace">create event</text>
+  <text x="566" y="772" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">events.insert</text>
+  <line x1="566" y1="785" x2="769" y2="785" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="566" y="810" font-size="11.5" font-weight="600" fill="var(--warn)">APPROVED PER TYPE</text>
+  <text x="566" y="826" font-size="11" fill="var(--ink-2)">someone else is told</text>
+
+  <!-- tier 3 -->
+  <rect x="805" y="608" width="235" height="228" rx="5" fill="var(--danger-soft)" stroke="var(--danger)" stroke-width="2.2"/>
+  <text x="821" y="630" font-size="12.5" font-weight="600" fill="var(--danger)">TIER 3</text>
+  <text x="821" y="647" font-size="11" fill="var(--ink-2)">a person reads it, as you</text>
+  <line x1="821" y1="656" x2="1024" y2="656" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="821" y="676" font-size="11.5" font-family="IBM Plex Mono, monospace">send reply</text>
+  <text x="821" y="691" font-size="10" fill="var(--accent)" font-family="IBM Plex Mono, monospace">messages.send + threadId</text>
+  <text x="821" y="704" font-size="10" fill="var(--warn)" font-family="IBM Plex Mono, monospace">needs In-Reply-To header</text>
+  <text x="821" y="724" font-size="11.5" font-family="IBM Plex Mono, monospace">forward · decline</text>
+  <line x1="821" y1="738" x2="1024" y2="738" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+  <text x="821" y="757" font-size="10.5" fill="var(--ink-2)">IMAP: SMTP to send, then</text>
+  <text x="821" y="770" font-size="10.5" fill="var(--warn)">APPEND a copy to Sent</text>
+  <text x="821" y="797" font-size="12" font-weight="600" fill="var(--danger)">⚠ YOU APPROVE, EVERY TIME</text>
+  <text x="821" y="815" font-size="11" fill="var(--ink-2)">no exceptions, at any confidence</text>
+  <text x="821" y="830" font-size="11" font-weight="600" fill="var(--danger)">cannot be undone</text>
+
+  <!-- never built -->
+  <rect x="40" y="852" width="490" height="56" rx="5" fill="none" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="58" y="871" font-size="12" font-weight="600" fill="var(--danger)">TIER 4 — ONLY PERMANENT DELETE IS EXCLUDED</text>
+  <text x="58" y="886" font-size="11" fill="var(--ink-2)">messages.delete (bypasses Trash, gone forever) · change settings · grant access</text>
+  <text x="58" y="900" font-size="11" fill="var(--warn)">Trash already does what users mean by "delete" — and needs no extra permission</text>
+
+  <!-- timers -->
+  <rect x="550" y="852" width="490" height="56" rx="5" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.2"/>
+  <text x="568" y="871" font-size="12" font-weight="600" font-family="IBM Plex Mono, monospace" fill="var(--accent)">ON TIMERS (pg-boss)</text>
+  <text x="568" y="886" font-size="11" fill="var(--ink-2)">every minute: reminders due · each morning: the digest</text>
+  <text x="568" y="900" font-size="11" fill="var(--ink-2)">each night: recalculate priorities · daily: renew the subscription</text>
+
+  <!-- bottom line -->
+  <line x1="40" y1="936" x2="1040" y2="936" stroke="currentColor" stroke-width="1" opacity="0.25"/>
+  <text x="40" y="962" font-size="12.5" font-weight="600">Free at every step except one. Nothing reaches another human without you saying yes to that exact message.</text>
+  <text x="40" y="984" font-size="11.5" fill="var(--ink-3)">Share of mail at each layer is an estimate until measured on a real 1,000-message mailbox.</text>
+
+  </g>
+</svg>
+<figcaption><b>Read left to right across the deciders, then down into the actions.</b> An email is fetched and taken apart by standard libraries, then falls through four deciders in order of cost — each one either answers or passes it right. Whatever they conclude, <b>our own code</b> turns into exactly one instruction, and the resulting actions are grouped by how far their effect travels. Only the fourth decider costs money, and only replies ever reach it.</figcaption>
+</figure>
+
+<h2>The five things this picture proves</h2>
+
+<div class="grid">
+  <div class="card"><span class="n">01</span><div class="t">One paid box out of four</div><div class="d">Three of the four deciders are free — our own rules, open-source libraries, and a model on our own CPU. Only writing costs money.</div></div>
+  <div class="card"><span class="n">02</span><div class="t">Everything is named</div><div class="d"><code>duckling</code>, <code>dateparser</code>, <code>ModernBERT</code>, <code>SetFit</code>, <code>Presidio</code>, <code>flanker</code>, <code>pg-boss</code> — all real, all open source, all free. Nothing needs inventing.</div></div>
+  <div class="card"><span class="n">03</span><div class="t">The model never acts</div><div class="d">The blue band across the middle is the whole safety argument. Models answer questions; <strong>our code</strong> makes every single change to a mailbox.</div></div>
+  <div class="card"><span class="n">04</span><div class="t">Permission tracks damage</div><div class="d">Tier 0 needs no approval because nothing changes. Tier 3 needs approval every time because it cannot be undone.</div></div>
+  <div class="card"><span class="n">05</span><div class="t">The traps are marked</div><div class="d">Snooze has no API. Replies need the right threading header. IMAP sending must file its own Sent copy. Named, not glossed over.</div></div>
+</div>
+
+<div class="key">
+  <span class="tag">The sentence to say while pointing at it</span>
+  <p><em>"An email comes in, gets taken apart by standard libraries, and falls through four deciders — our own header rules, two free date libraries, our own small model, and finally a paid model. Each one either answers or passes it along. Whatever they decide, our own code turns into one instruction to the mailbox — no model ever touches anyone's email directly.</em></p>
+  <p><em>Three of the four deciders are free. The paid one only writes replies, and only after names are stripped out. And nothing that reaches another human happens without the user approving that specific message."</em></p>
+</div>
+
+<h2>Delete — we can have it, and it costs us nothing</h2>
+
+<p>I previously said we should skip delete entirely. <strong>That was wrong, and there's a better answer.</strong></p>
+
+<p>Gmail has <em>two</em> different delete operations, and people conflate them:</p>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Operation</th><th>What it does</th><th>Permission needed</th><th>Reversible?</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="mono">messages.trash</td>
+      <td>Moves the message to Trash — exactly what happens when a person clicks the bin icon</td>
+      <td><strong>Included in <code>gmail.modify</code></strong> — the permission we already ask for</td>
+      <td>✅ <strong>Yes, for 30 days</strong></td>
+    </tr>
+    <tr>
+      <td class="mono">messages.delete</td>
+      <td>Destroys it immediately, bypassing Trash</td>
+      <td>Needs full-mailbox access → <strong>the heavier annual audit</strong></td>
+      <td>❌ <strong>Never</strong></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="key">
+  <span class="tag">The finding</span>
+  <p><strong>When a user says "delete this", they mean the bin icon.</strong> They expect it in Trash, recoverable, and gone after 30 days. That is <code>messages.trash</code>.</p>
+  <p>And <code>messages.trash</code> is <strong>already covered by the permission we're asking for.</strong> No extra scope, no scarier consent screen, no heavier audit, no extra cost. <strong>We can ship delete today.</strong></p>
+  <p>The only thing we still refuse is <code>messages.delete</code> — instant, permanent, unrecoverable. Nobody wants that from an automated assistant, and asking for it would push us into the expensive audit tier for no benefit.</p>
+</div>
+
+<p><strong>How we'd ship it safely:</strong> Trash is a <em>separate opt-in</em> from archiving. Default off. When on, everything trashed is reported in the daily summary, and there's a one-command "undo everything you trashed today". The 30-day window is our safety net — and it's Gmail's own, not something we built.</p>
+
+<p><strong>What to tell sir:</strong> <em>"Delete is in. It moves mail to Trash, exactly like clicking the bin — recoverable for 30 days. It needs no extra permission and doesn't affect the audit. The only thing we don't do is permanent instant destruction, which would require full mailbox access and a much more expensive review, and isn't what anyone means by delete anyway."</em></p>
+
+<h2>What each tool is best at</h2>
+
+<h3>Taking the email apart</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Tool</th><th>Best at</th><th>Weak at</th><th>Why this one</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">email<br><span style="color:var(--ink-3);font-size:11px">Python built-in</span></td><td>Correctness. Handles MIME, encodings, nested parts, attachments. Zero dependencies.</td><td>Slower on high volume.</td><td><strong>Start here.</strong> It's already installed and it's correct.</td></tr>
+    <tr><td class="mono">flanker<br><span style="color:var(--ink-3);font-size:11px">by Mailgun</span></td><td><strong>Speed.</strong> Up to 20× faster, ~half the memory, far fewer function calls.</td><td>Less actively maintained than the standard library.</td><td>Swap in <strong>only if</strong> parsing becomes a measured bottleneck.</td></tr>
+    <tr><td class="mono">mail-parser</td><td>Catching <strong>malformed and hostile</strong> email — structural tricks other parsers silently ignore.</td><td>Built for forensics, so heavier than needed for normal mail.</td><td>Add later, for spam and phishing defence.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Working out what it is</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Tool</th><th>Best at</th><th>Weak at</th><th>Why this one</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">our header rules<br><span style="color:var(--ink-3);font-size:11px">~200 lines, ours</span></td><td>Instantly identifying <strong>marketing and automated mail</strong>. Free, explainable, microseconds.</td><td><strong>Cannot tell a receipt from a real person</strong> — transactional mail deliberately omits those headers.</td><td>No library needed. It's five checks against a database we own.</td></tr>
+    <tr><td class="mono">duckling<br><span style="color:var(--ink-3);font-size:11px">by Facebook</span></td><td><strong>Money, dates, times, durations</strong> — and it returns <strong>a probability per answer</strong>, which is what tells us when to escalate.</td><td>Composite durations ("two days and three hours"). Date ranges are experimental. Five languages.</td><td><strong>The probability is why.</strong> No other library tells us when it's unsure.</td></tr>
+    <tr><td class="mono">dateparser</td><td><strong>200+ languages.</strong> Relative dates — "in 2 days", "tomorrow", "3 months and 1 week ago".</td><td>Dates only — no money, no numbers. ~36% on deliberately messy text.</td><td>Backs up duckling where its five languages don't reach.</td></tr>
+    <tr><td class="mono">ModernBERT</td><td><strong>Long emails</strong> (8,192 tokens), 2–4× faster than older encoders, current best accuracy for its size.</td><td>Cannot write. Needs training data.</td><td>Best small model available. Falls back to DistilBERT if we need something smaller.</td></tr>
+    <tr><td class="mono">SetFit<br><span style="color:var(--ink-3);font-size:11px">a training method</span></td><td><strong>Training with almost no data.</strong> ~92.7% accuracy from <strong>8 examples per class</strong>, competitive with fine-tuning a 3× larger model on 3,000.</td><td>It's a method, not a model — it needs a base model underneath.</td><td><strong>This is what makes our own model possible at all.</strong> 64 hand-labelled emails, one afternoon.</td></tr>
+    <tr><td class="mono">scikit-learn</td><td>The <strong>priority score</strong> — simple statistics over your reply history. Fast, tiny, explainable.</td><td>No language understanding.</td><td>Google uses the same approach for Gmail's Priority Inbox. Proven at their scale.</td></tr>
+    <tr><td class="mono">ONNX Runtime</td><td><strong>Running the model fast on ordinary CPUs.</strong> Measurably faster than the alternatives for this kind of model.</td><td>Models must be converted first.</td><td>No graphics card needed, which is what keeps the running cost near zero.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Protecting the data</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Tool</th><th>Best at</th><th>Weak at</th><th>Why this one</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">Presidio<br><span style="color:var(--ink-3);font-size:11px">by Microsoft</span></td><td><strong>Structured personal data</strong> — email addresses, phone numbers, card numbers, national IDs. Near-perfect, because those have fixed shapes.</td><td><strong>Recall drops</strong> beyond its ~18 built-in types. Names are the hard part.</td><td>Mature, free, and pluggable — we can add better detectors to it.</td></tr>
+    <tr><td class="mono">GLiNER</td><td>Recognising <strong>arbitrary entity types</strong> from a description, not a fixed list.</td><td>Slower than regex.</td><td>Plugs into Presidio to cover what it misses. <strong>Both must be measured before we make any privacy claim.</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Keeping it running</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Tool</th><th>Best at</th><th>Weak at</th><th>Why this one</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">pg-boss</td><td><strong>Delayed jobs</strong> — which is the entire reminder engine, free. Plus retries and scheduled work.</td><td>Not built for enormous throughput.</td><td><strong>Uses the database we already have.</strong> No Redis, no second system to run.</td></tr>
+    <tr><td class="mono">PostgreSQL<br>+ pgvector</td><td>Everything we store, <strong>plus the writing-style search</strong>, in one place.</td><td>Slightly slower than a dedicated vector database at very large scale.</td><td>Our volumes are tiny. <strong>One service beats two.</strong></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Writing</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Tool</th><th>Best at</th><th>Weak at</th><th>Why this one</th></tr></thead>
+  <tbody>
+    <tr><td class="mono">frontier model</td><td><strong>Writing a reply that sounds like you</strong> — the one job with no checkable answer.</td><td>Costs money. Sends data outside. Overkill for anything else.</td><td>Behind a swappable interface, so a cheaper model can take the easier calls later.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="key">
+  <span class="tag">The rule that chooses between them</span>
+  <p><strong>Fixed shape → library. Needs understanding → model. Needs judgement about tone → frontier.</strong></p>
+  <p><code>Rs 8,400</code> has a fixed shape. <em>"by end of next week"</em> needs understanding. <em>"does this sound like Yahya?"</em> needs the expensive one.</p>
+</div>
+
+<footer>
+  Every tool named here is open source and currently maintained. API method names are from current Gmail, Microsoft Graph and IMAP documentation. Percentages are estimates pending measurement on a real mailbox.
+</footer>
+
+</div>

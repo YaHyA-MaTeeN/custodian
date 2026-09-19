@@ -1,0 +1,337 @@
+<title>Custodian Research Findings</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#EFF2F4; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#10222B; --ink-2:#566B76; --ink-3:#85979F;
+    --rule:#D4DFE4; --rule-soft:#E4ECEF;
+    --accent:#0F5673; --accent-soft:#E0EDF3;
+    --go:#1C6647; --go-soft:#DFEFE7;
+    --hold:#8A6110; --hold-soft:#F8EEDA;
+    --cut:#A32C22; --cut-soft:#F7E4E1;
+    --f-display:"IBM Plex Serif",Georgia,serif;
+    --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+      --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+      --rule:#223945; --rule-soft:#1A2E38;
+      --accent:#64B8DB; --accent-soft:#13303E;
+      --go:#6DBF97; --go-soft:#163025;
+      --hold:#DCAE5C; --hold-soft:#332916;
+      --cut:#E8897C; --cut-soft:#37201D;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+    --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+    --rule:#223945; --rule-soft:#1A2E38;
+    --accent:#64B8DB; --accent-soft:#13303E;
+    --go:#6DBF97; --go-soft:#163025;
+    --hold:#DCAE5C; --hold-soft:#332916;
+    --cut:#E8897C; --cut-soft:#37201D;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1020px; margin:0 auto; padding:0 24px 80px; }
+
+  header.top { padding:44px 0 20px; border-bottom:2px solid var(--accent); margin-bottom:28px; }
+  .eyebrow { font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--f-display); font-weight:600; font-size:34px; line-height:1.1; letter-spacing:-.02em; margin:10px 0 0; }
+  .one { font-size:16.5px; margin:12px 0 0; max-width:66ch; color:var(--ink-2); }
+  .one strong { color:var(--ink); font-weight:600; }
+  .meta { font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); margin-top:14px; letter-spacing:.03em; }
+
+  h2 { font-family:var(--f-mono); font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:38px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--rule); }
+  h3 { font-size:15.5px; font-weight:600; margin:24px 0 8px; }
+  p { max-width:72ch; margin:0 0 12px; }
+  ul, ol { max-width:72ch; padding-left:20px; margin:0 0 14px; }
+  li { margin-bottom:5px; }
+  code { font-family:var(--f-mono); font-size:.87em; background:var(--surface-2); border:1px solid var(--rule-soft); border-radius:3px; padding:1px 4px; color:var(--accent); }
+
+  .tw { overflow-x:auto; margin:0 0 16px; border:1px solid var(--rule); border-radius:5px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13px; min-width:660px; }
+  th { text-align:left; font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); padding:9px 12px; border-bottom:1px solid var(--rule); background:var(--surface-2); white-space:nowrap; vertical-align:bottom; }
+  td { padding:9px 12px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.45; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num { font-family:var(--f-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ev { color:var(--ink-2); font-size:12.5px; }
+
+  .chip { display:inline-block; font-family:var(--f-mono); font-size:9.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:2px 6px; border-radius:3px; white-space:nowrap; border:1px solid transparent; }
+  .chip.go { background:var(--go-soft); color:var(--go); border-color:color-mix(in srgb,var(--go) 28%,transparent); }
+  .chip.hold { background:var(--hold-soft); color:var(--hold); border-color:color-mix(in srgb,var(--hold) 30%,transparent); }
+  .chip.cut { background:var(--cut-soft); color:var(--cut); border-color:color-mix(in srgb,var(--cut) 28%,transparent); }
+
+  .box { border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 4px 4px 0; padding:14px 18px; margin:0 0 18px; max-width:76ch; }
+  .box p { margin:0; max-width:none; }
+  .box p + p { margin-top:9px; }
+  .box.warn { border-color:var(--cut); background:var(--cut-soft); }
+  .box .tag { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:5px; }
+  .box.warn .tag { color:var(--cut); }
+
+  blockquote { margin:0 0 14px; padding:10px 0 10px 18px; border-left:3px solid var(--rule); color:var(--ink-2); font-style:italic; max-width:72ch; }
+
+  footer { margin-top:42px; padding-top:18px; border-top:1px solid var(--rule); font-family:var(--f-mono); font-size:11px; color:var(--ink-3); line-height:1.7; }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Deep research — reviewed and pruned</span>
+  <h1>Research Findings</h1>
+  <p class="one">Five research streams, ~600 web searches and ~250 direct source fetches. <strong>This is the reviewed version</strong> — weak evidence has been cut rather than passed along, and every claim below carries its source. What was thrown out is listed at the end, so the pruning itself can be checked.</p>
+  <p class="meta">Yahya · 3 Sept 2026 · feature list · corrections · open questions</p>
+</header>
+
+<!-- ═══════ HEADLINE ═══════ -->
+<h2>The three findings that matter most</h2>
+
+<div class="box warn">
+  <span class="tag">1 · Our price point is contradicted by the only real data in the category</span>
+  <p><strong>Cora (by Every) published that their AI inference cost $25–35 per user per month.</strong> After "nearly burning six figures" and a 10× optimisation, they reached <strong>"under $5."</strong> Their optimised floor is above our $1–3 ceiling.</p>
+  <p>And the category is repricing upward in public: <strong>Shortwave's entry tier went $7 → $30 in two years</strong> (Wayback-verified), and is now monthly-only with no annual discount. The one product in our price band — SaneBox at $2–10 — does <strong>no generative AI at all.</strong></p>
+  <p><strong>Our architecture is genuinely different</strong> — a 22M classifier absorbs the volume, the frontier model touches ~8 drafts a day, where Cora summarises every newsletter and generates two briefs daily. But that is our arithmetic against their measurement. <strong>Treat $5 as the prior until we measure our own.</strong></p>
+</div>
+
+<div class="box">
+  <span class="tag">2 · The wedge is the obligation ledger, and it is header-computable</span>
+  <p>Across ~5,700 analysed comments, the most vividly described unmet need was tracking what you owe and what you are owed. <strong>Every competitor review names it as missing</strong> — absent from Superhuman, Shortwave, Fyxer, Inbox Zero and Spark.</p>
+  <p>Three facts make it ours: it computes almost entirely <strong>from headers</strong> (you sent <code>Message-ID: X</code>; nothing arrived with <code>In-Reply-To: X</code>) — so it is free, fast and private; <strong>the reply arriving is the closure signal</strong>, which fixes the exact failure that kills stars and flags ("I forget to unstar things"); and there is <strong>no published academic work on the complete job</strong>. Strong demand, silent literature.</p>
+</div>
+
+<div class="box">
+  <span class="tag">3 · Reposition: deadline guardian, not inbox-zero tool</span>
+  <p>Two streams appeared to contradict each other. Western forums show <strong>almost no demand for deadline extraction</strong> — it was the one core feature with no user pull found on HN or Reddit. The Pakistan research shows the opposite, because a missed deadline there is not a late fee.</p>
+  <p>Under <strong>s.114B</strong>, an unmet FBR notice lets the state <strong>block your SIM, cut your electricity and gas, and bar foreign travel.</strong> <strong>ITGO No. 01 of 2024 named 506,671 individuals</strong> for SIM blocking. And the <strong>Federal Tax Ombudsman has formally ruled</strong> that FBR posting notices only to the IRIS portal, without email or SMS push, is legally insufficient — and directed them to fix it.</p>
+  <p><strong>Our problem statement, validated by a state ombudsman.</strong> Same product, same architecture — different headline.</p>
+</div>
+
+<div class="box">
+  <span class="tag">And one finding that validates the whole thesis</span>
+  <p>Kushlev &amp; Dunn (2015), a two-week crossover field experiment with 124 participants, is the closest thing to direct evidence for what we are building. Participants limited to checking email <strong>three times a day</strong> — versus checking freely — showed <strong>significantly lower daily stress (d = .37)</strong>, lower tension and less distraction.</p>
+  <p><strong>Crucially: emails received and replied to did not differ between conditions.</strong> The intervention changed <em>checking frequency</em>, not volume. And Mark et al. (2012) found that cutting email off entirely <strong>halved task-switching — 37.1 to 18.2 window switches per hour.</strong></p>
+  <p><strong>That is our product thesis, measured.</strong> The win comes from removing the checking, not from processing mail faster. <em>(Honest note: Mark's famous heart-rate result is a trend, not significant — t(6) = −2.26, p = .065, n = 7 — and is routinely overstated in secondary sources. Don't quote it.)</em></p>
+</div>
+
+<!-- ═══════ FEATURE LIST ═══════ -->
+<h2>The feature list — pruned</h2>
+<p>Sir asked for every feature we could put in the agent, within a confined scope. Here it is, with the evidence for each and a verdict. <strong>Features with no evidence behind them have been removed, not listed for completeness.</strong></p>
+
+<h3>Build — evidence strong, gap verified</h3>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>Feature</th><th>Evidence</th><th></th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td><strong>Obligation ledger</strong><br><span class="ev">waiting-on · what I promised · ball-in-court</span></td><td class="ev">Most-demanded unmet need in the corpus. Missing from all five leading products. No academic work on the complete job. <strong>Header-computable.</strong></td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">2</td><td><strong>Backlog cleanup, grouped by sender</strong></td><td class="ev">"The single most unaddressed onboarding moment in the category." <strong>Cora states outright it cannot. Fyxer users ask in Fyxer's own subreddit and get no answer. Outlook "doesn't prioritize older, existing messages."</strong></td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">3</td><td><strong>Generic IMAP support</strong></td><td class="ev">The most-requested unshipped feature in the category. Inbox Zero issue #62: <strong>47 👍, open since Dec 2023</strong>; #925: 36 👍. Working PRs unmerged. Only SaneBox serves IMAP, and it has no AI.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">4</td><td><strong>WhatsApp approval loop</strong></td><td class="ev">Verified exhaustively: <strong>nobody funded is on WhatsApp.</strong> Inbox Zero has Slack/Telegram/Teams but not WhatsApp; Orchid chose iMessage; Fyxer, Serif, Cora, Superhuman, Shortwave, HEY, SaneBox have no messaging surface at all.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">5</td><td><strong>Rescue important mail from spam</strong><br><span class="ev">"This looks important and it's in spam. Beware of links."</span></td><td class="ev">Sir's idea. Nobody does it. Google's spam filter is better than anything we'd build — <strong>so don't compete with it, cover its failure mode instead.</strong> Header-computable.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">6</td><td><strong>Institutional deadline guardian</strong><br><span class="ev">FBR, SECP, banks, utilities, universities</span></td><td class="ev">FTO ruling against FBR; 506,671-person SIM-blocking order. <strong>Befiler, Pakistan's leading tax-filing service, has no notice-monitoring feature.</strong> FBR publishes DMARC <code>p=reject</code>, so genuine notices are cryptographically verifiable.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">7</td><td><strong>Sensitive vault</strong><br><span class="ev">OTP, banking, health never opened</span></td><td class="ev">Cheap, header-only, and the foundation of the trust claim. Directly answers sir's OTP question.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">8</td><td><strong>Per-account scoping</strong></td><td class="ev">Sir's explicit request. Also the trust on-ramp — "try it on your least important account first."</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">9</td><td><strong>Draft-only, never auto-send</strong></td><td class="ev">Demanded as the <em>default</em> by enthusiasts, not sceptics. And now a security argument: PromptArmor demonstrated <strong>zero-click email exfiltration from Superhuman's AI</strong> (Dec 2025) via a hidden injection in an unopened message.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">10</td><td><strong>Promotions grouped by brand</strong><br><span class="ev">all Samsung here, all Apple there</span></td><td class="ev">Sir's idea. Enables one-tap disposal of a whole sender. Builds on Gmail's own categories rather than replacing them.</td><td><span class="chip go">Build</span></td></tr>
+    <tr><td class="num">11</td><td><strong>Natural-language settings</strong></td><td class="ev">Now table stakes — Cora, Serif, Inbox Zero and Shortwave all have it. <strong>Necessary but not differentiating.</strong></td><td><span class="chip go">Build</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Build differently — the research says change the design</h3>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>What we planned</th><th>What the evidence says</th></tr></thead>
+  <tbody>
+    <tr><td class="num">12</td><td><strong>Red / amber / green priority</strong></td><td class="ev"><strong>Fixed taxonomies are universally criticised</strong> — Fyxer's 3 buckets, Serif's 9, Cora's 4, all complained about. Triage is also the most commoditised feature in the category. → Use a <strong>probability that you will act</strong>, plus a one-line explanation ("you reply to 94% of this sender's mail"), rather than three fixed buckets.</td></tr>
+    <tr><td class="num">13</td><td><strong>"Approve this draft? Y/N"</strong></td><td class="ev"><strong>Anthropic published that users approve 93% of Claude Code's permission prompts.</strong> An eye-tracking study found reviewers resolved 92% of alerts in 3.9 seconds, with eyes on the dialog's icon 75% of the time and the message only 25%. → <strong>Ask for the decision, not the yes.</strong> Not "send this reply about pricing?" but "Acme asked for 15% off. Yes / No / Counter at __". The model writes the prose <em>after</em>. Nobody does this, it preserves attention, and it cuts cost.</td></tr>
+    <tr><td class="num">14</td><td><strong>Escalating reminders</strong></td><td class="ev"><strong>Once someone ignores a reminder, they ignore the repeat 87.9% of the time</strong> (1.27M alerts, 112 clinicians). Each additional alert cut acceptance 30%. → <strong>Our differentiator is sending fewer reminders, because we stop the ones that don't work.</strong> And <strong>never repeat the same text</strong> — varying presentation measurably resists habituation.</td></tr>
+    <tr><td class="num">15</td><td><strong>Sort into 5–6 tabs</strong></td><td class="ev">Whittaker (CHI 2011, 345 users, 85,000+ refinding actions): complex folders <em>"are inefficient and do not improve retrieval success."</em> → <strong>Group for disposal, not for retrieval.</strong> Sir's tabs are about clearing junk, which is a different job — the research doesn't kill the feature, it scopes it.</td></tr>
+    <tr><td class="num">16</td><td><strong>One writing voice</strong></td><td class="ev"><strong>Who the recipient is decides whether a draft is sendable — more than what it says.</strong> CHI 2021 (9,504 ratings): <strong>70.2% of suggested replies were edited before sending, rising to 73% for replies to a supervisor.</strong> Judges were <strong>7× more likely to lengthen a reply than shorten it.</strong> Structural features like greetings had <em>no</em> measurable effect. → Per-recipient tone is <strong>the core variable, not a refinement.</strong> Store a style profile (sir's <em>"tone poochenge"</em>) <em>and</em> retrieve 4–5 examples, varying by relationship. A PersonaMail participant's complaint is the whole requirement: <em>"LLMs always open with 'I hope this message finds you well,' but I always replace it. This preference isn't saved anywhere."</em></td></tr>
+    <tr><td class="num">17</td><td><strong>Draft everything that needs a reply</strong></td><td class="ev"><strong>Deciding <em>whether</em> to draft is as hard as drafting.</strong> Google's Smart Reply <strong>missed 63.6% of messages people actually replied to, and over-triggered on 60% of its own suggestions.</strong> → Treat "does this need a reply?" as a first-class problem with its own measurement, not a by-product of triage. <strong>And design assuming the draft ships unedited</strong> — one study found 92.3% of accepted suggestions were never edited, and 30% of emails were composed entirely from suggestions with no changes at all.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box">
+  <span class="tag">Two numbers that settle the draft-interaction design</span>
+  <p><strong>Whole-message drafts beat sentence-by-sentence suggestions on both speed and quality.</strong> Cornell, 120 participants: message-level took <strong>8.53 minutes vs 16.40 unaided</strong>, while sentence-level took 15.77 — <strong>no faster than no assistance at all</strong>, because the time saved typing was spent choosing. And independent judges rated message-level replies <em>more</em> helpful than human-written ones (0.69 vs 0.57).</p>
+  <p><strong>Generic auto-replies scored 0.24</strong> — catastrophically worse than everything else. The "sorry, high volume" template is worse than doing nothing.</p>
+  <p>This supports asking the user for the <em>decision</em> and then generating the whole message — not offering fragments to assemble.</p>
+</div>
+
+<div class="box">
+  <span class="tag">The reason voice fidelity is a defensive requirement</span>
+  <p>Cornell, two pre-registered experiments: when a partner <em>actually</em> used smart replies, ratings of their cooperation and warmth <strong>improved</strong>. When a partner was <em>suspected</em> of using them, ratings <strong>fell sharply</strong> — and people detect it only weakly (r = 0.22).</p>
+  <p><strong>The penalty is for being suspected, not for using it.</strong> Sounding like yourself isn't a polish feature; it's what prevents the damage.</p>
+  <p><em>And a caution against overclaiming:</em> a 121-employee, <strong>16,880-email</strong> field experiment found AI rewriting moved <strong>neither open rates (57.0 / 58.0 / 57.7%) nor reply rates (22.2 / 21.5 / 22.2%).</strong> Only the tone it produced mattered. Don't promise better outcomes — promise less work.</p>
+</div>
+
+<h3>Later — real, but not version one</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Feature</th><th>Why it waits</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Per-claim confidence and citation</strong></td><td class="ev">Universal in document AI, <strong>absent from every email product.</strong> Every assertion links to the line it came from. Genuinely differentiating — but v2.</td></tr>
+    <tr><td><strong>Earned autonomy</strong></td><td class="ev"><strong>No shipped product anywhere grants an agent more autonomy based on its measured record.</strong> A counter per (sender-class × action-type) needs no ML. Open gap, but v2.</td></tr>
+    <tr><td><strong>Modes</strong> — "I'm at a conference"</td><td class="ev">Users in the MIT study invented <strong>24 distinct modes</strong> unprompted. Cheap and unserved. v2.</td></tr>
+    <tr><td><strong>Response aggregation</strong></td><td class="ev">"5 of 8 said yes to Thursday." An entire category in the MIT study with essentially zero products. v3.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Cut — evidence says don't build these</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Feature</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Thread summarisation</strong></td><td class="ev">Most-complained-about AI email feature, addresses the wrong problem (volume, not comprehension) — and <strong>Google made it free to every Gmail user in January 2026.</strong></td></tr>
+    <tr><td><strong>Auto-foldering for retrieval</strong></td><td class="ev">CHI 2011: folders don't improve retrieval success. Search and threading do.</td></tr>
+    <tr><td><strong>Spam filtering</strong></td><td class="ev">Sir's own call, and correct — Google's is better. Cover its failure mode instead (feature 5).</td></tr>
+    <tr><td><strong>Vector-DB / knowledge-graph memory</strong></td><td class="ev">A plain full-context baseline <strong>beat the leading memory product on its own benchmark.</strong> Use typed facts.</td></tr>
+    <tr><td><strong>Multi-agent orchestration</strong></td><td class="ev">~15× the tokens. Both Cognition and Anthropic report it losing on shared-state work.</td></tr>
+    <tr><td><strong>Draft-then-critique loops</strong></td><td class="ev">Self-verification produced <strong>38 false positives out of 100.</strong> Costs 2×, adds noise. Build deterministic verifiers instead.</td></tr>
+    <tr><td><strong>Prompt compression</strong></td><td class="ev">Helps long contexts, <strong>hurts short ones.</strong> Ours are short.</td></tr>
+    <tr><td><strong>NADRA-specific logic</strong></td><td class="ev"><strong>NADRA doesn't email.</strong> CNIC reminders go by SMS and the Pak-ID app.</td></tr>
+    <tr><td><strong>Differential privacy / TEEs / federated learning</strong></td><td class="ev">Right idea, wrong decade for this budget. DP training costs <em>"utility comparable to non-private models from roughly 5 years ago."</em></td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════ CORRECTIONS ═══════ -->
+<h2>Corrections to our plan</h2>
+
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>What I had said</th><th>What is actually true</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td>"If our database leaks, the attacker gets embeddings, not mail"</td><td><strong>Wrong.</strong> vec2text <strong>recovers 92% of 32-token inputs exactly</strong> from embeddings (EMNLP 2023, independently reproduced). <strong>Embeddings must be protected like raw text.</strong> The defensible version is <strong>typed extracted facts</strong> — bounded, auditable, not invertible.</td></tr>
+    <tr><td class="num">2</td><td>Presidio redaction makes egress safe</td><td><strong>Overstated.</strong> PIIBench 2026: all systems scored span-level F1 <strong>below 0.14</strong>; Presidio best at 0.1385. <em>(In-domain is far better, and it exceeds 90% on structured identifiers.)</em> But the decisive point: <strong>the sensitive part of an email is the substance, not the names.</strong> Redacting "Sarah" from "we're letting Sarah go on Friday" protects nothing. → Privacy rests on <strong>minimisation plus contractual zero-retention</strong>, with redaction for structured identifiers only.</td></tr>
+    <tr><td class="num">3</td><td>$1–3 per user per month</td><td>May be unreachable. See headline finding 1. <strong>Three proven fallbacks exist:</strong> bring-your-own-API-key (Inbox Zero, Missive), feature rationing (SaneBox), or a cheaper model tier.</td></tr>
+    <tr><td class="num">4</td><td>Metadata-only access is a lighter compliance path</td><td><strong>No.</strong> <code>gmail.metadata</code> is a <strong>restricted</strong> scope — same CASA assessment as full read. It also returns no attachment information and <strong>blocks server-side search</strong> (<code>q=</code> returns 403).</td></tr>
+    <tr><td class="num">5</td><td>Unsubscribe automatically</td><td><strong>Prohibited.</strong> RFC 8058: <em>"The mail receiver MUST NOT perform a POST on the HTTPS URI without user consent."</em> Must be user-confirmed.</td></tr>
+    <tr><td class="num">6</td><td>Chat-based approval is our differentiator</td><td><strong>Inbox Zero already ships it</strong> on Slack, Teams and Telegram. <strong>WhatsApp specifically, plus the obligation ledger, is the differentiator</strong> — not "approval in chat" as a category.</td></tr>
+    <tr><td class="num">7</td><td>"We only look at metadata"</td><td>Say <strong>"headers and subject lines, never the message body."</strong> Subject <em>is</em> a header and we will use it. The Unroll.me FTC settlement is what happens when that gap stays vague.</td></tr>
+    <tr><td class="num">8</td><td>Gmail backfill takes ~13 minutes</td><td><strong>Unresolved.</strong> Two sources give different quota figures — 15,000 units/min at ~5 units per message, versus 6,000 units/min at 20 units. <strong>The demo claim depends on which is right.</strong> Must be verified against live API behaviour.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box">
+  <span class="tag">One advantage discovered</span>
+  <p>Microsoft's delegated <strong><code>Mail.ReadBasic</code></strong> — <em>"read basic properties… excluding mail body and attachments"</em> — requires <strong>no admin consent.</strong> That is a <strong>platform-enforced</strong> body-free boundary: <em>"the API will not return the body even if we ask"</em> is a far stronger claim than <em>"we promise not to look."</em> Gmail has no equivalent. Worth considering leading with Outlook.</p>
+</div>
+
+<!-- ═══════ POSITIONING ═══════ -->
+<h2>The positioning, in one table</h2>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>Reads the body?</th><th>Privacy story</th><th>Can draft?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>SaneBox</strong> <span class="ev">$2–10/mo, 4.8★ everywhere</span></td><td>❌ Headers only</td><td>✅ Strong</td><td>❌ <em>"It filters, it never reads"</em></td></tr>
+    <tr><td><strong>Superhuman · Fyxer · Shortwave</strong> <span class="ev">$22–120/mo</span></td><td>✅ Everything</td><td>❌ None</td><td>✅</td></tr>
+    <tr style="background:var(--go-soft)"><td><strong>Us</strong></td><td><strong>Headers for 95%, body only on what you approved</strong></td><td>✅</td><td>✅</td></tr>
+  </tbody>
+</table>
+</div>
+<p><strong>SaneBox cannot draft because of its privacy architecture. Everyone else can draft because they abandoned privacy.</strong> SaneBox's ceiling is self-imposed and permanent — they cannot follow us without breaking their best trust claim. And their 4.8★ across 756 Trustpilot, 242 G2 and 645 App Store reviews <strong>proves headers-only sells.</strong></p>
+
+<!-- ═══════ SECURITY ═══════ -->
+<h2>Security is now a feature, not a risk</h2>
+<p>An email agent sits on the "lethal trifecta" — private data, untrusted content, external communication. The evidence is overwhelming: <strong>208,095 real attack submissions</strong> against an LLM email assistant in one public challenge; a working self-replicating worm through email-assistant ecosystems; <strong>EchoLeak</strong> (CVSS 9.3) zero-click against M365 Copilot; and the Superhuman exfiltration above.</p>
+<p>But two findings turn this into an advantage:</p>
+<ul>
+  <li><strong>Model choice matters more than guardrails.</strong> AgentDojo measured identical attacks: <strong>1.11% success against Claude 3.5 Sonnet vs 47.69% against GPT-4o.</strong></li>
+  <li><strong>Provable resistance is achievable.</strong> CaMeL (Google DeepMind) reaches 77% task success versus 84% undefended — <strong>a 7-point utility cost for a real guarantee</strong>, and we are already 80% of the way there architecturally.</li>
+</ul>
+<p><strong>Three additions, roughly a weekend:</strong> recipient addresses derived from untrusted content require approval; Markdown and URL sanitisation on model output (this is what blocked EchoLeak-class exfiltration at Google); and <strong>the approval classifier must not see the email body or the model's own justification</strong>, so the agent cannot argue past its own approver.</p>
+
+<div class="box warn">
+  <span class="tag">The single most important security instruction</span>
+  <p>A study of <strong>1,404 real email-agent deployments</strong> (14 frameworks, 63 apps, 12 models, 20 mail services) found <strong>every one of them was hijacked, in an average of 2.03 attempts.</strong></p>
+  <p>Their key result: <code>send_email</code> had the <em>lowest</em> attack success rate — but <strong>only because some premium models volunteer a confirmation before sending.</strong> And the published attack works by <strong>spoofing a system prompt that tells the model to skip that confirmation.</strong></p>
+  <p><strong>So: the approval gate must be enforced in our own code, outside the model. A model that politely asks first is not a safeguard — it is a behaviour an attacker can switch off.</strong></p>
+  <p>And the corollary we had not accounted for: <code>retrieve_email</code> had the <em>highest</em> attack success — <strong>over 50% even against premium models — because reading is never gated.</strong> Our header-only autonomous path is the right shape, but reading must be treated as an attack surface, not a safe default.</p>
+</div>
+
+<div class="box">
+  <span class="tag">Two findings that reframe the approval design</span>
+  <p><strong>Per-action approval beats standing rules — the opposite of the intuitive design.</strong> A preregistered study (N=113, 18 actions containing 7 overreaches) found user-authored policies blocked <strong>20.1 percentage points <em>less</em> overreach</strong> than per-action approval. Why: participants chose "ask me" for <strong>114 of 140</strong> rules — punting everything back to runtime — and then <strong>approved 133 of the 148 overreach actions anyway.</strong></p>
+  <p><strong>And our near-term problem is over-refusal, not runaway agents.</strong> Models wrongly <em>hold</em> authorised work <strong>28.1%</strong> of the time and wrongly <em>allow</em> unsafe work <strong>1.0%</strong>. Meanwhile harmful side effects on mailbox tasks fell from 26% to <strong>1.9%</strong> in two years. The agent interrupting too often will annoy users long before it does damage.</p>
+</div>
+
+<!-- ═══════ PAKISTAN ═══════ -->
+<h2>Pakistan — the two facts that change the business model</h2>
+
+<div class="box warn">
+  <span class="tag">Stripe does not support Pakistan</span>
+  <p>Verified directly. And <strong>credit card penetration is ~0.22% of adults; debit 7.7%.</strong> A USD card checkout excludes the large majority of even white-collar Pakistanis.</p>
+  <p><strong>Structure:</strong> US LLC + Stripe for American customers · <strong>Safepay</strong> (PKR, recurring) for Pakistani customers · PSEB registration to repatriate at <strong>0.25% final tax</strong> under s.154A, extended through TY2029. <em>Trap: a foreign-owned US LLC must file IRS Form 5472 annually even at zero tax — penalty $25,000, then $25,000 per further 30 days.</em></p>
+</div>
+
+<h3>A DNS survey of ~110 Pakistani domains — original primary data</h3>
+<div class="tw">
+<table>
+  <thead><tr><th>Sector</th><th>Platform</th></tr></thead>
+  <tbody>
+    <tr><td><strong>IT / software firms</strong> <span class="ev">— our buyer</span></td><td><strong>Google Workspace dominant</strong> — Folio3, VentureDive, Devsinc, Careem, Bykea, SadaPay</td></tr>
+    <tr><td>Banks, large corporates</td><td><strong>Microsoft 365</strong>, usually behind Mimecast or Trend Micro</td></tr>
+    <tr><td>Universities</td><td><strong>Split evenly</strong> — LUMS, NUST, UET on M365; FAST, Punjab University, Habib on Google</td></tr>
+    <tr><td>Government</td><td><strong>Almost uniformly self-hosted.</strong> FBR/PRAL, SECP, NADRA, PTA, most electricity companies</td></tr>
+  </tbody>
+</table>
+</div>
+<p><strong>→ Gmail API first, Microsoft Graph second. Confirmed by data, not assumption.</strong></p>
+<p><strong>Pricing anchor:</strong> purchasing-power guidance suggests a 65–70% discount off US pricing — a $20/month US product becomes <strong>~$5–7 (PKR 1,400–2,000)</strong> locally. <strong>WhatsApp utility templates cost ~$0.010 (PKR 2.8) and are free inside the 24-hour window</strong> — at 30 proactive nudges per user per month, about PKR 84 (~$0.30).</p>
+
+<div class="box">
+  <span class="tag">Honest verdict on the local moat</span>
+  <p><strong>Real but narrow — and it's a distribution moat, not a technology one.</strong> No global player shows any Pakistan localisation, and their $18–120/seat pricing is structurally wrong for the market. But an Indian competitor could extend sideways (GST notices are structurally similar, and ClearTax already does notice tracking), and any competent model will parse notice formats. <strong>The durable advantages are WhatsApp-first UX, PKR pricing on local rails, and trust. Estimated protection: 12–24 months.</strong></p>
+</div>
+
+<!-- ═══════ OPEN ═══════ -->
+<h2>What is still unknown — and how to close each</h2>
+<div class="tw">
+<table>
+  <thead><tr><th></th><th>Question</th><th>How to settle it</th><th>Effort</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td><strong>What share of a real inbox is decidable from headers alone?</strong> Assumed ~60%</td><td>Export 1,000 emails with <code>format=metadata</code>, hand-label, count. <strong>Measure the false-positive rate on "needs a human" especially</strong> — target under 1%</td><td class="num">One afternoon</td></tr>
+    <tr><td class="num">2</td><td><strong>Our actual inference cost per user</strong></td><td>Instrument the gate rate from day one. <strong>The cost risk is triage leakage, not model price</strong> — guard the ~5% frontier rate as the primary cost metric</td><td class="num">Week 1</td></tr>
+    <tr><td class="num">3</td><td><strong>Does Safepay support recurring billing? Will Paddle onboard a Pakistani entity?</strong></td><td><strong>Attempt an actual signup.</strong> Not by reading documentation. Together these decide the revenue architecture</td><td class="num">A day</td></tr>
+    <tr><td class="num">4</td><td>How often does redaction miss a real name?</td><td>A 200–300 email hand-labelled set. <strong>The privacy claim must not be made publicly until this exists</strong></td><td class="num">Two days</td></tr>
+    <tr><td class="num">5</td><td>Gmail quota — which figures are right?</td><td>Measure against the live API</td><td class="num">An hour</td></tr>
+    <tr><td class="num">6</td><td>FBR's actual sending address</td><td>Capture from a real mailbox during onboarding. <strong>Do not guess it</strong></td><td class="num">First pilot user</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════ CUT ═══════ -->
+<h2>What was thrown out, and why</h2>
+<p>So the pruning can be checked rather than taken on trust:</p>
+<ul>
+  <li><strong>A "94% higher conversion from purchasing-power pricing" claim</strong> — sourced to companies selling purchasing-power-pricing tools</li>
+  <li><strong>All WhatsApp Pakistan user counts</strong> — the widely-cited "52 million" is an aggregator citing aggregators, and DataReportal's 2025 <em>and</em> 2026 Pakistan reports contain no WhatsApp figure at all. Treat "50+ million" as a planning assumption, never a fact</li>
+  <li><strong>Serif's public numbers</strong> — their Trustpilot rating comes from exactly two reviews with <em>verbatim identical text</em>, posted 15 months apart by different people in different countries</li>
+  <li><strong>Reddit sentiment on SaneBox, positive or negative</strong> — ~10% of SaneBox Reddit posts carry affiliate tracking, and their programme pays 30% lifetime recurring</li>
+  <li><strong>Fyxer volume-overage fees</strong> — asserted by third-party blogs; the live pricing page, comparison table, FAQ and Terms contain no such language</li>
+  <li><strong>Glassdoor Pakistani salary data</strong> — internally contradictory by a factor of 40 across two of its own pages</li>
+  <li><strong>A widely-repeated Paymob/PayFast acquisition claim</strong> — no evidence found; appears to be incorrect</li>
+  <li><strong>One AI-generated SaneBox "review" site</strong> that invents a non-existent pricing tier and asserts a certification the company never claims</li>
+  <li><strong>Microsoft's reported removal of "Prioritize My Inbox"</strong> — kept, but flagged: sourced only to a Message Center mirror</li>
+</ul>
+
+<div class="box">
+  <span class="tag">A caveat worth carrying into every claim above</span>
+  <p>Nearly every <em>positive</em> production number in this space is vendor-reported on the vendor's own evaluation. Nearly every <em>negative</em> result is academic and independently constructed. <strong>That asymmetry should shift how much weight each carries — the failure evidence is methodologically stronger than the success evidence.</strong></p>
+</div>
+
+<footer>
+  Five research streams · ~600 web searches · ~250 direct source fetches · one original DNS survey. Claims marked as verified were read from primary sources; relayed findings are identified as such in the underlying reports. Where evidence was thin, this document says so rather than filling the gap.
+</footer>
+
+</div>

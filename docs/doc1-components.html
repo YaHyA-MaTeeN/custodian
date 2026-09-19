@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Custodian Components</title>
+<link rel="stylesheet" href="_docstyle.css">
+</head>
+<body>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<section>
+  <div class="cover">
+    <div class="eyebrow">Custodian · Document 1 of 3 · High level</div>
+    <h1>Every component of the system:<br>what it is, what it does, and why it is that way</h1>
+    <p class="meta">OCloud Solutions &nbsp;·&nbsp; state of the proof of concept on 11 September 2026 &nbsp;·&nbsp; written from the code as it runs, not from the plan</p>
+  </div>
+
+  <p class="lead">Custodian is an agent that runs a person's inbox for them. It reads
+  what arrives, decides what needs the person, handles the rest without asking,
+  and never sends anything as them without an exact typed yes. This document
+  walks every part of it and, for each part, answers the same six questions:
+  what is it, what does it do, how does it do it, why is it there, why is it
+  built that way, and why not some other way.</p>
+
+  <div class="figs">
+    <div class="fig"><b>2</b><span>doors into a mailbox — Gmail API, IMAP</span></div>
+    <div class="fig"><b>17</b><span>pipeline stages, models only at four of them</span></div>
+    <div class="fig"><b>4</b><span>models — three ours, one rented</span></div>
+    <div class="fig"><b>9</b><span>database tables, none holding whole mail</span></div>
+    <div class="fig"><b>16</b><span>ways a person meets it (scripts + one web page)</span></div>
+  </div>
+
+  <h3>The one idea underneath everything</h3>
+  <div class="quote">The more damage an action could cause, the more permission it needs.
+  And the cheapest thing that can decide correctly is the thing that decides.</div>
+  <p>Those two sentences explain most of the choices below. Rules run before
+  models because rules are free, instant and cannot be argued with. Models are
+  used only where reading meaning is genuinely required. Anything irreversible
+  &mdash; sending, forwarding, unsubscribing, trashing &mdash; stops at a gate that is
+  written in our own code, below the models, where nothing inside an email can
+  reach it.</p>
+
+  <h3>How this document is organised</h3>
+  <table class="toc">
+    <tr><td class="n">A</td><td><b>The shape</b> &mdash; how the parts fit, in one picture</td></tr>
+    <tr><td class="n">B</td><td><b>The doors</b> &mdash; connectors: the interface, Gmail API, IMAP, and the factory that picks one</td></tr>
+    <tr><td class="n">C</td><td><b>The pipeline</b> &mdash; every stage, 1 to 19</td></tr>
+    <tr><td class="n">D</td><td><b>The memory</b> &mdash; the database, table by table</td></tr>
+    <tr><td class="n">E</td><td><b>The models</b> &mdash; four of them, with their honest state</td></tr>
+    <tr><td class="n">F</td><td><b>The surfaces</b> &mdash; how a person actually uses it</td></tr>
+    <tr><td class="n">G</td><td><b>The proofs</b> &mdash; the test scripts and what they establish</td></tr>
+    <tr><td class="n">H</td><td><b>The rules that cut across everything</b></td></tr>
+    <tr><td class="n">I</td><td><b>What is not built, and what is still an open decision</b></td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ A · THE SHAPE ═══════════════ -->
+<section class="sheet">
+  <h2>A &nbsp;·&nbsp; The shape</h2>
+  <p class="lead">Five layers. Mail enters through a door, walks a fixed pipeline,
+  leaves traces in a small database, and a person meets the result through one
+  of several surfaces. Models sit at the leaves of the pipeline, never at its
+  trunk.</p>
+
+<div class="flow">   A MAILBOX (Gmail, or anything that speaks IMAP)
+        │
+        ▼
+   ┌─ B · THE DOORS ──────────────────────────────────────────────────┐
+   │  connect.py picks one  →  connectors/gmail.py  or  connectors/imap.py │
+   │  Both answer the same questions. Neither is named above this line.  │
+   └──────────────────────────────────────────────────────────────────┘
+        │  Envelope (sender, subject, date, what the sender declared)
+        ▼
+   ┌─ C · THE PIPELINE ───────────────────────────────────────────────┐
+   │  3 sensitive? → 4 header facts → 2 strip → 5 forms → 7 dates      │
+   │  → 16 commitment → 8 READ (model) → 6 route → 9 needs a reply?    │
+   │  → 10 redact → 19 voice → 11 WRITE (model) → 12 restore           │
+   │  → 13 APPROVE (typed yes) → 14 act        (15 unsubscribe, 17 quick) │
+   └──────────────────────────────────────────────────────────────────┘
+        │  decisions, actions, reminders, corrections
+        ▼
+   ┌─ D · THE MEMORY ─────────────────────────────────────────────────┐
+   │  store.py → mailbox.db: headers of everything, text of 30 days    │
+   └──────────────────────────────────────────────────────────────────┘
+        │
+        ▼
+   ┌─ F · THE SURFACES ───────────────────────────────────────────────┐
+   │  web.py (browser)  chat.py (sentences)  agent.py / watch.py       │
+   │  brief · waiting · inbox · mailbox · correct · history · my_data  │
+   └──────────────────────────────────────────────────────────────────┘
+
+   E · THE MODELS sit inside stages 8, 9, 10, 11 only:
+      our classifier (8)  ·  our reply gate (9)  ·  our name finder (10)  ·  Gemini (11, and 8 when unsure)</div>
+
+  <h3>Why five layers and not two</h3>
+  <p>The obvious build is one script that logs into Gmail, sends everything to a
+  large model, and does what the model says. That was rejected for three
+  reasons that each appear again below: it costs money on every email, it sends
+  every email to an outside company, and in published testing every one of
+  1,404 email agents built that way was hijacked by instructions hidden in
+  email text. The layers exist so that cost, privacy and safety are properties
+  of the structure, not promises made in a prompt.</p>
+
+  <h3>The order the stages actually run in</h3>
+  <p>The stage numbers are the order of the original design. The order they
+  <em>execute</em> in is different, on purpose. Stage 3 (is this sensitive?)
+  runs before stage 2 (open and strip the body), because stage 2 opens the
+  message and stage 3 exists to decide whether it may be opened at all. Stage 16
+  (commitments) runs straight after stage 7 (dates) and before stage 9 (needs a
+  reply?), because a meeting reminder is needed whether or not the email needs
+  answering. Stage 6 (the router) reports after stage 8 because it is stage 8
+  that decides whether to escalate. Each of these is explained at its stage.</p>
+</section>
+
+<!-- ═══════════════ B · THE DOORS ═══════════════ -->
+<section class="sheet">
+  <h2>B &nbsp;·&nbsp; The doors</h2>
+  <p class="lead">A connector is a thin adapter between one kind of mailbox and
+  the rest of the system. There are two today. Nothing above them knows which
+  one is in use.</p>
+
+  <div class="box"><h4>B1 · The connector interface &mdash; <code>connectors/base.py</code></h4>
+  <dl class="qa">
+    <dt>What it is</dt><dd>A contract: the list of questions every mailbox adapter must be able to answer, and a data shape called an <b>Envelope</b> that every adapter must produce.</dd>
+    <dt>What it does</dt><dd>Defines <code>account_email</code>, <code>list_ids</code>, <code>fetch_envelopes</code>, <code>fetch_raw</code>, <code>apply_label</code>, <code>archive</code>, <code>mark_read</code>, <code>trash</code>, and a set of <b>capability flags</b>: <code>supports_push</code>, <code>supports_labels</code>, <code>supports_categories</code>, <code>supports_threads</code>, <code>supports_send</code>, <code>supports_server_search</code>.</dd>
+    <dt>How</dt><dd>An Envelope carries only what can be known from headers: sender, subject, date, size, unread, which account it arrived at, whether the sender declared itself bulk or auto-submitted, the unsubscribe headers, and the threading headers. It has no body field, so an envelope-only scan cannot accidentally read a message.</dd>
+    <dt>Why it is there</dt><dd>So the pipeline is written once. The rule is <em>ask a connector what it can do, never who it is</em>: code says <code>if conn.supports_push</code>, never <code>if conn.name == "gmail"</code>. A third kind of mailbox is then one new file.</dd>
+    <dt>Why this way</dt><dd>The capability flags are not decoration. Some differences cannot be hidden &mdash; a mailbox that cannot push must be polled, and that is a different code path. Declaring the difference lets the caller choose the path honestly instead of failing later.</dd>
+    <dt>Why not otherwise</dt><dd>Hiding every difference behind one identical interface would force the weakest mailbox's behaviour on all of them. Exposing the provider's name would let provider-specific code leak upward, and the second provider would become a rewrite.</dd>
+  </dl></div>
+
+  <div class="box"><h4>B2 · The Gmail API door &mdash; <code>connectors/gmail.py</code></h4>
+  <dl class="qa">
+    <dt>What it is</dt><dd>The adapter for Google's official Gmail API, authenticated with OAuth.</dd>
+    <dt>What it does</dt><dd>Everything: lists, fetches headers in parallel (six worker threads, each with its own client because Google's client is not thread-safe), fetches bodies, applies and removes labels, archives, trashes, sends, drafts, forwards, rescues from spam, and asks Gmail <em>what changed since bookmark X</em> through <code>history.list</code> &mdash; one quota unit per poll instead of a full re-list.</dd>
+    <dt>How</dt><dd>Two OAuth scopes and deliberately not a third: <code>gmail.modify</code> (read, label, archive, trash &mdash; not permanent delete) and <code>gmail.send</code>. The full-access scope that permits <code>messages.delete</code> is never requested. <em>Not asking is stronger than promising not to.</em></dd>
+    <dt>Why it is there</dt><dd>It is the richest door: instant push is possible, labels and threads are native, and label removals the user makes in Gmail come back as events (the UC-29 correction feed).</dd>
+    <dt>Why this way</dt><dd>Headers are requested by name (<code>From, To, Cc, Subject, Date, List-Unsubscribe, List-Unsubscribe-Post, List-Id, Precedence, Message-ID, In-Reply-To, References, Auto-Submitted</code>) &mdash; everything the pipeline needs, nothing more. Fewer bytes, less exposure.</dd>
+    <dt>The cost</dt><dd>Google requires a paid annual security audit (CASA, roughly $540&ndash;3,000 a year) before an app using the OAuth sign-in screen can serve more than 100 users, and tokens expire every seven days until then. That is a billing rule, not a technical limit, and it is why the second door exists.</dd>
+  </dl></div>
+
+  <div class="box"><h4>B3 · The IMAP door &mdash; <code>connectors/imap.py</code></h4>
+  <dl class="qa">
+    <dt>What it is</dt><dd>The adapter for IMAP, the protocol every mail server on earth speaks, authenticated with an <b>app password</b>. On Gmail it is much more than plain IMAP.</dd>
+    <dt>What it does</dt><dd>At connect time it asks the server <code>CAPABILITY</code>. If the answer contains <code>X-GM-EXT-1</code>, the server speaks Gmail's dialect, and three flags flip to true: real labels (<code>X-GM-LABELS</code>), real thread ids (<code>X-GM-THRID</code>), and the whole Gmail search language (<code>X-GM-RAW</code>) including <code>category:primary</code>. It reads headers in batches of 100 per command, reads bodies with <code>BODY.PEEK</code> so nothing is marked read, applies and removes labels, archives (a move to All Mail), trashes, rescues from spam with a single atomic <code>MOVE</code>, polls for new mail by highest UID, and sends over SMTP with the same app password.</dd>
+    <dt>How</dt><dd>Every command is a <b>UID</b> command. imaplib's plain <code>fetch</code>, <code>search</code>, <code>store</code> and <code>copy</code> use sequence numbers &mdash; a message's position today, which shifts when anything above it moves. A stored position reused tomorrow names a different email, silently. UIDs are fixed for the life of the message.</dd>
+    <dt>Why it is there</dt><dd>No audit, no fee, no approval wait, no 100-user cap, no expiring tokens. Measured on a real mailbox: 45 of 47 audited capabilities work, the Primary tab is reachable (1,748 messages), and a real message was sent in 4.9 seconds. The two genuine gaps are server push and snooze.</dd>
+    <dt>Why this way</dt><dd>Capabilities are <em>detected</em>, never assumed from the hostname. Plug in a 1998 IMAP server and the Gmail flags stay false, the pipeline still runs, and only the extras are missing. Sending lives here too because the app password that opens <code>imap.gmail.com</code> also opens <code>smtp.gmail.com</code> &mdash; "IMAP cannot send" is true about the protocol and wrong about the product.</dd>
+    <dt>What the tests changed</dt><dd>Seven defects in this file were found only by running it against a live server: label application that was silently archiving the message; sequence numbers stored as ids; a label parser that dropped any label without a space; a spam-folder lookup that never found Gmail's; missing Gmail folder names; folder creation with an unquoted name (every label with a space failed to exist); and archive that answered OK and did nothing. Each fix is documented in the file beside the code it changed, with the run that found it saved in <code>test_runs/</code>.</dd>
+  </dl></div>
+
+  <div class="box"><h4>B4 · The factory &mdash; <code>connect.py</code></h4>
+  <dl class="qa">
+    <dt>What it is</dt><dd>The one file that chooses a door.</dd>
+    <dt>What it does</dt><dd><code>open_mailbox()</code> returns a Gmail connector or an IMAP connector. <code>--imap</code> forces IMAP, <code>--api</code> forces the API, and with neither it uses IMAP when an app password is set and no OAuth token exists. It also holds the <code>HOSTS</code> map (which IMAP server serves which domain) and three helpers every surface shares for reopening a stored message: <code>live_id</code>, <code>fetch_verified</code>, <code>looks_imap_uid</code>.</dd>
+    <dt>Why it is there</dt><dd>So that no other file contains the words "gmail" or "imap". That is what makes "only the connection changes" true rather than claimed &mdash; and it was proved: the same email through both doors produced identical output, with only the connector line differing.</dd>
+    <dt>Why the helpers live here</dt><dd>A stored <code>provider_id</code> belongs to the door that saved it. An API id means nothing to IMAP; an old IMAP id can name a different message. <code>fetch_verified</code> looks the message up by Message-ID when it has to and then checks the Message-ID <em>inside</em> what came back matches what was stored, refusing otherwise. One copy of that rule, used by the web page, the mailbox view, the brief and the backlog scanner, because five copies would be five chances to disagree.</dd>
+  </dl></div>
+</section>
+
+<!-- ═══════════════ C · THE PIPELINE ═══════════════ -->
+<section class="sheet">
+  <h2>C &nbsp;·&nbsp; The pipeline</h2>
+  <p class="lead">One message at a time, through a fixed sequence. Each stage
+  either attaches facts, exits early, or hands the message on. The rule for the
+  whole pipeline: <b>a rule may route mail; it may never discard it.</b></p>
+
+  <div class="box"><h4>Stage 1 · Connect <span class="tag rules">rules</span></h4>
+  <p><b>What:</b> the door, from Part B. <b>Does:</b> hands the pipeline an Envelope and says what it can do. <b>Why first:</b> the capability flags decide code paths downstream (poll or push; labels or folders). <b>Why not named:</b> the pipeline prints <code>push=</code>, <code>labels=</code>, never the provider.</p></div>
+
+  <div class="box"><h4>Stage 3 · The sensitive gate <span class="tag rules">rules</span> &nbsp;<span class="mono">stage03_sensitive.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Decides whether a message may be opened at all, seeing <b>only the sender and subject</b>. If it is sensitive, the pipeline stops here: the body is never fetched, not for a summary, not for a cache, not for anything. The person is told "a message from X arrived, not opened" and nothing more.</dd>
+    <dt>How</dt><dd>Four sources, not one list. Domain suffixes that cover whole categories at once (<code>.gov .gov.uk .gc.ca .gouv.qc.ca .mil .bank .insurance .nhs.uk</code>); a seed list of 27 bank, tax and payment domains; sender local-parts that are security channels (<code>otp, 2fa, mfa, verification…</code>); subject patterns for password changes, sign-in alerts, verification codes and a six-digit code in the subject; security subdomains (<code>accounts.</code>, <code>security.</code>, <code>auth.</code>, <code>login.</code>, <code>id.</code>) whoever the provider is; and the user's own marks, read fresh from <code>user_sensitive.json</code> on every call.</dd>
+    <dt>Why third</dt><dd>Any later and something would already have opened the email before deciding it should not be opened. The ordering is the entire safety property, so the function signature enforces it: there is no parameter for a body.</dd>
+    <dt>Why rules, not a model</dt><dd>We want certainty, not a probability, and a model would have to read the very thing we have decided not to read.</dd>
+    <dt>Why not a single list</dt><dd>A finite list of banks will always miss one. Suffix rules and channel patterns cover categories; the user's marks cover their own bank; the list is only the seed. Real misses found in testing (&ldquo;Your Instagram password has been changed&rdquo;, &ldquo;New Steam Account Email Verification&rdquo;) were closed by widening the subject patterns to cover <em>confirmations</em> of a change, not only requests to make one.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 4 · Header facts <span class="tag rules">rules</span> &nbsp;<span class="mono">stage04_headers.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Reads what the sender declared about its own mail and turns it into <b>facts</b>: machine-generated (<code>Precedence: bulk</code>), has an unsubscribe header, one-click unsubscribe (RFC 8058), is a reply, is an auto-reply (<code>Auto-Submitted</code>), and whether our provider's authentication stamp passed.</dd>
+    <dt>The one exit</dt><dd><code>engagement_exit</code>: if this person has received at least eight messages from a sender and opened none, the message leaves the pipeline. That is a fact about the person's behaviour, not a guess about the sender.</dd>
+    <dt>Why facts and not verdicts</dt><dd>"Machine-generated" is a fact. "Junk" is not &mdash; bank statements, flight bookings, invoices and password resets are all machine-generated, and a shop's sale email is noise to one person and the point of the mailbox to another. This stage attaches facts; the decision belongs to stage 9.</dd>
+    <dt>Why the authentication check is careful</dt><dd>Only the topmost <code>Authentication-Results</code> header, and only if <em>our own</em> provider stamped it, is trusted. Every header below it was written by whoever sent the mail. Parsing that header without checking who stamped it is an exploitable bug, not a style question.</dd>
+    <dt>What testing added</dt><dd>Three headers, not one. Checking only <code>Precedence: bulk</code> let bounces (which set <code>Auto-Submitted</code>) and marketing platforms (which set <code>List-Unsubscribe</code> but not bulk) through as if a person had written them. A person's mail client has never once added a List-Unsubscribe header.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 2 · Parse and strip <span class="tag rules">rules</span> &nbsp;<span class="mono">stage02_strip.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Now, and only now, the body is fetched. MIME is taken apart, HTML is turned into text, and the quoted previous conversation and the signature are cut away, keeping only the new words.</dd>
+    <dt>How</dt><dd><code>selectolax</code> for HTML (a C-backed parser, far faster than BeautifulSoup on marketing mail) and <code>email-reply-parser</code> for the quoted history.</dd>
+    <dt>Why</dt><dd>It is the single biggest cost saving in the system. Published measurement on 938 real emails put the reduction at about 85%, median 966 tokens down to 124. Measured here: one real message went from 156,130 raw bytes to 5,399 characters. Every model downstream reads the short version.</dd>
+    <dt>Why after 3 and 4</dt><dd>Because it opens the message, and stages 3 and 4 decide whether to.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 5 · Forms and layouts <span class="tag rules">rules</span> &nbsp;<span class="mono">stage05_forms.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Two mechanisms sharing a stage. <b>Half one:</b> the answer arrived attached &mdash; a calendar invite (<code>.ics</code>) carries the exact time, place and attendees; an Apple Wallet pass (<code>.pkpass</code>, a ZIP with JSON inside) carries flight, gate and seat; some invoice PDFs carry the whole invoice as embedded XML (Factur-X / ZUGFeRD). We open the file and read the fields; nothing is interpreted. <b>Half two:</b> a layout fingerprint &mdash; your electricity bill looks identical every month, so after a few of them the shape is recorded and no model is ever needed for that sender again.</dd>
+    <dt>Why no AI</dt><dd>These are data, not prose. A model reading a calendar invite can only be as right as the file, and can be wrong. Reading the file directly cannot be wrong.</dd>
+    <dt>Why it matters downstream</dt><dd>UC-23: a category label (flight, invoice, meeting) is applied only when the sender <em>declared</em> it through one of these files, never from text the model guessed at. A flight label on a message we merely guessed was about a flight is worse than no label &mdash; the Owner stops trusting the folder.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 7 · Find dates <span class="tag rules">rules</span> &nbsp;<span class="mono">stage07_dates.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Finds phrases in the text that refer to a time, resolves them to a real date, and notes whether a deadline cue (<em>by, before, due, no later than…</em>) sits near each.</dd>
+    <dt>How</dt><dd>Three jobs, three tools: <b>find</b> the phrases with <code>dateparser</code> plus our own patterns for relative phrases it misses ("next week", "end of month"); <b>pick</b> which one is the real deadline with a model (stage 11's helper); <b>calculate</b> the date with Python, never a model.</dd>
+    <dt>Why never a model for arithmetic</dt><dd>On temporal arithmetic BERT-base scores 25.9 and RoBERTa-large 29.1 against a random baseline of 35.4 &mdash; worse than guessing. A model may read that a sentence refers to a time; code works out which time.</dd>
+    <dt>What testing added</dt><dd><code>dateparser</code> is very loose. On real mail it returned "dil" and "bla" from an Urdu song lyric and "150, 41 Comments" from a LinkedIn post as dates, and set reminders for them. A candidate must now <em>look like</em> a date &mdash; contain a number, a month, a weekday or a relative word &mdash; and a bare number is not a date.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 16 · Commitments <span class="tag rules">rules</span> &nbsp;<span class="mono">stage16_commitments.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Turns a date into a reminder that fires. Classifies the kind (meeting, appointment, bill, application, renewal, deadline) and warns by type: two hours before a meeting, a day before an appointment, three days before a bill, six weeks before a passport renewal.</dd>
+    <dt>Why it runs here, off stage 7</dt><dd>"Your meeting is tomorrow at 3" needs no reply &mdash; stage 9 correctly says so &mdash; and it is exactly the message a person most needs surfaced. Reminders were once computed inside the drafting path, so they only happened for mail that needed answering. Reply and remember are different jobs.</dd>
+    <dt>Why no approval</dt><dd>A reminder is reversible; the worst case is a notification the user dismisses. The gate is spent where it is needed.</dd>
+    <dt>Why an attachment wins</dt><dd>An <code>.ics</code> file is the sender stating the time in a machine-readable field; a phrase in a sentence is us inferring it. When both exist the declared one wins &mdash; and it is the only source allowed for machine-sent mail, because "80% off today" from a marketing sender once produced a reminder due at 13:11 that fired at 13:16.</dd>
+    <dt>Why the keyword order is load-bearing</dt><dd>"Passport renewal" was classed as a bill (three-day warning) because bill's list contained "renew" and was checked first. Specific kinds are checked before general ones.</dd>
+    <dt>Learning</dt><dd>BR-88: repeatedly dismissing a warning as too early moves it later; acting on it at once moves it earlier. Stored as a correction, not a model weight, so it takes effect on the next reminder.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 8 · Read it <span class="tag models">model</span> &nbsp;<span class="mono">local_classifier.py · model.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>The only place anything reads an email to understand it. It answers one question: does this need a response from the person? Our own model answers first; a rented model answers only when ours is unsure.</dd>
+    <dt>How</dt><dd>An XLM-RoBERTa-base classifier (278M parameters, multilingual) fine-tuned on this mailbox, loaded once and held in memory, about 110 ms per email on a laptop CPU, text never leaving the machine. Topic ("work", "money or bills", "account or security"…) is a coarse bucket, so rules do it &mdash; free and instant, no second model to keep in step.</dd>
+    <dt>Why this and not a large model for everything</dt><dd>Gemini takes 1&ndash;2 seconds, costs money per email, and the text leaves. Ours is free and private. The two sit together through stage 6.</dd>
+    <dt>Honest state</dt><dd>Trained on 199 examples from one mailbox. Strong on the classes with data, weak on the ones with two examples each. It proves the component works end to end; it is not yet good enough to ship. What improves it is more labelled data and the correction loop.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 6 · The router <span class="tag rules">rules</span> &nbsp;<span class="mono">model.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Decides whether to trust our model's answer or escalate to the rented one. The rule: escalate when our model's <b>confidence is below 0.65</b>. Never on subject matter, never on category.</dd>
+    <dt>Why confidence and not category</dt><dd>A category rule ("send all legal mail to the big model") would send the same mail every time regardless of whether the small model could handle it. Confidence sends only what the small model genuinely cannot do, which is the only spend that buys anything.</dd>
+    <dt>What it caught on its first run</dt><dd>Our model called a song lyric a request at 0.53; the router escalated; Gemini answered "no response needed" at 0.90.</dd>
+    <dt>Degrades, does not stop</dt><dd>With no Gemini key it keeps our answer and says so. With Gemini failing it keeps our answer and says so.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 9 · Needs a reply? <span class="tag models">model</span> &nbsp;<span class="mono">stage09_gate.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Answers "will this person actually act on this?" <b>without re-reading the email</b>. It combines stage 8's meaning with history: have they replied to this sender before, opened them before, is it addressed only to them, is it in a thread, is the sender verified, is it business hours, is it a request.</dd>
+    <dt>How</dt><dd>Hand-set weights give a probability. If a trained model exists for this mailbox (LightGBM, 17 features, trained on what this person opened) its score is <b>averaged</b> with the hand-set one, not substituted. The verdict is "needs a reply" when the probability is at least 0.45 <em>and</em> stage 8 said it was a request. Every verdict carries its reasons, written at the moment it is made.</dd>
+    <dt>Why history beats words</dt><dd>Measured on real enterprise mail, feature groups on their own scored: history with the sender 0.692, what the email was understood to mean 0.595, timing 0.540, <b>the raw words 0.511</b> &mdash; chance is 0.500. Everything combined: 0.721. So stage 8 reads once; stage 9 decides using what it understood plus history.</dd>
+    <dt>Why blended, not replaced</dt><dd>The trained model's AUC is 0.684, below the published 0.72&ndash;0.79 ceiling, and it learned "opened", which is a slightly different question from "replied". Two mediocre estimates that disagree for different reasons beat either alone, and a bad training run can never swing a decision on its own.</dd>
+    <dt>The bug this stage taught</dt><dd>It compared stage 8's label against a vocabulary written for an older four-way classifier. When stage 8 became binary its label was not in the set, so "is a request" was always false, so nothing was ever "needs a reply" &mdash; while printing a plausible probability every time. Two components each doing what they were written to do, joined by a string comparison nobody re-checked.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 10 · Redact <span class="tag models">model</span> &nbsp;<span class="mono">stage10_redact.py · local_pii.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>The only door out of the building. Names, email addresses, card numbers, IBANs, national identifiers (CNIC, NI, SSN, SIN), phone numbers and URLs are replaced with placeholders before any text reaches an outside model. The text is also cut to the least that will do the job (3,000 characters).</dd>
+    <dt>How</dt><dd>Patterns first, then the model. Structured identifiers have checkable structure, so a regular expression gets them essentially right every time; the model once called a credit card an SSN. Names have no structure, so only the model can find them. Patterns claim what they are certain about; the model takes what is left. The mapping from placeholder to real value is held in memory for the life of the request and never written to disk.</dd>
+    <dt>Why one door</dt><dd>With one exit we can show what left; with several we can only hope.</dd>
+    <dt>The honest limit</dt><dd>On a benchmark of real documents, a model self-reporting 98.82 F1 scored 0.27, and nothing tested beat a non-expert human at 0.77. So the claim we can defend is "we strip identifiers, we minimise what crosses, and we contract for zero retention" &mdash; not "names are removed".</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 19 · Your voice <span class="tag rules">rules</span> &nbsp;<span class="mono">stage19_voice.py · learn_voice.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Learns how this person writes, from their <b>Sent</b> folder only. Two things are stored: a <b>profile</b> (how they open, how they sign off, how long they write, how formal) made by plain counting, and <b>examples</b> &mdash; their own past replies, each stored as a vector so the four or five closest to the current situation can be handed to the writing model as samples.</dd>
+    <dt>Why not a model trained on the user</dt><dd>Nothing about them is baked into any model's weights. Deleting the account removes it completely &mdash; there is no model to unlearn.</dd>
+    <dt>Why no separate vector database</dt><dd>Thousands of vectors per user and a few searches a day is not a job for a second system. POC: TF-IDF vectors as blobs in SQLite, compared in numpy. Production: the same vectors in Postgres with pgvector. "No separate vector database" is not "no vectors".</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 11 · Write it <span class="tag models">model</span> &nbsp;<span class="mono">model.py · prompts.md</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>Drafts a reply from the redacted text, the profile and the examples. It never sends. It is the only paid step in the pipeline.</dd>
+    <dt>How</dt><dd>Gemini (<code>gemini-flash-latest</code>, with three fallbacks when the free tier is busy), using the <code>draft_reply</code> prompt from <code>prompts.md</code>. Every prompt the system ever gives a model is in that one file, editable without a developer, because wording is a product decision.</dd>
+    <dt>Why rented here and not owned</dt><dd>Reading is a classification, which a small model does well. Writing in a person's voice is generation, which small models do badly. Production decides between Claude and Gemini by blind comparison on real drafts, not by benchmarks.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 12 · Names back <span class="tag rules">rules</span></h4>
+  <p>The placeholders are swapped back for the real values, on our side, before the person ever sees the draft. If any placeholder cannot be resolved the draft is discarded rather than shown half-restored.</p></div>
+
+  <div class="box"><h4>Stage 13 · Approve <span class="tag rules">rules</span> &nbsp;<span class="mono">stage13_approval.py</span></h4>
+  <dl class="qa">
+    <dt>What / does</dt><dd>The most important code in the system. Nothing irreversible &mdash; send, forward, unsubscribe, trash &mdash; happens without an exact typed yes. Reversible things &mdash; label, archive, mark read, snooze, remind, rescue from spam, <em>draft</em> &mdash; happen freely and are logged with how to undo them.</dd>
+    <dt>How</dt><dd>The draft is hashed. The yes is bound to that hash, so editing the draft voids the earlier yes. The yes must be an <em>exact</em> match against a short list ("yes", "send it", "haan", "ji", "theek hai"…), never a substring &mdash; "don't send it" contains "send it". Approval expires after 24 hours. The default, for anything ambiguous, is that nothing happens.</dd>
+    <dt>Why in code and not in a prompt</dt><dd>In published testing all 1,404 real email agents tested were hijacked, most within about two attempts, and the attack works by telling the model it need not ask. A model's manners are a behaviour, and behaviours can be argued with. This code never reads the email, so nothing inside an email can reach it.</dd>
+    <dt>Why a draft needs no approval</dt><dd>UC-25: a draft in the Owner's own Drafts folder cannot leave without them pressing send in their own mail app. The approval is structural rather than procedural, which is stronger.</dd>
+  </dl></div>
+
+  <div class="box"><h4>Stage 14 · Act <span class="tag rules">rules</span> &nbsp;<span class="mono">stage13_approval.execute()</span></h4>
+  <p>One connector call per decision. The audit row is written <em>before</em> the call, with how to reverse it &mdash; if the process dies in between, we have a record of an action that may not have happened, which is the correct direction to fail. A send with no recipient is refused before anyone is asked to approve it, because asking someone to approve a send that cannot work trains them to click yes on things that do nothing. The send line itself is the only line in the project that puts mail into the world, and it is reachable only through the check above.</p></div>
+
+  <div class="box"><h4>Stage 15 · Unsubscribe <span class="tag rules">rules</span> &nbsp;<span class="mono">stage15_unsubscribe.py</span></h4>
+  <p><b>Irreversible, and that is not obvious.</b> You cannot un-unsubscribe. So it sits with send behind a typed yes. Two mechanisms exist and only one is safe: RFC 8058 one-click (a single HTTPS POST to a header the sender advertised) is done; a link in the body (a page with a button somewhere, possibly a login, a survey, a tracking beacon that fires on open) is refused and handed to the person instead. Refusing to act is a real answer.</p></div>
+
+  <div class="box"><h4>Stage 17 · Quick replies <span class="tag rules">rules</span> &nbsp;<span class="mono">stage17_quick.py</span></h4>
+  <p>UC-26. A surprising share of replies are one word &mdash; "Yes", "Thanks", "Received". Sending those through a language model is paying for prose where none is wanted. A fixed list of eight answers, suggested by what the message asked, at most three at a time, no model, no cost. The tap is the approval (BR-96), and the exact text is shown before it goes.</p></div>
+
+  <div class="note"><b>Why there is no stage 18.</b> The numbering is the design's; stages were added as use cases arrived (15, 16, 17, 19) and one number was never assigned. Renumbering would break every reference in the documents, the meeting notes and the code comments for no gain.</div>
+</section>
+
+<!-- ═══════════════ D · THE MEMORY ═══════════════ -->
+<section class="sheet">
+  <h2>D &nbsp;·&nbsp; The memory</h2>
+  <p class="lead">One SQLite file, <code>mailbox.db</code>, behind one module,
+  <code>store.py</code>. The design in one sentence: <b>headers of everything,
+  ever; the text of the last 30 days, important only; everything older fetched
+  live when opened.</b></p>
+
+  <table>
+    <tr><th>Table</th><th>What it holds</th><th>Why it is shaped that way</th></tr>
+    <tr><td class="k">messages</td><td>One row per envelope: sender, subject, date (raw and ISO), size, unread, in inbox, categories, the unsubscribe and threading headers, recipients, which account. <b>Deliberately no body column.</b></td><td>About 1 KB a message; ten years fits in a few hundred MB. The missing column is the privacy promise as a fact about the schema, not a policy page. <code>date_iso</code> exists because sorting the raw RFC date as text sorted alphabetically &mdash; every "newest first" query in the project was wrong and looked plausible.</td></tr>
+    <tr><td class="k">bodies</td><td>Message text for a bounded window: last 30 days, only messages worth reading (not sensitive, not machine-sent, not auto-replies, not from dormant senders). Currently 11 rows, 0.01 MB.</td><td>Retention is enforced in code &mdash; <code>trim_bodies()</code> runs every time the view opens. "We hold 30 days of your important mail" is a sentence a customer can weigh; "we hold all your mail" is not.</td></tr>
+    <tr><td class="k">decisions</td><td>Every verdict, by stage, with the reason and score, written at the moment it was made.</td><td>BR-105. Reconstructing a reason afterwards is guessing wearing a record's clothes. A decision that is not written down did not happen &mdash; a watcher once printed verdicts for weeks and recorded none.</td></tr>
+    <tr><td class="k">actions</td><td>Every action taken, with the state before it, and whether it has been undone.</td><td>BR-108/109. Undo is possible only because "before" was kept. An undo is itself an action and lands here too; history is never silently rewritten.</td></tr>
+    <tr><td class="k">corrections</td><td>What the Owner told us we got wrong: scope (sender, domain, one message), what it was, what it should be, where the correction came from.</td><td>BR-106/107. Looked up <em>before</em> any model is trusted, so a correction changes behaviour on the very next email, not after retraining. Corrections are the only training data we can clearly use.</td></tr>
+    <tr><td class="k">reminders</td><td>Reminders and snoozes: due time (computed in code, never by a model), kind, why.</td><td>Both are "show me this again at a time", so one table with a kind, not two that drift apart.</td></tr>
+    <tr><td class="k">handled</td><td>What has already been done to a message, so a second run does not do it twice.</td><td>A message is a fact about the mailbox; an action is a fact about us. Different lifetimes, different tables.</td></tr>
+    <tr><td class="k">style_examples<br>style_profile</td><td>The person's own past replies as vectors, and the counted profile of how they write.</td><td>Stage 19. The only user text ever held, and it is only their own outgoing writing.</td></tr>
+  </table>
+
+  <div class="box"><h4>Why SQLite and not Postgres</h4>
+  <p>One file, zero setup, in the standard library, and every query in the POC is a few thousand rows. Production is Postgres &mdash; the same schema, with the vector blobs becoming a pgvector column. Nothing in the queries depends on SQLite; the swap is the connection string and a migration.</p></div>
+
+  <div class="box"><h4>Why Message-ID is the key, and provider_id is a handle</h4>
+  <p>The Message-ID header is written by the sender's mail system and is the only identifier that means the same email in Gmail, Outlook, JMAP and IMAP. The provider's own id is a handle that belongs to one door &mdash; and on IMAP it belongs to one folder. The same message CC'd to two of the Owner's accounts is one row when shown and two copies when acted on, matched on Message-ID (BR-99).</p></div>
+</section>
+
+<!-- ═══════════════ E · THE MODELS ═══════════════ -->
+<section class="sheet">
+  <h2>E &nbsp;·&nbsp; The models</h2>
+  <p class="lead">Four. Three are ours, run on this laptop, cost nothing per
+  email, and never let the text leave. One is rented. Each is used for exactly
+  one job, and each job is the one that nothing cheaper could do.</p>
+
+  <table>
+    <tr><th>Model</th><th>Stage</th><th>What</th><th>Trained on</th><th>Honest state</th></tr>
+    <tr><td class="k">Our classifier<br><span class="mono">classifier/</span></td><td>8</td><td>XLM-RoBERTa-base, 278M parameters, multilingual. Binary: <em>needs a response from you</em> / <em>no response needed</em>. ~110 ms per email on CPU.</td><td>199 emails from this mailbox, labelled by Gemini (distillation) and by hand, fine-tuned on Kaggle's free T4 GPU in minutes.</td><td>Works end to end; too little data to ship. mDeBERTa-v3 was tried first and collapsed to one class after one epoch (loss went to NaN); XLM-R is the same size and stable.</td></tr>
+    <tr><td class="k">Our reply gate<br><span class="mono">gate_model.txt</span></td><td>9</td><td>LightGBM, 300 trees, 17 features (sender history, machine markers, subject shape, time of day, first contact…). Under 1 MB. Trains in 0.24 s.</td><td>5,895 messages from this mailbox with answers the mailbox already knew (opened / replied). Nobody labelled anything.</td><td>AUC 0.684 against a published ceiling of 0.72&ndash;0.79. Blended 50/50 with hand-set weights. One model per person, retrained weekly in production.</td></tr>
+    <tr><td class="k">Our name finder<br><span class="mono">pii_model/</span></td><td>10</td><td>XLM-RoBERTa-base token classifier. 113 fine labels collapsed to a handful of families (PERSON, EMAIL, PHONE, ADDRESS, DATE, ORG…).</td><td>6,000 samples of the public <code>ai4privacy/pii-masking-200k</code> dataset. Nothing of ours involved.</td><td>0.922 on identifier tokens in its own test set. Runs after the regex patterns, never before. The 44M DeBERTa-v3-small in the plan scores within 0.001 of models ten times its size; the trained artefact here is XLM-R for stability.</td></tr>
+    <tr><td class="k">Gemini<br><span class="mono">gemini-flash-latest</span></td><td>11, and 8 when unsure</td><td>Rented. Writes the draft; reads an email only when our classifier's confidence is under 0.65. Sees redacted text only.</td><td>&mdash;</td><td>Free tier with three fallback models when busy. Production chooses between Claude and Gemini by blind comparison on real drafts.</td></tr>
+  </table>
+
+  <div class="box"><h4>Why the models are at the leaves</h4>
+  <p>Every stage that can be rules is rules: sensitivity, header facts, stripping, forms, date arithmetic, reminders, the approval gate, unsubscribe, quick replies. The models are spent on exactly three things a rule cannot do &mdash; read what a person meant, weigh many weak signals about whether they will act, find a name in free text &mdash; and one thing a small model does badly, writing in someone's voice. That is why the pipeline is deterministic with models at the leaves, and why a wrong model answer is always caught or overridden by a rule (a machine-sent flash sale scored "needs a reply" at stage 9 and was still shown as machine mail, because stage 4's fact wins).</p></div>
+
+  <div class="box"><h4>How training data was got without a labelling budget</h4>
+  <p><b>The gate:</b> the mailbox already knows the answers (opened, replied), so 30,000 messages are 30,000 examples the moment the scan finishes. <b>The classifier:</b> distillation &mdash; a large model labels ten emails per request (<code>batch_label.py</code>), a small one learns from those labels, and the small one inherits the large one's mistakes until real corrections improve it. Then careful hand labels (<code>dump_for_labelling.py</code> → <code>labels.txt</code> → <code>apply_labels.py</code>), because the classifier is shared across every user and is labelled once, ever. <b>The name finder:</b> a public dataset already marked up.</p></div>
+
+  <div class="box"><h4>What is planned and not done: shrinking</h4>
+  <p><code>shrink_model.py</code> converts the classifier to ONNX at 8 bits: from 1.1 GB PyTorch to roughly 280 MB, measured elsewhere at about 14&times; faster on CPU, and production never installs PyTorch. Written; not yet run.</p></div>
+</section>
+
+<!-- ═══════════════ F · THE SURFACES ═══════════════ -->
+<section class="sheet">
+  <h2>F &nbsp;·&nbsp; The surfaces</h2>
+  <p class="lead">How a person meets the system. Every one of these reads the same
+  database and calls the same pipeline; none contains a second copy of any
+  decision.</p>
+
+  <table>
+    <tr><th>Surface</th><th>What it is for</th><th>Why it exists as its own thing</th></tr>
+    <tr><td class="k">web.py</td><td>The mailbox in a browser at <code>localhost:8000</code>: every email with its verdict and reason, the door in use, the storage counts, click to open (from the 30-day store or fetched live in under a second), a "how it works" page with live numbers, and <code>--watch</code> to run the agent in the background while the page is open.</td><td>Sir: "we are definitely going to give the view of the mailbox to the user &mdash; first the basic thing, then the agentic experience on top." Built on Python's own <code>http.server</code>, no framework, so it runs with nothing installed. It only reads; the background agent is a separate thread with its own connection.</td></tr>
+    <tr><td class="k">chat.py</td><td>Sentences, not commands: "email ali and ask if he got the report", "what's in my inbox", "sort my mail".</td><td>Sir mandated text input, not settings forms. What the person types is an <em>instruction</em> and what arrives in mail is <em>data</em>; they are read by different code (<code>user_input.py</code>), and the model is only ever handed a multiple-choice question our code built from the current state &mdash; with no draft on screen, "send" is not an option.</td></tr>
+    <tr><td class="k">agent.py</td><td>The full pipeline over the newest N messages, printing every stage and its reason.</td><td>The teaching surface. Every decision is shown with why, so it can be justified stage by stage.</td></tr>
+    <tr><td class="k">watch.py</td><td>Live: polls for new mail every 15 s, runs the pipeline, labels, optionally drafts and asks.</td><td>Polling, not push, on a laptop: push needs a public HTTPS endpoint. <code>history.list</code> costs one unit per poll against ~1,500 for a re-list.</td></tr>
+    <tr><td class="k">scan.py</td><td>Catches up on the backlog &mdash; messages that have never been through the pipeline.</td><td>The watcher starts from "now"; nothing else would ever scan the 7,000 behind it. It contains no pipeline: it calls <code>agent.run_one</code>, so backlog and live can never reach different verdicts.</td></tr>
+    <tr><td class="k">send_mail.py</td><td>Send a mail on the person's behalf, through the real gate.</td><td>It has no shortcut to the send call; a second path to sending is a second place the gate can be missed.</td></tr>
+    <tr><td class="k">brief.py</td><td>The daily brief: what needs you today, with at most eight one-line summaries; <code>--email</code> sends it to yourself (UC-31).</td><td>It deliberately does not summarise the whole mailbox. 7,859 paid calls to produce a wall nobody reads; the brief summarises only what survived the pipeline and caps the count so the bill cannot surprise anyone.</td></tr>
+    <tr><td class="k">waiting.py</td><td>UC-22: what you asked for and never got back. Thresholds scale with how often you correspond (2 days for a frequent contact, 7 for a stranger).</td><td>The one failure that leaves no trace in the inbox. BR-83: the reminder goes to the Owner, never a chase to the recipient. <em>Gap: API door only today.</em></td></tr>
+    <tr><td class="k">inbox.py</td><td>UC-27/28: every account in one list; one search across all of them; duplicates collapsed on Message-ID; <code>--capabilities</code> shows what each door can do.</td><td>Search is over our index (sender, subject, date, category, account), not inside message text &mdash; BR-103 leaves full-text search an open decision and this file says so rather than quietly deciding it.</td></tr>
+    <tr><td class="k">mailbox.py</td><td>The three-tier view in the terminal; <code>--warm</code> fills the 30-day text store.</td><td>The design Umar specified: headers for everything, bodies for 30 days, older fetched live (measured 0.7&ndash;0.8 s).</td></tr>
+    <tr><td class="k">correct.py</td><td>UC-29: tell it it was wrong &mdash; always/never needs a reply, never open this, it is not sensitive, wrong label, stop labelling; scoped to a sender, a domain or one message; <code>--scan</code> picks up labels removed in Gmail; <code>--timing</code> fixes reminder lead times.</td><td>Takes effect on the next email. "Only this one message" once stored the sender's address and so behaved as "this sender forever" &mdash; now pinned to the Message-ID.</td></tr>
+    <tr><td class="k">history.py</td><td>UC-30: everything the system has done, newest first, and <code>--undo N</code>.</td><td>Undo is cheap because we only ever move things. Send, forward and unsubscribe say plainly they cannot be reversed.</td></tr>
+    <tr><td class="k">my_data.py</td><td>UC-32: export everything we hold, or erase it.</td><td>The mail itself was never held, so there is nothing to export there &mdash; a fact about the schema. Erasure changes nothing in the mailbox (BR-116), and the export names what survives (aggregate sender reputation) rather than hiding it (BR-117).</td></tr>
+    <tr><td class="k">sort_mailbox.py</td><td>Applies labels in the mailbox; <code>--undo</code> removes exactly what it added.</td><td>The only script that changes the mailbox in bulk, and deliberately the smallest. Labels only; never moves, archives or deletes.</td></tr>
+    <tr><td class="k">run.py / analyze.py / report.py</td><td>The first scan: every envelope into the database, then measured findings written to <code>report.html</code>.</td><td>No model runs; every finding is a query over headers. "Never once opened" is a fact about behaviour, not a guess about the sender.</td></tr>
+    <tr><td class="k">learn_voice.py</td><td>Builds the writing profile and examples from the Sent folder.</td><td>Stage 19's data. The only place the user's own text is stored.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ G · THE PROOFS ═══════════════ -->
+<section class="sheet">
+  <h2>G &nbsp;·&nbsp; The proofs</h2>
+  <p class="lead">Scripts that ask the real server and save what it said. They
+  exist because a comparison document tells you what someone believes a protocol
+  can do; running it found six defects in our own code that the terminal had
+  made look correct.</p>
+
+  <table>
+    <tr><th>Script</th><th>What it establishes</th><th>Result on this mailbox</th></tr>
+    <tr><td class="k">audit_imap.py</td><td>47 capabilities over IMAP, across nine areas: what the server advertises, every label, the Gmail tabs, spam and special folders, reading one message without marking it read, batched fetch matching one-at-a-time, live polling, search, and every action that changes the mailbox &mdash; run on messages the audit writes itself and deletes afterwards.</td><td>45 work, 2 do not (push, snooze). Inbox counted before and after: unchanged.</td></tr>
+    <tr><td class="k">verify_doc.py</td><td>The IMAP-vs-API comparison notes, claim by claim. Sends one real mail with <code>--send</code>.</td><td>6 confirmed, 3 wrong (labels, categories, Important marker are all reachable), 3 partly right, 4 policy. The duplicate trap shown on a real message in four folders, collapsed to one row by our code.</td></tr>
+    <tr><td class="k">limits_imap.py</td><td>Google's published caps quoted, never hit; this mailbox weighed message by message; fetch speed one-at-a-time versus batched versus our code; the connection cap probed and every connection closed.</td><td>7,882 messages, 780 MB. Our design downloads 59 MB = 2.3% of one day's cap. Our fetch runs at ~100 messages/s, 28&times; the old speed. 16 connections held, none refused.</td></tr>
+    <tr><td class="k">test_imap.py</td><td>The first proof: Gmail over an app password, the Primary tab over IMAP, the same pipeline through the other door.</td><td>Primary 1,747 at the time; identical pipeline output through both doors.</td></tr>
+    <tr><td class="k">runlog.py</td><td>Every run of every proof saved verbatim to <code>test_runs/</code>, timestamped, one file per run.</td><td>The evidence is a folder of files with the time each happened, not a paragraph saying so.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ H · THE RULES ═══════════════ -->
+<section class="sheet">
+  <h2>H &nbsp;·&nbsp; The rules that cut across everything</h2>
+  <p class="lead">Eight rules that no single component owns and every component obeys.</p>
+
+  <table>
+    <tr><td class="n">1</td><td class="k">Instruction vs data</td><td>Text the user types is an instruction and goes to <code>user_input.py</code>. Text inside an email is data and goes to stages 2, 8, 10, 11. They never share a code path, which is why an email cannot issue a command.</td></tr>
+    <tr><td class="n">2</td><td class="k">The gate is code</td><td>Nothing irreversible without an exact typed yes bound to a hash of the exact text, checked by Python that never reads the email. Not a prompt, not a model's manners.</td></tr>
+    <tr><td class="n">3</td><td class="k">One door out</td><td>Everything that reaches an outside model passes through stage 10. Redaction mapping lives in memory only.</td></tr>
+    <tr><td class="n">4</td><td class="k">No body column</td><td>The messages table cannot hold mail. The bodies table is the bounded, auto-trimmed, 30-day exception, and it excludes sensitive mail by construction.</td></tr>
+    <tr><td class="n">5</td><td class="k">Capability, not identity</td><td>Ask a connector what it can do. No file outside <code>connect.py</code> and <code>connectors/</code> names a provider.</td></tr>
+    <tr><td class="n">6</td><td class="k">Message-ID is the key</td><td>The only identifier that means the same email on every door and every day. Provider ids are handles that belong to one door, and are verified on reopen.</td></tr>
+    <tr><td class="n">7</td><td class="k">Rules before models; models at the leaves</td><td>A rule that fires is free, instant and predictable. Models are spent only where nothing cheaper can decide. A rule's fact always wins over a model's guess.</td></tr>
+    <tr><td class="n">8</td><td class="k">Move, never delete</td><td>The system never permanently deletes and never asks for the permission that could. Every action is logged with its "before", so undo is by definition rather than by effort. A decision that is not written down did not happen.</td></tr>
+  </table>
+
+  <h3>And the working method that produced the code</h3>
+  <p>Every non-obvious choice is written beside the code it explains, marked
+  <code>⚠️</code>, in the words a reviewer would need: what was wrong, how it was
+  found, why the fix is this and not the other. A test that talks to the real
+  server is written before a claim is repeated. When a test finds that the
+  system changed something it should not have, the run is kept, the change is
+  reverted, and the test is made to check its own claim afterwards.</p>
+</section>
+
+<!-- ═══════════════ I · NOT BUILT ═══════════════ -->
+<section class="sheet">
+  <h2>I &nbsp;·&nbsp; What is not built, and what is still an open decision</h2>
+
+  <table>
+    <tr><th>Item</th><th>State</th><th>Note</th></tr>
+    <tr><td class="k">Outlook / Graph, JMAP, Zoho connectors</td><td><span class="tag na">not started</span></td><td>Sir: Google only for now. Each is one new file behind the same interface.</td></tr>
+    <tr><td class="k">Gmail push (Pub/Sub)</td><td><span class="tag na">not started</span></td><td>Needs a public endpoint. Polling every 15&ndash;20 s covers the POC.</td></tr>
+    <tr><td class="k">IMAP IDLE</td><td><span class="tag na">not wired</span></td><td>Advertised by the server; holds one socket per mailbox. Deferred until the connection model for many users is decided.</td></tr>
+    <tr><td class="k">waiting.py over IMAP</td><td><span class="tag no">gap</span></td><td>Uses Gmail-API thread calls directly. Needs the Sent folder and threading over IMAP.</td></tr>
+    <tr><td class="k">forward() over IMAP in the executor</td><td><span class="tag yes">built and tested</span></td><td>Sent in 4.7&ndash;8.6 s to the owner's own address during the audit.</td></tr>
+    <tr><td class="k">ONNX / 8-bit classifier</td><td><span class="tag na">written, not run</span></td><td><code>shrink_model.py</code>.</td></tr>
+    <tr><td class="k">AC-29.1 &mdash; decision reason on each mailbox row</td><td><span class="tag yes">on the web page</span></td><td>Every row shows the reason under the subject.</td></tr>
+    <tr><td class="k">WhatsApp as the channel</td><td><span class="tag na">not started</span></td><td>The design's chosen channel to reach the human. The chat surface is the same logic on a terminal.</td></tr>
+    <tr><td class="k">More training data for the classifier</td><td><span class="tag part">ongoing</span></td><td>199 examples proves the loop; a few hundred careful labels are needed before the model is trusted alone.</td></tr>
+    <tr><td class="k">BR-103 &mdash; full-text search</td><td><span class="tag part">open decision</span></td><td>Searching inside message text means storing every message's words, which contradicts "we never held it". Needs Umar and sir, not code. The 30-day store is a bounded partial answer.</td></tr>
+    <tr><td class="k">The exposed Gemini key</td><td><span class="tag no">confirm</span></td><td>A key was pasted into a chat earlier in the project. Its deletion and replacement has not been confirmed.</td></tr>
+  </table>
+
+  <div class="foot">Custodian · Document 1 · Components · 11 September 2026 · companion to Document 2 (technology) and Document 3 (code)</div>
+</section>
+</body>
+</html>

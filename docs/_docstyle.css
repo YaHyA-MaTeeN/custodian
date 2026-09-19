@@ -1,0 +1,68 @@
+@page { size: A4; margin: 16mm 15mm 14mm; }
+:root{
+  --ink:#16202C; --mid:#41525F; --soft:#6D7D8A; --rule:#D9E1E7;
+  --paper:#fff; --tint:#F3F6F8; --tint2:#E9EFF3;
+  --pass:#1C6647; --pass-bg:#E4F1EA; --fail:#A0341E; --fail-bg:#FAE7E1;
+  --part:#8A6516; --part-bg:#F8EEDA; --accent:#1B4F8A; --accent-bg:#E6EEF7;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:var(--paper);
+  font:10.5pt/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+h1,h2,h3,h4{font-family:Georgia,"Times New Roman",serif;font-weight:600;
+  letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:26pt;line-height:1.15}
+h2{font-size:15.5pt;margin:0 0 3mm;padding-bottom:2mm;border-bottom:1.5pt solid var(--ink)}
+h3{font-size:12pt;margin:7mm 0 2mm}
+h4{font-size:10.5pt;margin:4mm 0 1.5mm;color:var(--accent)}
+p{margin:0 0 2.6mm}
+.lead{font-size:11.5pt;color:var(--mid);max-width:155mm}
+code,kbd,.mono{font-family:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace}
+code{font-size:9pt;background:var(--tint);padding:.3mm 1.2mm;border-radius:1mm}
+.sheet{page-break-before:always}
+.cover{padding-top:6mm;border-bottom:3pt solid var(--ink);padding-bottom:6mm;margin-bottom:7mm}
+.eyebrow{font-family:"Cascadia Mono",Consolas,monospace;font-size:8pt;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--soft);margin-bottom:3mm}
+.meta{margin-top:4mm;font-size:9pt;color:var(--soft);font-family:"Cascadia Mono",Consolas,monospace}
+table{width:100%;border-collapse:collapse;margin:2mm 0 4mm}
+th{text-align:left;font-size:8pt;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);
+  font-weight:600;padding:0 3mm 1.5mm 0;border-bottom:1pt solid var(--rule)}
+td{padding:1.8mm 3mm 1.8mm 0;border-bottom:.5pt solid var(--rule);vertical-align:top;font-size:9.5pt}
+tr:last-child td{border-bottom:none}
+td.k{width:34mm;font-weight:600;color:var(--mid)}
+td.n{width:12mm;color:var(--soft);font-family:"Cascadia Mono",Consolas,monospace;font-size:8.5pt}
+.tag{display:inline-block;font-family:"Cascadia Mono",Consolas,monospace;font-size:7.5pt;font-weight:600;
+  letter-spacing:.04em;padding:.7mm 2mm;border-radius:1mm;white-space:nowrap}
+.rules{background:var(--accent-bg);color:var(--accent)}
+.models{background:var(--part-bg);color:var(--part)}
+.yes{background:var(--pass-bg);color:var(--pass)}
+.no{background:var(--fail-bg);color:var(--fail)}
+.na{background:var(--tint2);color:var(--soft)}
+.note{background:var(--tint);border-left:2.5pt solid var(--accent);padding:3.2mm 4mm;margin:3.5mm 0;
+  border-radius:0 1.5mm 1.5mm 0;font-size:9.5pt}
+.note b{color:var(--accent)}
+.warn{background:var(--fail-bg);border-left-color:var(--fail)} .warn b{color:var(--fail)}
+.quote{border-left:2.5pt solid var(--ink);padding:1mm 0 1mm 4mm;margin:3.5mm 0;
+  font-family:Georgia,serif;font-size:11pt;font-style:italic;color:var(--mid)}
+.cmd{background:#111A24;color:#DDE6EE;border-radius:1.5mm;padding:3mm 4mm;
+  font-family:"Cascadia Mono",Consolas,monospace;font-size:8.8pt;line-height:1.55;margin:2.5mm 0;
+  overflow-x:auto;white-space:pre}
+.cmd .c{color:#7FB0DE} .cmd .d{color:#7E93A5}
+.box{border:1pt solid var(--rule);border-radius:1.5mm;padding:3.5mm 4.5mm;margin:3mm 0}
+.box h4{margin-top:0}
+.qa{margin:2.5mm 0 3.5mm}
+.qa dt{font-weight:600;color:var(--accent);font-size:9pt;letter-spacing:.06em;text-transform:uppercase;
+  margin-top:2.4mm}
+.qa dd{margin:.6mm 0 0 0}
+ul,ol{margin:0 0 3mm;padding-left:5mm} li{margin-bottom:1.3mm}
+.figs{display:flex;border:1pt solid var(--rule);border-radius:1.5mm;overflow:hidden;margin:5mm 0}
+.fig{flex:1;padding:3.5mm 4mm;border-right:1pt solid var(--rule)} .fig:last-child{border-right:none}
+.fig b{display:block;font-family:"Cascadia Mono",Consolas,monospace;font-size:17pt;line-height:1;letter-spacing:-.03em}
+.fig span{display:block;margin-top:1.4mm;font-size:8.3pt;color:var(--soft)}
+.toc td{padding:1.2mm 3mm 1.2mm 0;border:none;font-size:9.5pt}
+.tree{font-family:"Cascadia Mono",Consolas,monospace;font-size:8.6pt;line-height:1.5;white-space:pre;
+  background:var(--tint);padding:3mm 4mm;border-radius:1.5mm;overflow-x:auto}
+.foot{margin-top:8mm;padding-top:3mm;border-top:1pt solid var(--rule);font-size:8.5pt;color:var(--soft);
+  font-family:"Cascadia Mono",Consolas,monospace}
+.flow{font-family:"Cascadia Mono",Consolas,monospace;font-size:8.6pt;line-height:1.5;white-space:pre;
+  border:1pt solid var(--rule);padding:3mm 4mm;border-radius:1.5mm;overflow-x:auto}

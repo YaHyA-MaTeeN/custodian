@@ -1,0 +1,27 @@
+# mailbox
+google-api-python-client
+google-auth-oauthlib
+
+# pipeline
+email-reply-parser
+selectolax
+icalendar
+dateparser
+
+# stages 8 & 11 in the POC (free tier)
+google-genai
+
+# training
+lightgbm
+scikit-learn
+numpy
+torch
+transformers
+datasets
+accelerate
+sentencepiece
+protobuf
+
+# the JSON API behind the web app (api.py)
+fastapi
+uvicorn

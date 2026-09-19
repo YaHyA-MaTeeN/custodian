@@ -1,0 +1,43 @@
+# ── secrets — never committed, under any circumstances ─────────────────
+poc/credentials.json
+poc/token.json
+poc/calendar_token.json
+poc/outlook_token.json
+poc/settings.json
+poc/user_sensitive.json
+.env
+.env.*
+!.env.example
+web/.env
+web/.env.local
+
+# ── data: the database and everything derived from one real mailbox ────
+poc/mailbox.db
+poc/mailbox.db-journal
+poc/applied_labels.json
+poc/calendar_declined.json
+poc/labelled.jsonl
+poc/to_label.txt
+poc/labels.txt
+poc/report.html
+poc/test_runs/
+poc/_train_tmp/
+
+# ── models: 1.6 GB, rebuilt from the Kaggle notebooks, never in git ─────
+poc/classifier/
+poc/pii_model/
+poc/gate_model.txt
+poc/gate_model.json
+poc/pii_model.zip
+
+# ── build output and caches ─────────────────────────────────────────────
+__pycache__/
+*.pyc
+web/node_modules/
+web/.next/
+web/out/
+
+# ── scratch files from early research at the repo root ──────────────────
+/*.html
+/*.txt
+!README.md

@@ -1,0 +1,812 @@
+<title>Custodian Research Dossier</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#EFF2F4; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#10222B; --ink-2:#566B76; --ink-3:#85979F;
+    --rule:#D4DFE4; --rule-soft:#E4ECEF;
+    --accent:#0F5673; --accent-soft:#E0EDF3;
+    --rec:#1C6647; --rec-soft:#E2F0E9;
+    --red:#A32C22; --red-soft:#F7E4E1;
+    --amber:#8A6110; --amber-soft:#F8EEDA;
+    --green:#1C6647; --green-soft:#DFEFE7;
+    --f-display:"IBM Plex Serif",Georgia,serif;
+    --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+      --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+      --rule:#223945; --rule-soft:#1A2E38;
+      --accent:#64B8DB; --accent-soft:#13303E;
+      --rec:#6DBF97; --rec-soft:#142B22;
+      --red:#E8897C; --red-soft:#37201D;
+      --amber:#DCAE5C; --amber-soft:#332916;
+      --green:#6DBF97; --green-soft:#163025;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+    --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+    --rule:#223945; --rule-soft:#1A2E38;
+    --accent:#64B8DB; --accent-soft:#13303E;
+    --rec:#6DBF97; --rec-soft:#142B22;
+    --red:#E8897C; --red-soft:#37201D;
+    --amber:#DCAE5C; --amber-soft:#332916;
+    --green:#6DBF97; --green-soft:#163025;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .shell { display:grid; grid-template-columns:212px minmax(0,1fr); gap:46px; max-width:1180px; margin:0 auto; padding:0 30px 120px; align-items:start; }
+
+  .masthead { grid-column:1/-1; border-bottom:1px solid var(--rule); padding:54px 0 30px; margin-bottom:40px; }
+  .eyebrow { font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--f-display); font-weight:600; font-size:clamp(32px,5vw,50px); line-height:1.06; letter-spacing:-.02em; margin:13px 0 0; text-wrap:balance; }
+  .standfirst { max-width:62ch; font-size:17px; line-height:1.55; color:var(--ink-2); margin:15px 0 0; }
+  .standfirst strong { color:var(--ink); font-weight:600; }
+  .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
+
+  nav { position:sticky; top:22px; font-family:var(--f-mono); font-size:12px; }
+  nav ol { list-style:none; margin:0; padding:0; }
+  nav a { display:grid; grid-template-columns:18px 1fr; gap:8px; padding:6px 8px 6px 4px; color:var(--ink-2); text-decoration:none; border-radius:3px; line-height:1.3; }
+  nav a:hover { background:var(--accent-soft); color:var(--accent); }
+  nav a:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  nav .n { color:var(--accent); font-weight:600; }
+  nav .c { color:var(--ink-3); font-size:10.5px; }
+
+  main { min-width:0; }
+  section.track { margin:0 0 58px; scroll-margin-top:18px; }
+  .thead { border-bottom:2px solid var(--accent); padding-bottom:9px; margin-bottom:6px; display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  .tid { font-family:var(--f-mono); font-size:20px; font-weight:600; color:var(--accent); }
+  .tname { font-family:var(--f-display); font-size:24px; font-weight:600; letter-spacing:-.014em; }
+  .tcount { margin-left:auto; font-family:var(--f-mono); font-size:11px; color:var(--ink-3); letter-spacing:.05em; }
+  .tintro { color:var(--ink-2); font-size:14.5px; max-width:70ch; margin:12px 0 22px; }
+
+  .entry { border-bottom:1px solid var(--rule); padding:20px 0 22px; }
+  .entry:last-child { border-bottom:none; }
+  .ehead { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; margin-bottom:9px; }
+  .eid { font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--accent); letter-spacing:.05em; }
+  .eq { font-family:var(--f-display); font-size:17px; font-weight:600; letter-spacing:-.01em; line-height:1.3; margin:0; flex:1 1 300px; }
+  .entry p { max-width:70ch; margin:0 0 12px; font-size:14.5px; }
+  .entry ul { max-width:70ch; padding-left:20px; margin:0 0 12px; font-size:14.5px; }
+  .entry li { margin-bottom:6px; }
+  .entry h5 { font-family:var(--f-body); font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); margin:16px 0 7px; }
+
+  .rec { background:var(--rec-soft); border-left:3px solid var(--rec); border-radius:0 4px 4px 0; padding:12px 16px; margin:12px 0 0; max-width:72ch; }
+  .rec p { margin:0; max-width:none; }
+  .rec .tag { font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--rec); display:block; margin-bottom:4px; }
+
+  .warnbox { background:var(--amber-soft); border-left:3px solid var(--amber); border-radius:0 4px 4px 0; padding:12px 16px; margin:12px 0; max-width:72ch; }
+  .warnbox p { margin:0; max-width:none; }
+  .warnbox .tag { font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--amber); display:block; margin-bottom:4px; }
+
+  code { font-family:var(--f-mono); font-size:.86em; background:var(--surface-2); border:1px solid var(--rule-soft); border-radius:3px; padding:1px 4px; color:var(--accent); }
+  main a { color:var(--accent); text-underline-offset:2px; }
+
+  .tw { overflow-x:auto; margin:0 0 14px; border:1px solid var(--rule); border-radius:5px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13px; min-width:480px; }
+  th { text-align:left; font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); padding:9px 13px; border-bottom:1px solid var(--rule); background:var(--surface-2); white-space:nowrap; vertical-align:bottom; }
+  td { padding:9px 13px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.48; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num { font-family:var(--f-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .win { background:var(--green-soft); }
+
+  .chip { display:inline-block; font-family:var(--f-mono); font-size:9.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; padding:2.5px 7px; border-radius:3px; white-space:nowrap; border:1px solid transparent; }
+  .chip.settled { background:var(--green-soft); color:var(--green); border-color:color-mix(in srgb,var(--green) 28%,transparent); }
+  .chip.strong { background:var(--accent-soft); color:var(--accent); border-color:color-mix(in srgb,var(--accent) 28%,transparent); }
+  .chip.measure { background:var(--amber-soft); color:var(--amber); border-color:color-mix(in srgb,var(--amber) 30%,transparent); }
+  .chip.call { background:var(--red-soft); color:var(--red); border-color:color-mix(in srgb,var(--red) 28%,transparent); }
+  .chip.neutral { background:var(--surface-2); color:var(--ink-2); border-color:var(--rule); }
+
+  footer { grid-column:1/-1; border-top:1px solid var(--rule); padding-top:20px; font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); letter-spacing:.03em; line-height:1.7; }
+
+  @media (max-width:900px) {
+    .shell { grid-template-columns:1fr; gap:0; padding:0 18px 80px; }
+    nav { position:static; margin-bottom:34px; border:1px solid var(--rule); border-radius:5px; background:var(--surface); padding:10px; }
+    nav ol { columns:2; column-gap:12px; }
+    .tcount { margin-left:0; }
+  }
+</style>
+
+<div class="shell">
+
+<header class="masthead">
+  <span class="eyebrow">Working research — options evaluated, evidence, recommendation</span>
+  <h1>Custodian Research Dossier</h1>
+  <p class="standfirst">The research behind the Field Manual. Every open question from the tracker, worked through properly: <strong>what the options actually are, what the evidence says, what we should do, and how confident we can be.</strong> Where something needs measuring on our own data rather than looking up, that's said plainly along with the method.</p>
+  <div class="legend">
+    <span class="chip settled">Settled</span>
+    <span class="chip strong">Strong evidence</span>
+    <span class="chip measure">Needs our own measurement</span>
+    <span class="chip call">Judgment call</span>
+  </div>
+</header>
+
+<nav aria-label="Tracks">
+  <ol>
+    <li><a href="#A"><span class="n">A</span><span>Product &amp; features <span class="c">16</span></span></a></li>
+    <li><a href="#B"><span class="n">B</span><span>Platform &amp; APIs <span class="c">17</span></span></a></li>
+    <li><a href="#C"><span class="n">C</span><span>Notification channel <span class="c">7</span></span></a></li>
+    <li><a href="#D"><span class="n">D</span><span>Client surfaces <span class="c">7</span></span></a></li>
+    <li><a href="#E"><span class="n">E</span><span>Cost &amp; optimization <span class="c">10</span></span></a></li>
+    <li><a href="#F"><span class="n">F</span><span>Privacy &amp; security <span class="c">10</span></span></a></li>
+    <li><a href="#G"><span class="n">G</span><span>Architecture &amp; stack <span class="c">12</span></span></a></li>
+    <li><a href="#H"><span class="n">H</span><span>Small model <span class="c">11</span></span></a></li>
+    <li><a href="#I"><span class="n">I</span><span>Market &amp; USPs <span class="c">9</span></span></a></li>
+    <li><a href="#J"><span class="n">J</span><span>Scale &amp; ops <span class="c">6</span></span></a></li>
+    <li><a href="#K"><span class="n">K</span><span>Beyond email <span class="c">3</span></span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ==================== A ==================== -->
+<section class="track" id="A">
+  <div class="thead"><span class="tid">A</span><span class="tname">Product &amp; feature space</span><span class="tcount">16 items</span></div>
+  <p class="tintro">The big discovery in this track: <strong>Google published exactly how Gmail's Priority Inbox works</strong>, and the design it describes is very close to what we independently arrived at. We should copy it rather than reinvent it.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A1–A3</span><p class="eq">Feature space, no-LLM features, and how tone is learned</p><span class="chip settled">Settled</span></div>
+    <p>Covered in the Field Manual §02 and §04. Summary: ten jobs ranked by value against effort; the three highest-value ones need no model at all; tone comes from retrieving the user's own past replies rather than asking them or fine-tuning.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A4</span><p class="eq">What is the right taxonomy of email types?</p><span class="chip strong">Strong evidence</span></div>
+    <p>This matters because tags, alerts and reminders all hang off it. If the taxonomy is wrong, everything downstream is wrong.</p>
+    <h5>What the research says</h5>
+    <p>The foundational work is <em>Learning to Classify Email into Speech Acts</em> (Cohen, Carvalho &amp; Mitchell, EMNLP 2004). It treats every email as performing a <strong>speech act</strong> — a thing the sender is doing to you — and the useful categories are: <code>request</code>, <code>propose</code>, <code>commit</code>, <code>deliver</code>, <code>amend</code>. Later work on the Enron corpus narrows this further: the categories that actually matter for automation are <strong>request</strong> and <strong>propose</strong>, plus <strong>commit</strong> when it contains a date or time.</p>
+    <p>That's a genuinely important insight, and it's not the taxonomy most people would guess. The natural instinct is to classify by <em>topic</em> — work, personal, finance, shopping. But topic doesn't tell you what to do. Speech act does: a request needs a reply, a proposal needs a decision, a commitment needs a reminder.</p>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <p>Use <strong>two independent axes</strong>, not one list.</p>
+      <p><b>Axis 1 — what is being done to me</b> (speech act): <code>request</code> · <code>propose</code> · <code>commit</code> · <code>deliver</code> · <code>notify</code>. This decides whether the user needs to act at all.</p>
+      <p><b>Axis 2 — what it's about</b> (object): <code>meeting</code> · <code>payment</code> · <code>document</code> · <code>deadline</code> · <code>account</code> · <code>social</code> · <code>bulk</code>. This decides the lead time and the tone of the reminder.</p>
+      <p>Every downstream behaviour is a cell in that grid. <em>Propose + meeting</em> → draft an RSVP, remind 30 minutes before. <em>Notify + payment</em> → no reply needed, remind two days ahead and escalate. Two axes of five and seven is far easier to train a small model on than one flat list of thirty-five, and far easier to explain to a user.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A5</span><p class="eq">How do you capture someone's word choice, not just their register?</p><span class="chip settled">Settled</span></div>
+    <p>Three approaches exist: ask the user, fine-tune a per-user model, or retrieve their own past writing as examples. The style-transfer literature is clear that <strong>supervised fine-tuning does not beat in-context examples when style data is scarce</strong> — and for one person's email it is always scarce. It also finds that <strong>2–5 examples suffice and imitation plateaus after 4–5</strong>; beyond that you pay tokens for nothing.</p>
+    <p>Newer hybrid work (per-author LoRA adapters, ASTRAPOP) does beat pure in-context learning, but needs training infrastructure per user. That is a V3+ optimization, not a V2 mechanism.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p>Retrieve exactly <strong>4–5 exemplars</strong> from the user's Sent folder, chosen by embedding similarity to the incoming message. No training, no GPU, works on the first day, improves with every edit. Revisit per-user adapters only once we have thousands of users and a measured quality ceiling.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A6–A7</span><p class="eq">Fixed tab scheme, or negotiated with the user?</p><span class="chip call">Judgment call</span></div>
+    <p>Asking a new user "what folders do you want?" is a bad first interaction — they don't know yet, and it front-loads work before any value has been delivered. But a fixed scheme fits nobody exactly.</p>
+    <p>Google's Priority Inbox paper makes the underlying point well: <em>importance is highly personal</em>, so they learn a per-user model rather than shipping one global definition. The same applies to categories.</p>
+    <div class="rec"><span class="tag">Recommendation — observe, then propose</span>
+      <p>On connection, run the dry-run scan and then <strong>propose a scheme derived from what's actually in their mailbox</strong>: "You have a lot of mail from your university, from three banks, and from about 40 newsletters. I suggest: <em>University · Money · Newsletters · Everything else</em>. Rename or merge any of these." One message, concrete, derived from their real data, and they only have to react rather than invent. Free-text renaming, no forms.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A8</span><p class="eq">What does "sort 1,900 emails" look like as a flow the user trusts?</p><span class="chip call">Judgment call</span></div>
+    <p>The risk is obvious: a user who lets an agent touch 1,900 messages and gets one wrong outcome will never trust it again. The design has to make the first run feel reversible before it feels impressive.</p>
+    <div class="rec"><span class="tag">Recommendation — four properties</span>
+      <ul>
+        <li><strong>Dry run first.</strong> Nothing moves until the user says go. Show the plan, not the result.</li>
+        <li><strong>Group by sender, never by message.</strong> "412 emails from 6 newsletters" is one decision; 412 messages is 412 decisions.</li>
+        <li><strong>Archive to a reviewable label, never delete.</strong> 30-day undo, one command to reverse everything.</li>
+        <li><strong>Report in counts, not lists.</strong> "1,900 → 240, 41 lists unsubscribed" is the demo. A wall of message subjects is not.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A9</span><p class="eq">What defensibly makes an email red, amber or green?</p><span class="chip strong">Strong evidence</span></div>
+    <p>This is the item where published research helps most. Google's <em>The Learning Behind Gmail Priority Inbox</em> (Aberdeen &amp; Pacovsky) describes their production system, and the design is instructive:</p>
+    <ul>
+      <li>They rank by <strong>the probability the user will act on the message</strong> — not by an abstract notion of importance. That reframing is the whole trick, because "will they act?" is measurable and "is it important?" is not.</li>
+      <li>Three feature families: <strong>social</strong> (how much of this sender's mail does this user read?), <strong>content</strong> (headers and terms correlated with acting), and <strong>thread</strong> (did the user start this thread, have they replied in it?).</li>
+      <li>The model is <strong>simple logistic regression</strong> — a global model trained across all users plus a per-user additive correction. Not a neural network, not an LLM.</li>
+    </ul>
+    <p>That last point is worth dwelling on. Google, with unlimited resources, ships logistic regression for this. It is cheap, interpretable, and it updates continuously as the user behaves.</p>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <p>Copy the architecture. Severity = <strong>P(user acts)</strong> from a small logistic model, combined with <strong>deadline proximity</strong> from A4's object axis. Red = high P(act) <em>or</em> a deadline inside the warning window. Amber = one of the two. Green = neither.</p>
+      <p>Two things fall out of this for free: it explains itself ("you reply to 80% of mail from this sender"), and it needs no LLM. Add the per-user correction from day one — importance genuinely is personal, and Google's paper is the evidence.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A10</span><p class="eq">What lead times should reminders default to?</p><span class="chip measure">Needs measurement</span></div>
+    <p>Reminder research offers one useful principle: <strong>the longer the lead time, the less precision matters.</strong> A reminder a week before an event can arrive at any convenient hour; a reminder fifteen minutes before must be exact. Beyond that, published "best time to send" data conflicts badly and is mostly drawn from marketing email, which is not our problem.</p>
+    <div class="rec"><span class="tag">Recommendation — ship defaults, then learn</span>
+      <div class="tw"><table>
+        <thead><tr><th>Object type</th><th>First reminder</th><th>Then</th></tr></thead>
+        <tbody>
+          <tr><td>Meeting / call</td><td class="num">30 min before</td><td>Once only</td></tr>
+          <tr><td>Deliverable / document due</td><td class="num">1 day before</td><td>Morning of</td></tr>
+          <tr><td>Bill / payment</td><td class="num">2 days before</td><td>1 day, then morning of</td></tr>
+          <tr><td>Tax / legal filing</td><td class="num">7 days before</td><td>3 days, 1 day, morning of</td></tr>
+          <tr><td>Renewal / subscription</td><td class="num">3 days before</td><td>Once only</td></tr>
+        </tbody>
+      </table></div>
+      <p>Then <strong>learn from dismissals</strong>: if a user consistently dismisses the 7-day tax reminder but acts on the 1-day one, shorten their lead time automatically and tell them you did. This is far better than a settings screen, and it's the same personalization principle as A9.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A11–A12</span><p class="eq">How should reminders escalate, and how should they be dismissed?</p><span class="chip call">Judgment call</span></div>
+    <p>The evidence on interruption is that users respond in a burst in the ten minutes after a notification, and that <em>whether they respond at all</em> depends mostly on whether the moment was convenient. That argues for fewer, better-timed notifications rather than more insistent ones.</p>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <p><strong>Escalation:</strong> halve the interval each time, cap at three notifications for any single item, and never send between 10pm and 7am unless the deadline is inside that window. An item that has been notified three times and still not acted on moves into the daily brief instead of firing again — persistent nagging trains people to ignore you.</p>
+      <p><strong>Dismissal has three levels</strong>, and the user should be offered all three inline: <em>this one</em> · <em>this type</em> · <em>this sender</em>. "This type" is what feeds the rule generalization in A14.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A13</span><p class="eq">How do we configure without a settings screen?</p><span class="chip call">Judgment call</span></div>
+    <p>Sir named Gmail's settings as the anti-pattern: comprehensive, complex, and consequently unused. The insight worth extracting is that <strong>a settings screen is a failure to infer.</strong> Every option on it is a question the product could not answer on its own.</p>
+    <div class="rec"><span class="tag">Recommendation — three sources of configuration, none of them a form</span>
+      <ul>
+        <li><strong>Defaults</strong> that are right for most people (A10's table).</li>
+        <li><strong>Corrections</strong> — the user dismisses, edits, or reverses something, and we adjust. This is the main channel and it requires no interface at all.</li>
+        <li><strong>Conversation</strong> — the user says what they want in a sentence, and we translate it to a rule diff (A14).</li>
+      </ul>
+      <p>The web dashboard shows the resulting rules as readable sentences with a delete button. It's a <em>viewer</em>, not an editor. Nobody has to visit it.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A14</span><p class="eq">When the user changes one rule, how do we find the others of the same type?</p><span class="chip call">Judgment call</span></div>
+    <p>Sir raised this specifically and it is the hardest product problem in the brief. "Change these types of notifications" requires knowing what "type" means to <em>this</em> user — and getting it wrong in either direction is bad. Too narrow and nothing improves; too broad and you silently break reminders they wanted.</p>
+    <h5>Options considered</h5>
+    <div class="tw"><table>
+      <thead><tr><th>Approach</th><th>Problem</th></tr></thead>
+      <tbody>
+        <tr><td>Ask the model to rewrite all rules</td><td>Unbounded blast radius, unauditable, and expensive.</td></tr>
+        <tr><td>Change only the exact rule named</td><td>Fails the request — the user said "these types", plural.</td></tr>
+        <tr><td>Cluster by embedding similarity</td><td>Opaque. You cannot explain to a user why dentist grouped with doctor but not with lab test.</td></tr>
+        <tr class="win"><td><strong>Cluster on the A4 object axis, then confirm</strong></td><td>Explainable, bounded, reversible.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <p>Because A4 already tags every rule with an object type, "the same type" has a concrete definition: <em>same object type, same speech act</em>. The model's only job is to identify which cell of the grid the user meant. Then <strong>show the cluster and ask</strong>:</p>
+      <p style="font-family:var(--f-mono); font-size:13px; background:var(--surface-2); border:1px solid var(--rule); border-radius:4px; padding:11px 14px;">Found 4 rules of type <b>appointment</b> → changing 48h to 2h.<br>Affects: doctor, dentist, physiotherapy, lab tests.<br>[apply all] [only doctor] [cancel]</p>
+      <p>Never generalize silently. The confirmation step is what makes an unreliable inference safe, and it costs the user one tap.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">A15–A16</span><p class="eq">Calendar handling, and text input versus buttons</p><span class="chip settled">Settled</span></div>
+    <p>Calendar is fully supported on both platforms (see B). For input: this is not an either/or. <strong>Always accept free text; always offer buttons for the two or three most likely actions.</strong> Buttons make the common case one tap; free text makes the uncommon case possible. Telegram and WhatsApp both support inline buttons, so this costs nothing.</p>
+  </div>
+</section>
+
+<!-- ==================== B ==================== -->
+<section class="track" id="B">
+  <div class="thead"><span class="tid">B</span><span class="tname">Platform &amp; API feasibility</span><span class="tcount">17 items</span></div>
+  <p class="tintro">Largely resolved. Full detail lives in Field Manual §03; this covers what that chapter didn't have room for.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">B1–B12</span><p class="eq">Scopes, CASA, tabs, push, unsubscribe, the provider tiers, Graph, JMAP, IMAP scaling, Proton/iCloud, aggregator economics</p><span class="chip settled">Settled</span></div>
+    <p>All covered in Field Manual §03. Headlines: CASA is the biggest obstacle and Testing mode plus an internal Workspace install routes around it; Outlook is materially easier than Gmail; IMAP <code>IDLE</code> does not scale so Tier 3 gets polling; Proton and iCloud are structurally out of reach; a unified email API would roughly double our cost of goods.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">B13–B14</span><p class="eq">Can we process a 20,000-message backlog without hitting rate limits?</p><span class="chip settled">Settled</span></div>
+    <p>Yes, comfortably. Gmail's published quota is <strong>250 units per user per second, 15,000 units per user per minute</strong>, against a project ceiling of 1,200,000 units per minute and 1 billion units per day. Different calls cost different amounts — a label listing is 1 unit, sending a draft is 100.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Operation</th><th>Rough cost</th><th>20,000 messages</th></tr></thead>
+      <tbody>
+        <tr><td>List message IDs (batched)</td><td class="num">~5 units/page</td><td class="num">negligible</td></tr>
+        <tr><td>Fetch metadata per message</td><td class="num">~5 units</td><td class="num">~100,000 units</td></tr>
+        <tr><td>Apply label / archive</td><td class="num">~5 units</td><td class="num">~100,000 units</td></tr>
+      </tbody>
+    </table></div>
+    <div class="rec"><span class="tag">Finding</span><p>Around 200,000 units for a full backfill and cleanup, against a 15,000-unit-per-minute per-user ceiling — roughly <strong>13 minutes</strong>, and less if we fetch metadata only rather than full bodies (which we should, since S0 only needs the envelope). The headline demo is quota-safe. The <em>project</em> ceiling is the one to watch as user count grows: 1.2M units/minute means roughly 80 concurrent backfills, so onboarding must be queued rather than run on demand.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">B15</span><p class="eq">Gmail's own filters, or our own rules, for scope control?</p><span class="chip call">Judgment call</span></div>
+    <p>Gmail can create native server-side filters via <code>settings.basic</code>. Tempting — they run without us. But they're invisible to us once created, they can't express "only run the agent on this sender", and they'd leave residue in the user's account if they ever leave.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p>Keep scope rules <strong>in our own rule store</strong>. They're ours to reason about, they work identically across all four provider tiers, and uninstalling us leaves no trace in the user's mailbox — which is itself a trust feature worth advertising.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">B16–B17</span><p class="eq">Outlook personal versus work accounts; and the capability matrix</p><span class="chip strong">Strong evidence</span></div>
+    <p>Microsoft Graph serves both Outlook.com personal accounts and Microsoft 365 work accounts through the same API surface, but tenant administrators of work accounts can restrict third-party app consent — so a work account may simply refuse, through no fault of ours. Handle that as a first-class error state with a clear message, not a crash.</p>
+    <div class="rec"><span class="tag">Action</span><p>Write the capability matrix as a real file in the repo before the second connector is built. Columns: <code>push</code>, <code>labels</code>, <code>categories</code>, <code>threads</code>, <code>server_search</code>, <code>calendar</code>, <code>unsubscribe</code>. Every connector implements a <code>capabilities()</code> method returning it, and the product asks that method rather than checking which provider it's talking to. This is a small discipline that prevents a large rewrite.</p></div>
+  </div>
+</section>
+
+<!-- ==================== C ==================== -->
+<section class="track" id="C">
+  <div class="thead"><span class="tid">C</span><span class="tname">Notification channel</span><span class="tcount">7 items</span></div>
+  <p class="tintro">The channel question is settled by a legal fact rather than a technical one.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">C1–C2</span><p class="eq">What does WhatsApp Business API actually require in Pakistan?</p><span class="chip settled">Settled</span></div>
+    <p><strong>SECP or firm registration, an FBR NTN, and a live website with a privacy policy and contact page</strong>, all matching Meta Business Manager records exactly. Self-filled forms and invoices are rejected. Review takes anywhere from 24 hours to 15 working days; most clear within about two weeks when documents match exactly.</p>
+    <div class="warnbox"><span class="tag">The blocker</span><p>This is a company-formation requirement, not an engineering one. <strong>A student project without a registered legal entity cannot obtain WhatsApp Business API.</strong> No amount of engineering effort changes this.</p></div>
+    <p>Separately, messages we initiate must be pre-approved templates billed per message; but once the user replies, a <strong>24-hour service window</strong> opens in which free-form messages are free. So the eventual cost design is one template per user per day to open the window, with everything else riding inside it.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">C3–C4</span><p class="eq">Does Telegram hold up as the primary channel, and what does it cost?</p><span class="chip settled">Settled</span></div>
+    <p>Comfortably, and nothing. Telegram's limits: about <strong>1 message per second to any single user</strong>, about 20 per minute to a group, and a global ceiling of <strong>30 messages per second</strong> across all chats — raisable to 1,000/sec via paid broadcasts, which requires a large Stars balance and which we will not need.</p>
+    <div class="rec"><span class="tag">What this means at our scale</span>
+      <p>At 10,000 users receiving three messages a day, that's 30,000 messages daily — an average of <strong>0.35 per second</strong> against a 30/sec ceiling. Ample.</p>
+      <p>The only real constraint is <em>bursts</em>: if every user's morning brief fires at 08:00, 10,000 messages at 30/sec takes about six minutes. The fix is trivial and should be built in from V0 — <strong>jitter the send window across ten minutes and respect each user's own timezone</strong>, which is better product behaviour anyway.</p>
+    </div>
+    <p>Cost comparison at 10,000 users: Telegram <strong>$0</strong>. WhatsApp at one utility template per user per day, at South Asian rates, roughly <strong>$8–20 per day</strong> — real but manageable, and only once there's revenue.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">C5–C7</span><p class="eq">Other channels, rich interaction, and unofficial WhatsApp routes</p><span class="chip settled">Settled</span></div>
+    <ul>
+      <li><strong>Rich interaction</strong> is available on both: Telegram inline keyboards and WhatsApp interactive messages both give us <em>send / edit / ignore</em> as buttons. Build the approval UI against a small abstraction of "message plus up to three actions" and both render it.</li>
+      <li><strong>Native push</strong> arrives with the mobile app in V3 — the only channel that works when the user has no chat app open.</li>
+      <li><strong>Email-to-self</strong> is a genuinely useful zero-cost fallback for users on no chat platform, and it costs us almost nothing since we already have send permission.</li>
+      <li><strong>Slack and Discord</strong> are cheap adapters worth adding if a pilot cohort asks; not before.</li>
+      <li><strong>Unofficial WhatsApp libraries</strong> (web automation, reverse-engineered clients) violate Meta's terms and risk banning the user's number. <span class="chip call">Ruled out.</span> Not worth discussing further.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ==================== D ==================== -->
+<section class="track" id="D">
+  <div class="thead"><span class="tid">D</span><span class="tname">Client surfaces</span><span class="tcount">7 items</span></div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">D1</span><p class="eq">One backend with thin clients, or several agents?</p><span class="chip settled">Settled</span></div>
+    <p>One backend. Mail arrives while the phone is asleep, so the agent is server-side regardless; once that's true, the chat channel is a free client covering every platform. Field Manual §09.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">D2</span><p class="eq">React Native or Flutter for the V3 mobile app?</p><span class="chip strong">Strong evidence</span></div>
+    <p>Both are production-grade in 2026 and both handle push notifications through Firebase Cloud Messaging and APNs with equivalent reliability. On pure technical merit there is no decisive winner, which means the decision should be made on something else.</p>
+    <p>The something else is <strong>hiring</strong>. The JavaScript talent pool is roughly 10–15× larger than the Dart pool, and the consistent advice is that a team which cannot reliably hire Dart developers in its geography should not choose Flutter regardless of technical fit.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>React Native.</strong> Not because it's technically better, but because it shares a language with the backend (see G7), shares it with the reference implementation we're learning from (Inbox Zero is TypeScript), and is hireable in Pakistan. One language across the whole stack is worth more than a marginal rendering advantage.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">D3</span><p class="eq">Could a Chrome extension do the work instead of a server?</p><span class="chip settled">Settled — no</span></div>
+    <p>Worth checking properly, because "just build an extension" is a tempting way to avoid server costs and OAuth verification. Manifest V3 rules it out:</p>
+    <ul>
+      <li><strong>No persistent background page.</strong> The background is a service worker that Chrome terminates whenever it's idle. An agent that must react to mail arriving cannot live there.</li>
+      <li>Content scripts can't reach privileged APIs directly and must message the service worker — which may not be running.</li>
+      <li>No <code>window</code>, no <code>document</code>, no <code>localStorage</code> in the worker; <code>eval</code> is banned outright.</li>
+    </ul>
+    <div class="rec"><span class="tag">Recommendation</span><p>An extension can only ever be a <em>view</em> onto a server-side agent, never the agent itself. That makes it low-value once the chat channel exists. <strong>Deferred past V3</strong>, and now we can say exactly why rather than as a matter of taste.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">D4–D7</span><p class="eq">Desktop apps, push infrastructure, an SDK, and reading mail on mobile</p><span class="chip call">Judgment call</span></div>
+    <ul>
+      <li><strong>Desktop:</strong> skip entirely. Telegram and WhatsApp both have excellent desktop clients that we get for free. Building an Electron or Tauri app to deliver notifications that Telegram Desktop already delivers is pure cost.</li>
+      <li><strong>Push:</strong> FCM plus APNs, equivalent on either framework, arriving with the V3 app.</li>
+      <li><strong>SDK:</strong> not now. It freezes internal interfaces we still need to change weekly.</li>
+      <li><strong>Reading mail on mobile</strong> (sir asked for this): the honest answer is that we shouldn't build a mail reader — that's an email client, which is explicitly out of scope. What we do instead is make reading <em>unnecessary</em>: the brief carries the summary, and any message we mention carries a deep link that opens it in the user's own Gmail or Outlook app. We borrow their reader rather than building one.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ==================== E ==================== -->
+<section class="track" id="E">
+  <div class="thead"><span class="tid">E</span><span class="tname">Cost &amp; optimization</span><span class="tcount">10 items</span></div>
+  <p class="tintro">Two findings here are worth real money: measured prompt compression, and the fact that model self-confidence is not a usable routing signal.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E1–E3</span><p class="eq">The cascade cost model, current pricing, caching and batching</p><span class="chip settled">Settled</span></div>
+    <p>Field Manual §05. Naive ≈ $54/user/month; cascade ≈ $0.91–2.50. Caching bills repeated prefixes at roughly a tenth; batch processing is half price for non-interactive work.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E4</span><p class="eq">Should the cascade be provider-agnostic?</p><span class="chip strong">Strong evidence</span></div>
+    <p>Frontier APIs currently sit around $2–15 per million tokens in/out; open-weight hosted APIs (Llama, DeepSeek and similar) run roughly $0.07–0.90. That's a 10–30× spread, and it matters more than it looks: our S2 tier is small enough that even the expensive end is affordable, but a cheaper tier could absorb the <em>ambiguous-triage</em> escalations that don't need top-tier writing quality.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p>Put S2 behind a <strong>provider interface</strong> from the first commit, exactly as we do for S1. Not to switch providers immediately — quality for drafting is worth paying for — but so that routing <em>within</em> S2 becomes possible: a cheap open-weight model for escalated triage, a frontier model for drafting. That's a second cost lever we get for the price of one interface.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E5</span><p class="eq">How much can we compress a prompt before quality suffers?</p><span class="chip strong">Strong evidence</span></div>
+    <p>This is better researched than expected. Microsoft's LLMLingua family is the state of the art, and it works by using <strong>a small language model to score which tokens carry information</strong> and dropping the rest — which fits our architecture exactly, because we already have a small model in S1.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Compression</th><th>Cost reduction</th><th>Accuracy impact</th></tr></thead>
+      <tbody>
+        <tr class="win"><td class="num">2–3×</td><td class="num">~80%</td><td>Under 5%</td></tr>
+        <tr><td class="num">5–7×</td><td class="num">85–90%</td><td>5–15%</td></tr>
+        <tr><td class="num">Above 8×</td><td class="num">&gt;90%</td><td>Measurable degradation</td></tr>
+      </tbody>
+    </table></div>
+    <p>Their budget controller compresses different parts of a prompt differently — instructions lightly (10–20%), examples heavily (60–80%), the actual question barely at all (0–10%). That maps neatly onto our prompt structure: persona block, style exemplars, and the email itself.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p>Target <strong>2–3× compression</strong> and no more. That's the point where the curve is still nearly free. Combined with quote-stripping (which is lossless — quoted history is genuinely redundant) this should take a 3,000-token thread to under 1,000. Compress exemplars hard, the incoming message barely at all.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E6</span><p class="eq">What confidence signal should trigger escalation from S1 to S2?</p><span class="chip strong">Strong evidence</span></div>
+    <p>This is more subtle than it appears, and getting it wrong is expensive in both directions. The 2026 literature on cascade routing is unusually clear on two points:</p>
+    <ul>
+      <li><strong>A model's self-reported confidence is poorly calibrated.</strong> Language models produce fluent, authoritative, high-probability text while being wrong. Asking a model "how sure are you?" is close to useless as a routing signal.</li>
+      <li><strong>Calibration matters more than router sophistication.</strong> Theoretical work finds that excess cost is controlled by how well-calibrated the confidence estimate is — and that "confidently wrong" is the binding failure mode, not "uncertain".</li>
+    </ul>
+    <div class="rec"><span class="tag">Recommendation — and it settles an earlier open question</span>
+      <p>Use the <strong>calibrated probability from a classification head</strong>, not a generative model's self-assessment. A classifier trained with a proper scoring rule gives a genuinely calibrated number; a language model asked to rate itself does not.</p>
+      <p>This is a concrete argument for the encoder-plus-head design over a small generative model at S1 (see H6): the encoder gives us a usable routing signal for free, and the generative model does not. Calibrate on a held-out set, then set the threshold to hit the S2 volume the budget allows — and re-calibrate as S1 improves, so escalation volume falls automatically.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E7</span><p class="eq">What fraction of a real inbox is decidable from the envelope alone?</p><span class="chip measure">Needs measurement — highest priority</span></div>
+    <p>The entire cost architecture assumes about 70%. This number cannot be looked up; it has to be measured, and it's the single most valuable open item in the project. Here is the method, so it can be done in an afternoon.</p>
+    <div class="rec"><span class="tag">Method</span>
+      <ol style="margin:0; padding-left:20px;">
+        <li>Pull 1,000 recent messages via the Gmail API using <code>format=metadata</code> — headers only, no bodies. Costs about 5,000 quota units.</li>
+        <li>For each, record: sender domain, presence of <code>List-Unsubscribe</code>, <code>Precedence</code>, authentication results, whether it's in a thread, and whether you have ever replied to that sender.</li>
+        <li>Hand-label each as <em>bulk / notification / needs-a-human</em>. That's the tedious part — about two hours.</li>
+        <li>Write the simplest possible rule set over the recorded signals and measure: what percentage is classified correctly with no body read, and — much more importantly — <strong>what is the false-positive rate on "needs a human"?</strong></li>
+      </ol>
+      <p>The headline number is nice. <strong>The false-positive rate is the one that matters</strong>, because a message wrongly filed as bulk is a message the user never sees. Target under 1%, and where the rules are unsure, pass to S1 rather than guessing.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E8–E9</span><p class="eq">Self-hosting, and what we can charge</p><span class="chip settled">Settled</span></div>
+    <p>Break-even for self-hosted inference sits around 100M tokens/day once operations are counted at the usual 3–5× multiple on raw compute; we'd need roughly 5,000 active users to reach it. Use the API for S2. This does <em>not</em> apply to S1, where a 66M-parameter classifier on CPU has no meaningful operational burden.</p>
+    <p>Market pricing runs $14–30/month (Field Manual §08) against a $1–3 cost to serve, which supports a two-price strategy: near $10 in Western markets, near $3–5 locally.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">E10</span><p class="eq">What transfers from the LiteRT work?</p><span class="chip call">Judgment call</span></div>
+    <p>Sir pointed at your own experience here, so it's worth being specific about what carries over rather than gesturing at it. Three things transfer directly:</p>
+    <ul>
+      <li><strong>Quantization intuition.</strong> Knowing what int8 and 4-bit actually cost in accuracy is exactly the judgment S1 needs (see H5).</li>
+      <li><strong>Operator-level thinking about latency.</strong> On-device work teaches you to count what actually runs, which is the right instinct for a per-message hot path.</li>
+      <li><strong>The habit of measuring instead of assuming.</strong> The single most valuable transfer, and the reason E7 and F3 are framed as measurements rather than claims.</li>
+    </ul>
+    <p>What does <em>not</em> transfer is the deployment target: LiteRT is about squeezing a model onto a handset, and our S1 runs on a server. The techniques are similar; the constraint is not.</p>
+  </div>
+</section>
+
+<!-- ==================== F ==================== -->
+<section class="track" id="F">
+  <div class="thead"><span class="tid">F</span><span class="tname">Privacy &amp; security</span><span class="tcount">10 items</span></div>
+  <p class="tintro">One uncomfortable finding here that needs saying: the zero-retention commitment we'd like to make is not straightforwardly available to a project our size.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F1–F2</span><p class="eq">Staged minimization, and detecting sensitive mail from the envelope</p><span class="chip settled">Settled</span></div>
+    <p>Field Manual §06. S0 sees envelopes, S1 runs on our hardware, S2 sees only redacted content. OTP and banking mail is identified from sender, subject shape and body length without the body being read.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F3</span><p class="eq">Which redaction tool, and how good is it really?</p><span class="chip measure">Needs measurement</span></div>
+    <h5>Options evaluated</h5>
+    <div class="tw"><table>
+      <thead><tr><th>Tool</th><th>How it works</th><th>Assessment</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Regex only</strong></td><td>Patterns for emails, phones, card numbers, national IDs.</td><td>Near-perfect on structured data. Useless on names — which are the hard part.</td></tr>
+        <tr><td><strong>Microsoft Presidio</strong></td><td>Regex for structured entities plus a spaCy model for contextual ones. ~18 entity types.</td><td>Mature, free, well-documented, pluggable. Independent evaluation finds recall drops when the range of personal data is broader than its built-in set.</td></tr>
+        <tr><td><strong>GLiNER</strong></td><td>A general NER model that recognizes arbitrary entity types from a description.</td><td>Broader coverage; slower. Can be plugged into Presidio as a recognizer rather than replacing it.</td></tr>
+        <tr><td><strong>An LLM</strong></td><td>Ask a model to find the personal data.</td><td>Defeats the purpose — you'd send the unredacted text to a model to find out what to redact.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="rec"><span class="tag">Recommendation — layered, with a safety valve</span>
+      <p>Presidio as the base (regex layer plus NER layer), GLiNER added as a recognizer for the entity types Presidio covers poorly, <strong>and a confidence floor</strong>: if the redactor's confidence on any span is low, the message does not go to S2 at all — it's handled by S1 and the user is told the draft is lower quality because the content was sensitive. Degrading quality is an acceptable failure; leaking an identity is not.</p>
+    </div>
+    <div class="warnbox"><span class="tag">Before claiming this works</span><p>Build a labelled evaluation set of 200–300 real emails with every name, number and identifier marked by hand, and measure the <strong>false-negative rate</strong> — how often a real identity survives redaction. A redactor that catches 95% is not 95% good; it means one email in twenty leaks. This measurement gates the privacy claim, and the claim must not be made publicly until it exists.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F4</span><p class="eq">Can we actually get a zero-retention commitment?</p><span class="chip measure">Problem — needs a decision</span></div>
+    <p>This one deserves honesty because it complicates the pitch. Standard API terms across the major providers retain inputs and outputs for roughly 7 to 30 days for abuse monitoring. True zero-retention is generally available only through <strong>an enterprise agreement — a contract addendum requiring approval</strong>, and some model families are excluded from it even then.</p>
+    <div class="warnbox"><span class="tag">What this means for us</span><p>A student project or an early-stage company cannot simply switch on zero retention. So <strong>"no data is retained by our AI provider" is a claim we currently cannot make</strong>, and making it anyway would be the kind of thing that destroys trust permanently when discovered.</p></div>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <p>Say what is true instead, and note that our architecture makes the true statement unusually strong: <em>"Content sent to our AI provider is redacted of names and identifiers before it leaves, is retained by them for up to 30 days for abuse monitoring under their standard terms, and is contractually never used for training. We are working toward a zero-retention agreement."</em></p>
+      <p>Because of tokenized egress (§06), what sits in that 30-day window is a de-identified skeleton rather than someone's mail — which is a better position than most competitors are actually in, whatever their marketing says. Pursue the ZDR addendum once there's a company and revenue.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F5</span><p class="eq">Encryption, key management, tenant isolation</p><span class="chip call">Judgment call</span></div>
+    <p>Standard practice, applied properly. Nothing exotic is needed, and inventing something exotic would be a mistake.</p>
+    <ul>
+      <li><strong>OAuth refresh tokens are the crown jewels</strong> — they grant standing mailbox access. Encrypt them at the application layer with a key from a managed key service, not just at rest in the database. A database dump alone must not yield usable tokens.</li>
+      <li>TLS everywhere, full-disk encryption, and per-user row-level isolation with the user ID on every query path.</li>
+      <li><strong>Token revocation on disconnect must be immediate and verified</strong> — call the provider's revoke endpoint, don't just delete our copy.</li>
+      <li>Secrets in a manager, never in environment files committed anywhere.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F6–F7</span><p class="eq">Proving non-access, and what actually earns trust</p><span class="chip strong">Strong evidence</span></div>
+    <p>Four levels of proof, in increasing strength: policy (weak, everyone has one), transparency via the Data Passport (checkable), open-sourcing the privacy gateway (verifiable), and hardware attestation inside a trusted execution environment (cryptographic). The last is now practical — confidential-computing GPUs run at <strong>95–99% of native speed</strong> with a 2–5% throughput overhead and a one-to-three-second attestation cost at startup, available on major clouds today.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p>Ship levels 2 and 3 in V2; name level 4 as the roadmap. On earning trust in practice, three things do most of the work and all are cheap: <strong>dry-run the first pass</strong> so the user sees the plan before anything moves; <strong>never delete</strong>, so every mistake is recoverable; and <strong>start scoped</strong>, so a cautious user can point it at one sender and watch it behave before widening.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F8</span><p class="eq">What data protection law actually applies to us?</p><span class="chip strong">Strong evidence</span></div>
+    <p>A genuinely surprising finding: <strong>Pakistan has no comprehensive data protection law in force.</strong> The Personal Data Protection Bill has been drafted and redrafted since 2023 but has not been enacted. What exists today is PECA, which is a cybercrime statute rather than a privacy framework.</p>
+    <p>The draft bill matters anyway, because it signals where things are going, and its direction is restrictive: three tiers of data, with <strong>"critical personal data" required to stay on servers inside Pakistan</strong>, other personal data transferable abroad only with explicit consent, and a National Commission to enforce it.</p>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <p>Two consequences worth planning for now, neither expensive:</p>
+      <ul style="margin-bottom:0;">
+        <li><strong>Design for data residency</strong> — keep the storage layer region-configurable from the start. If the bill passes with localization intact, a product that cannot run its database in Pakistan becomes illegal to sell there overnight.</li>
+        <li><strong>Build to GDPR standards regardless.</strong> It is the strictest regime we might face, it's what any Western customer or partner will ask about, and our "store structure, not content" rule already satisfies most of it — deletion on request is nearly trivial when you never stored the content.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">F9–F10</span><p class="eq">Threat model, and how much to say about an OTP</p><span class="chip call">Judgment call</span></div>
+    <p><strong>Threat model, written out:</strong> if the database leaks, the attacker gets vectors, labels and metadata — not mail. If OAuth tokens leak, the attacker gets mailbox access, which is why F5 treats them separately and more carefully. If provider logs leak, they contain redacted skeletons. The worst case is a compromise of the privacy gateway itself, which is why it should be small, isolated, and eventually published.</p>
+    <p><strong>On OTPs:</strong> even saying "you have a code from HBL" is a signal — it tells anyone who sees the notification that you bank there. Default to naming the sender but never the code, allow the user to turn even that off, and never include OTP content in a digest that might be read over someone's shoulder.</p>
+  </div>
+</section>
+
+<!-- ==================== G ==================== -->
+<section class="track" id="G">
+  <div class="thead"><span class="tid">G</span><span class="tname">Architecture &amp; stack</span><span class="tcount">12 items</span></div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G1–G3</span><p class="eq">Pipeline design, RAG, and the tone mechanism</p><span class="chip settled">Settled</span></div>
+    <p>Field Manual §04. Deterministic pipeline with models at the leaves; no mailbox-wide vector index; tone via retrieval of the user's own sent mail.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G4</span><p class="eq">Which vector store for the style exemplars?</p><span class="chip strong">Strong evidence</span></div>
+    <div class="tw"><table>
+      <thead><tr><th>Option</th><th>Latency @100K vectors</th><th>Assessment</th></tr></thead>
+      <tbody>
+        <tr><td>Qdrant</td><td class="num">1.2 ms</td><td>Fastest, best filtering. A separate service to run and monitor.</td></tr>
+        <tr class="win"><td><strong>pgvector</strong></td><td class="num">3.1 ms</td><td>Inside PostgreSQL we already need. No extra service, transactional with the rest of our data.</td></tr>
+        <tr><td>Chroma</td><td class="num">8.4 ms</td><td>Easiest to prototype with; weakest production story.</td></tr>
+      </tbody>
+    </table></div>
+    <p>Our workload is tiny by these standards — a few thousand sent messages per user, queried five at a time, once per draft. The difference between 1.2ms and 3.1ms is irrelevant; the difference between one service and two is not.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>pgvector.</strong> The consistent advice for teams already on PostgreSQL is to use it first and migrate to Qdrant only if performance becomes a real problem — and several production teams have publicly migrated <em>toward</em> Postgres, not away. It also keeps vectors under the same access control and deletion path as everything else, which matters for F8.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G5</span><p class="eq">An agent framework, or plain code?</p><span class="chip strong">Strong evidence</span></div>
+    <p>Worth understanding the distinction properly, because the two things that sound similar do different jobs. An agent framework defines <em>what the agent does</em>. A durable execution engine ensures <em>the work survives a crash</em>. Popular agent frameworks checkpoint state, but a checkpoint is not durable execution — a run lives in one process, and if the process dies the run dies with it. The checkpoint preserves data, not execution.</p>
+    <div class="warnbox"><span class="tag">Why this matters specifically to us</span><p>Our approval loop <strong>waits for a human</strong> — possibly overnight. An approval lost because a server restarted is a visible product failure, and one the user will never forgive because they'll assume the reply was sent. Whatever we build, the pending-approval state must be durable in a database, not in process memory.</p></div>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>Plain code plus a durable queue.</strong> Agent frameworks exist to manage the unpredictability of free-roaming agents — unpredictability we deliberately removed in §04. Adopting one adds a dependency to solve a problem we designed away. Plain code is simpler to debug, cheaper to audit, and auditability is part of what we sell.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G6</span><p class="eq">Which queue and scheduler?</p><span class="chip strong">Strong evidence</span></div>
+    <p>We need three things: background jobs (ingestion, backfill), delayed jobs (every reminder is a job scheduled for a future time), and durability (G5).</p>
+    <div class="tw"><table>
+      <thead><tr><th>Option</th><th>Backed by</th><th>Assessment</th></tr></thead>
+      <tbody>
+        <tr><td>BullMQ</td><td>Redis</td><td>The most popular Node queue — priorities, delays, rate limiting, repeatable jobs. Requires running Redis.</td></tr>
+        <tr class="win"><td><strong>pg-boss</strong> or <strong>Graphile Worker</strong></td><td>PostgreSQL</td><td>Uses Postgres <code>SKIP LOCKED</code>, a feature built precisely for this. Safe concurrent pickup with the ACID guarantees of the database we already have. No Redis at all.</td></tr>
+        <tr><td>Temporal</td><td>Its own server</td><td>True durable execution for multi-step workflows. Powerful, and a large operational commitment.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>pg-boss on PostgreSQL.</strong> It gives us delayed jobs (the reminder engine, for free), retries, cron, and durability without introducing a second datastore. The standard advice is to move to Temporal only when background work becomes a multi-step workflow where losing progress is unacceptable — which is a real future possibility, so keep job handlers small and stateless so that migration stays cheap.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G7</span><p class="eq">Which language and runtime?</p><span class="chip call">Judgment call</span></div>
+    <p>Four considerations point the same way. The reference implementation we're learning from is TypeScript. The mobile framework we chose is TypeScript. The Gmail and Graph SDKs are excellent in TypeScript. And the hiring pool is far larger.</p>
+    <p>The one genuine argument for Python is the machine-learning ecosystem — S1's training and evaluation live there naturally.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>TypeScript for the application; Python for the S1 model service only</strong>, behind an HTTP boundary. This is not a compromise — it's the right seam. S1 is already meant to be swappable behind a stable interface (H), so making it a separate service costs nothing and lets each language do what it's good at.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G8</span><p class="eq">Idempotency and undo</p><span class="chip call">Judgment call</span></div>
+    <p>Non-negotiable in a system that mutates someone's mailbox, and cheap if designed in from the start.</p>
+    <ul>
+      <li>Every action gets a deterministic key: <code>(user, message_id, action_type)</code>. Replaying the same event does nothing the second time.</li>
+      <li>Every action writes an audit row <em>before</em> executing, with the prior state recorded — that row is what makes undo possible.</li>
+      <li>Undo is a first-class operation, not a feature: "undo the last hour" and "undo everything from the cleanup" must both work.</li>
+      <li>Gmail's history API can deliver notifications out of order or repeat them; the queue must be ordered per user and tolerant of duplicates.</li>
+    </ul>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G9</span><p class="eq">What existing work should we build on?</p><span class="chip settled">Settled</span></div>
+    <p><a href="https://github.com/elie222/inbox-zero">Inbox Zero</a> — around 10,700 stars, actively developed, TypeScript and Next.js, Gmail and Outlook, PostgreSQL, self-hostable. It already solves inbox triage, labelling, drafting in the user's voice, and bulk unsubscribe.</p>
+    <div class="rec"><span class="tag">Recommendation — read it in week one</span><p>Not to copy the product, but to skip weeks of rediscovering the same traps: Gmail OAuth handling, watch renewal, label management, and unsubscribe flows are all solved there in readable code. It also confirms two of our stack choices independently (TypeScript, PostgreSQL). Treat it as documentation. And in the meeting, raise it yourself — see Field Manual §08 for why.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">G10–G12</span><p class="eq">Model abstraction, the three-tier data flow, and "lightweight but scalable"</p><span class="chip settled">Settled</span></div>
+    <p><strong>Abstraction:</strong> S1 and S2 both sit behind interfaces; the router is the only component that knows both exist. Swapping either touches nothing else.</p>
+    <p><strong>Data flow</strong> (sir asked for this explicitly): the three tiers never talk to each other — they all talk to the router. <code>message → S0 → router → S1 (returns answer + calibrated confidence) → router → privacy gateway → S2 → back</code>. Every hop writes to the passport log and the distillation log. Crucially the router escalates on <em>confidence</em>, not category, so S2 volume falls automatically as S1 improves.</p>
+    <p><strong>Lightweight versus scalable</strong> — these pull in opposite directions, so name the resolution: the <em>core</em> is lightweight (a queue, a rules engine, a router, a small model — all of which run on one modest machine), and <em>scale</em> comes from running more copies of stateless workers against a shared PostgreSQL. No distributed system, no microservices, no Kubernetes until there's a measured reason. The architecture scales by addition rather than by rearchitecting.</p>
+  </div>
+</section>
+
+<!-- ==================== H ==================== -->
+<section class="track" id="H">
+  <div class="thead"><span class="tid">H</span><span class="tname">The small-model track</span><span class="tcount">11 items</span></div>
+  <p class="tintro">The best finding in this track: there is a large public email corpus we can train and evaluate on <em>before we have a single user</em>.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H1–H2</span><p class="eq">Is 10–100M parameters realistic, and what's out there?</p><span class="chip settled">Settled</span></div>
+    <p>Yes for classification, no for generation. DistilBERT is ~66M parameters with F1 between 0.93 and 0.95 across classification benchmarks and roughly 60% faster than full BERT on CPU; MiniLM is another 1.5–2× faster again, under 5ms per sample. Anything that must <em>write</em> needs 0.5–1.7B — Qwen3-0.6B, Gemma 3, Llama 3.2 1B, SmolLM2. ModernBERT is the current option for longer documents.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H3</span><p class="eq">How do we benchmark candidates before we have users?</p><span class="chip strong">Strong evidence</span></div>
+    <p>This looked like a chicken-and-egg problem and isn't. The <strong>Enron corpus</strong> — roughly 500,000 real messages from about 150 users, released during a legal investigation — is the standard public dataset for email research, and it's what the speech-act taxonomy work in A4 was built on.</p>
+    <div class="rec"><span class="tag">Recommendation — this unblocks the whole track</span>
+      <p>Build the S1 evaluation harness on Enron in week one, before any user exists:</p>
+      <ol style="margin-bottom:0; padding-left:20px;">
+        <li>Label a few thousand Enron messages against the A4 two-axis taxonomy — the existing intent-detection work gives a starting point.</li>
+        <li>Train and compare MiniLM, DistilBERT and a small generative model on the same split.</li>
+        <li>Measure accuracy, calibration (E6), and CPU latency per message.</li>
+      </ol>
+      <p>Caveat worth stating: Enron is corporate American email from the early 2000s. It will not represent a Pakistani university inbox, and the model will need re-tuning on real data. But it is enough to <strong>choose an architecture and build the harness</strong>, which is what blocks everything else. Getting the harness right is worth more than getting the first model right.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H4–H5</span><p class="eq">Which runtime, and how much quantization?</p><span class="chip strong">Strong evidence</span></div>
+    <p><strong>Runtime.</strong> ONNX Runtime measurably outperforms llama.cpp on CPU — reported at over 4.75× on prompt throughput and around 1.5× on token generation for quantized models. And for encoder models like MiniLM and DistilBERT, ONNX is the natural home anyway; llama.cpp is built for generative transformers.</p>
+    <p><strong>Quantization.</strong> <code>Q4_K_M</code> is the accepted default for generative models — roughly halving the memory footprint versus 8-bit, and because decoding is memory-bandwidth-bound, the smaller footprint usually <em>increases</em> throughput. For the encoder classifiers, int8 is standard and the accuracy cost is negligible.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>ONNX Runtime with int8 for the S1 classifiers.</strong> If a generative small model is later needed for summaries, run it as a separate service under llama.cpp with <code>Q4_K_M</code>, or ONNX if the model converts cleanly. Benchmark on the actual target machine — CPU inference varies enormously with instruction-set support, and published numbers assume modern server cores.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H6</span><p class="eq">Encoder-plus-head, or a small generative model, for triage?</p><span class="chip strong">Strong evidence</span></div>
+    <p>E6 effectively settled this. An encoder with a classification head gives a <strong>calibrated probability</strong> — a number that means something and can be thresholded for routing. A generative model asked to classify gives text, and its self-reported confidence is known to be poorly calibrated.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p><strong>Encoder plus head for anything that routes.</strong> It's smaller, faster, more accurate on fixed label sets, and — decisively — it produces the confidence signal the router needs. Reserve a generative small model for jobs that genuinely require free text: short summaries and rule diffs.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H7</span><p class="eq">What does distillation actually take?</p><span class="chip strong">Strong evidence</span></div>
+    <p>Much less than expected, which is the good news in this track.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Question</th><th>Answer</th></tr></thead>
+      <tbody>
+        <tr><td>Examples needed — classification/extraction</td><td class="num">500–1,000 good ones</td></tr>
+        <tr><td>Examples needed — generation</td><td class="num">5,000–10,000</td></tr>
+        <tr><td>Compute cost per training run</td><td class="num">$10–100</td></tr>
+        <tr><td>Hardware</td><td>A single consumer GPU, using LoRA or QLoRA</td></tr>
+        <tr><td>Wall-clock time</td><td>Hours to days, not weeks</td></tr>
+      </tbody>
+    </table></div>
+    <div class="rec"><span class="tag">What this means</span><p>At eight frontier calls per user per day, <strong>a single active user generates 500–1,000 examples in about three months; twenty pilot users get there in under a week.</strong> The intermediary model is not a research project — it is a few weeks of pilot usage plus a $50 training run. That is a far more encouraging answer than "we'll see", and it's worth saying in exactly those terms.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H8</span><p class="eq">Is it legal to train on data derived from user mailboxes?</p><span class="chip measure">Needs a real answer</span></div>
+    <p>Google's Workspace policy prohibits using API-derived data to develop or train <strong>generalized, non-personalized</strong> models. The wording matters: it targets general-purpose models, and appears to leave room for per-user or per-tenant personalization. But "appears to" is not good enough to bet a product on.</p>
+    <div class="rec"><span class="tag">Recommendation</span>
+      <ul style="margin-bottom:0;">
+        <li>Distil on <strong>redacted</strong> inputs only — after the privacy gateway, never before. The training set then contains no identities by construction.</li>
+        <li>Frame the output as <strong>personalization</strong>: per-tenant adapters rather than one global model, which is also better for quality.</li>
+        <li>Seek explicit opt-in consent for training use, separately from the main consent flow.</li>
+        <li>Get a written legal opinion before the first training run on real data. Enron (H3) is unencumbered and covers all development work until then.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">H9–H11</span><p class="eq">Hardware, on-device viability, and what "well-defined use case" means</p><span class="chip settled">Settled</span></div>
+    <p><strong>Hardware:</strong> a CPU box with 16GB RAM is enough for int8 encoder classifiers at our volumes. No GPU needed for inference. One consumer GPU — rented by the hour is fine — for occasional training runs.</p>
+    <p><strong>On-device:</strong> cannot run the ingestion path. Mobile background execution limits make it impossible to process mail as it arrives. On-device is a V3 opt-in "local-only mode" where the phone is the trust boundary and processing happens when the app is open.</p>
+    <p><strong>Which jobs qualify</strong> as confined, deterministic and well-defined — sir's criteria, applied honestly:</p>
+    <div class="tw"><table>
+      <thead><tr><th>Job</th><th>Qualifies?</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Category &amp; urgency</td><td><span class="chip settled">Yes</span></td><td>Fixed label set, verifiable, high volume.</td></tr>
+        <tr><td>Date / amount extraction</td><td><span class="chip settled">Yes</span></td><td>Structured output, checkable against the text.</td></tr>
+        <tr><td>PII detection</td><td><span class="chip settled">Yes</span></td><td>Fixed entity types.</td></tr>
+        <tr><td>Thread summary</td><td><span class="chip measure">Borderline</span></td><td>Generative, but short and low-stakes.</td></tr>
+        <tr><td>Reply drafting</td><td><span class="chip call">No</span></td><td>Open-ended, and quality is the entire product.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ==================== I ==================== -->
+<section class="track" id="I">
+  <div class="thead"><span class="tid">I</span><span class="tname">Market, competition &amp; USPs</span><span class="tcount">9 items</span></div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">I1–I4</span><p class="eq">Competitors, pricing, gaps, and the ranked USP list</p><span class="chip settled">Settled</span></div>
+    <p>Field Manual §08. Market prices run $14–30/month. The uncomfortable one is Inbox Zero, open source with ~10,700 stars, overlapping much of our feature description. Our six differentiators, of which the first two are architectural rather than featural: chat-native with no client; structural privacy; cost; deadline radar; local intelligence; scope control.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">I5</span><p class="eq">Can we reliably detect Pakistani institutional mail?</p><span class="chip measure">Needs measurement</span></div>
+    <p>This is a genuine moat — no foreign competitor will build it — but it can't be researched from a search engine. It needs a corpus.</p>
+    <div class="rec"><span class="tag">Method</span>
+      <ol style="margin-bottom:0; padding-left:20px;">
+        <li>Collect real examples: FBR notices and filing reminders, NADRA correspondence, statements and alerts from HBL, Meezan, UBL and Alfalah, K-Electric and SSGC bills, PTA and telecom notices, and university systems (LMS, ORIC, examination office).</li>
+        <li>For each, record the sending domain, subject patterns, and where the deadline and amount appear.</li>
+        <li>Build a <strong>sender registry</strong> — a curated table mapping domain to institution, object type and default lead time.</li>
+      </ol>
+      <p>Note what this is: mostly <strong>a data asset, not a model</strong>. A hand-curated registry of two hundred Pakistani institutional senders is genuinely defensible, costs nothing but effort, works with zero AI, and compounds. Ten of these gathered from your own mailbox is enough for a convincing demo.</p>
+    </div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">I6–I7</span><p class="eq">Who pays first, and what kind of company is this?</p><span class="chip call">Judgment call</span></div>
+    <p>The honest ranking of first customers, easiest to hardest: <strong>the university itself</strong> (one decision-maker, an internal Workspace install that sidesteps CASA, and a captive user base) → <strong>small professional firms</strong> in law, accountancy and consulting, who feel deadline pain acutely and already pay for software → <strong>individual professionals</strong> → <strong>consumers</strong>, who are the hardest to reach and least willing to pay.</p>
+    <div class="rec"><span class="tag">Recommendation</span><p>Start as a <strong>B2B2C product with a university pilot</strong>. It sidesteps the biggest technical obstacle, gives real users fastest, and produces the distillation data (H7) that makes the small-model track real. Consumer is a later decision, made with evidence.</p></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">I8–I9</span><p class="eq">What's the state of the art in agentic systems, and what other benefits exist?</p><span class="chip strong">Strong evidence</span></div>
+    <p>The pattern catalogue for 2026 agentic systems converges on a handful of things — planning, tool use, reflection, multi-agent delegation, and human-in-the-loop as a cross-cutting modifier. The consistent lesson across the production write-ups is that <strong>the challenge has shifted from capability to control</strong>: the named failure modes are infinite reflection loops, hallucinated tool calls, and runaway token spend, and the patterns exist to prevent them rather than to add power.</p>
+    <p>Our design already reflects that lesson — a tiny typed tool surface, no destructive operations, deterministic control flow, and mandatory approval on anything outward-facing. Worth saying explicitly in the meeting, because it shows the architecture came from the literature rather than from caution.</p>
+    <p><strong>Additional benefits worth exploring</strong>, beyond sorting and automation:</p>
+    <ul>
+      <li><strong>Commitment tracking</strong> — "you promised three people you'd send something this week." The <code>commit</code> speech act in A4 gives us this almost free, and it's the feature people describe wanting when asked.</li>
+      <li><strong>Response-time intelligence</strong> — "you usually reply to your supervisor within two hours; this one has been sitting for two days."</li>
+      <li><strong>Relationship memory</strong> — surfacing the last thread with someone before you reply.</li>
+      <li><strong>Leaving cleanly</strong> — an export of everything we know about you, and an uninstall that leaves no residue in the mailbox (see B15). A trust feature that doubles as a differentiator.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ==================== J ==================== -->
+<section class="track" id="J">
+  <div class="thead"><span class="tid">J</span><span class="tname">Scale &amp; operations</span><span class="tcount">6 items</span></div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">J1–J3</span><p class="eq">What breaks first, and what does it cost to run?</p><span class="chip call">Judgment call</span></div>
+    <p>Load is modest and predictable. At 10,000 users receiving 120 messages a day each, that's 1.2M messages daily — an average of <strong>14 per second</strong>, with a morning peak perhaps five times that. S0 handles 70% of it in rules at microseconds; S1 handles 25% at a few milliseconds on CPU; S2 sees about 80,000 calls a day, which is an API concern rather than an infrastructure one.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Users</th><th>Realistic setup</th><th>Rough infra cost/month</th><th>First bottleneck</th></tr></thead>
+      <tbody>
+        <tr><td class="num">100</td><td>One small VPS + managed Postgres</td><td class="num">$20–40</td><td>Nothing</td></tr>
+        <tr><td class="num">1,000</td><td>2 app workers + Postgres + S1 service</td><td class="num">$100–200</td><td>S1 throughput at peak</td></tr>
+        <tr><td class="num">10,000</td><td>4–6 workers + read replica + 2 S1 instances</td><td class="num">$500–900</td><td>Gmail per-project quota; database writes</td></tr>
+      </tbody>
+    </table></div>
+    <p>Two things are worth noticing. Infrastructure is <strong>far cheaper than the model spend</strong> at every tier — at 10,000 users, roughly $700 of servers against $10,000–30,000 of API cost. So optimization effort belongs on the cascade, not on hosting. And the first real bottleneck is <em>Gmail's project-level quota</em>, not our own compute — an external limit we manage with queueing rather than by buying more machines.</p>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">J4–J6</span><p class="eq">Watch renewal, budgets, and rate-limit strategy</p><span class="chip settled">Settled</span></div>
+    <ul>
+      <li><strong>Watch renewal is the highest-risk operational task in the system</strong>, because its failure is silent on both ends — mail arrives, we hear nothing, and nothing raises an error anywhere. Renew daily rather than weekly, and run a heartbeat that alarms if any user produces no notifications for an unusually long period given their history.</li>
+      <li><strong>Per-user monthly token budget</strong> enforced in the router; on exhaustion, degrade to S1 quality rather than fail or overspend silently.</li>
+      <li><strong>Rate limits:</strong> exponential backoff honouring <code>Retry-After</code>, a per-user token bucket sized below Gmail's published ceiling, and a project-level bucket below the per-project one. Backfills run in a separate low-priority lane so one user's 50,000-message import cannot starve everyone else's live mail.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ==================== K ==================== -->
+<section class="track" id="K">
+  <div class="thead"><span class="tid">K</span><span class="tname">Beyond email</span><span class="tcount">3 items</span></div>
+  <p class="tintro">From the line most people would miss: <em>"Moving on ye is se zyada kaam karega."</em> He isn't describing an email product — he's describing the first surface of something larger.</p>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">K1–K2</span><p class="eq">What does this become after email?</p><span class="chip call">Judgment call</span></div>
+    <p>The generalizable thing we're building isn't an email tool. It's a <strong>triage-and-approval loop for any stream of incoming obligations</strong>: something arrives, decide if it matters, work out what it asks of you, propose an action, get approval in chat, execute, remember. Email is simply the highest-volume, most painful instance of that pattern.</p>
+    <p>Which means the natural expansions are other obligation streams, ranked by how well they fit the same loop:</p>
+    <div class="tw"><table>
+      <thead><tr><th>Surface</th><th>Fit</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Calendar</strong></td><td><span class="chip settled">Native</span></td><td>Already half-integrated for reminders. Scheduling, conflicts, prep briefs.</td></tr>
+        <tr><td><strong>Documents to review</strong></td><td><span class="chip strong">Strong</span></td><td>Same loop: something arrives, needs a decision, gets approved.</td></tr>
+        <tr><td><strong>WhatsApp / Slack messages</strong></td><td><span class="chip strong">Strong</span></td><td>Same triage problem, higher volume, harder privacy story.</td></tr>
+        <tr><td><strong>Tasks &amp; commitments</strong></td><td><span class="chip strong">Strong</span></td><td>The <code>commit</code> speech act (A4) already generates these from email.</td></tr>
+        <tr><td><strong>Forms &amp; approvals</strong></td><td><span class="chip measure">Maybe</span></td><td>Institutional workflows — strong in a university setting.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="entry">
+    <div class="ehead"><span class="eid">K3</span><p class="eq">What must not be hard-coded to email — today?</p><span class="chip strong">Strong evidence</span></div>
+    <p>This is the item with consequences for V0, which is why it belongs in this document rather than a future one. Five naming and modelling decisions, none of which cost anything now and all of which are expensive to change later:</p>
+    <ul>
+      <li>The core object is an <strong><code>Item</code></strong>, not an <code>Email</code>. An email is one kind of item; so is a calendar invite, so is a message.</li>
+      <li>The taxonomy (A4) is <strong>speech act plus object</strong> — deliberately not email-specific. "Someone is requesting something about a payment" is true of a WhatsApp message too.</li>
+      <li>The rule store keys on <strong>item properties</strong>, not on Gmail concepts. A rule that mentions "label" is an email rule; a rule that mentions "category" generalizes.</li>
+      <li>The approval loop takes an <strong><code>Action</code></strong>, not a <code>Draft</code>. Sending a reply is one action; declining a meeting is another.</li>
+      <li>The connector interface is a <strong>source of items with a capability set</strong> (B17), which is exactly the shape a future WhatsApp or document connector needs.</li>
+    </ul>
+    <div class="rec"><span class="tag">Recommendation</span><p>Adopt this naming from the first commit. It costs nothing today — the words are just different — and it is the difference between expanding later and rewriting later. It's also a good thing to be able to say in the meeting: it shows you heard the line about "moving on" and designed for it rather than nodding at it.</p></div>
+  </div>
+</section>
+
+<footer>
+  Compiled 31 August 2026 from primary platform documentation, published research, and current vendor pricing. Every recommendation states its confidence honestly; items marked "needs measurement" are exactly that, and the method is given so they can be closed rather than argued about. Where the research contradicted an earlier assumption, this document follows the research.
+</footer>
+
+</main>
+</div>

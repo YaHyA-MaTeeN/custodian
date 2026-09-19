@@ -1,0 +1,322 @@
+<title>How the Agent Thinks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#EFF2F4; --surface:#FFFFFF; --surface-2:#F6F9FA;
+    --ink:#10222B; --ink-2:#566B76; --ink-3:#85979F;
+    --rule:#D4DFE4; --rule-soft:#E4ECEF;
+    --accent:#0F5673; --accent-soft:#E0EDF3;
+    --spend:#A3521C; --spend-soft:#F7EADF;
+    --free:#1C6647; --free-soft:#DFEFE7;
+    --f-display:"IBM Plex Serif",Georgia,serif;
+    --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+      --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+      --rule:#223945; --rule-soft:#1A2E38;
+      --accent:#64B8DB; --accent-soft:#13303E;
+      --spend:#E0A06A; --spend-soft:#33231694;
+      --free:#6DBF97; --free-soft:#163025;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0B151B; --surface:#11212A; --surface-2:#162932;
+    --ink:#E3EDF1; --ink-2:#9AAFB9; --ink-3:#6C838D;
+    --rule:#223945; --rule-soft:#1A2E38;
+    --accent:#64B8DB; --accent-soft:#13303E;
+    --spend:#E0A06A; --spend-soft:#332316;
+    --free:#6DBF97; --free-soft:#163025;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body { background:var(--ground); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:960px; margin:0 auto; padding:0 24px 100px; }
+
+  header.top { padding:52px 0 26px; border-bottom:1px solid var(--rule); margin-bottom:38px; }
+  .eyebrow { font-family:var(--f-mono); font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); }
+  h1 { font-family:var(--f-display); font-weight:600; font-size:clamp(30px,4.6vw,44px); line-height:1.08; letter-spacing:-.02em; margin:12px 0 0; text-wrap:balance; }
+  .sub { max-width:62ch; color:var(--ink-2); font-size:16px; margin:13px 0 0; }
+
+  h2 { font-family:var(--f-display); font-size:23px; font-weight:600; letter-spacing:-.012em; margin:52px 0 8px; }
+  h3 { font-size:15px; font-weight:600; margin:26px 0 8px; }
+  p { max-width:68ch; margin:0 0 14px; }
+  code { font-family:var(--f-mono); font-size:.86em; background:var(--surface-2); border:1px solid var(--rule-soft); border-radius:3px; padding:1px 4px; color:var(--accent); }
+
+  figure { margin:0 0 12px; background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:22px 20px 16px; overflow-x:auto; }
+  figure svg { display:block; max-width:100%; height:auto; margin:0 auto; }
+  figcaption { font-size:13px; color:var(--ink-2); margin-top:16px; padding-top:12px; border-top:1px solid var(--rule-soft); line-height:1.55; }
+  figcaption b { color:var(--ink); font-weight:600; }
+
+  .tw { overflow-x:auto; margin:0 0 20px; border:1px solid var(--rule); border-radius:5px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:600px; }
+  th { text-align:left; font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3); padding:10px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2); white-space:nowrap; vertical-align:bottom; }
+  td { padding:10px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.5; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num { font-family:var(--f-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .tool { font-family:var(--f-mono); font-size:12.5px; font-weight:500; color:var(--accent); }
+
+  .chip { display:inline-block; font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; padding:2.5px 7px; border-radius:3px; white-space:nowrap; border:1px solid transparent; }
+  .chip.free { background:var(--free-soft); color:var(--free); border-color:color-mix(in srgb,var(--free) 28%,transparent); }
+  .chip.spend { background:var(--spend-soft); color:var(--spend); border-color:color-mix(in srgb,var(--spend) 32%,transparent); }
+
+  .key { background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:0 4px 4px 0; padding:15px 20px; margin:0 0 22px; max-width:74ch; }
+  .key p { margin:0; max-width:none; }
+  .key p + p { margin-top:10px; }
+  .key .tag { font-family:var(--f-mono); font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); display:block; margin-bottom:5px; }
+
+  .rules { font-family:var(--f-mono); font-size:13px; background:var(--surface); border:1px solid var(--rule); border-radius:5px; padding:16px 20px; margin:0 0 20px; line-height:1.9; overflow-x:auto; }
+  .rules .lbl { color:var(--accent); font-weight:600; }
+  .rules .esc { color:var(--spend); font-weight:600; }
+  .rules .c { color:var(--ink-3); }
+
+  footer { margin-top:52px; padding-top:20px; border-top:1px solid var(--rule); font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); letter-spacing:.03em; line-height:1.7; }
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <span class="eyebrow">Node B — the processing pipeline</span>
+  <h1>How the Agent Thinks</h1>
+  <p class="sub">Every email falls through four layers. Each one either answers confidently or says <em>"I don't know"</em> and passes it up. Only the last layer costs money — and only replies ever reach it.</p>
+</header>
+
+<!-- ============ MAIN DIAGRAM ============ -->
+<figure>
+<svg viewBox="0 0 880 800" role="img" aria-label="Four-layer email processing pipeline. An email enters at the top and passes through parse and headers, extract, judge, and write. Each layer resolves a share of mail and escalates the rest downward. Anything no layer is sure about is shown to the user.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+    <marker id="ar-spend" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--spend)"/>
+    </marker>
+  </defs>
+
+  <g font-family="IBM Plex Sans, sans-serif" fill="currentColor">
+
+    <!-- EMAIL IN -->
+    <rect x="40" y="24" width="260" height="42" rx="4" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="170" y="51" text-anchor="middle" font-size="14" font-weight="600">✉  An email arrives</text>
+
+    <!-- ===== LAYER 1 ===== -->
+    <line x1="170" y1="66" x2="170" y2="101" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+    <rect x="40" y="105" width="260" height="100" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="60" y="132" font-size="13" font-weight="600">1 · PARSE &amp; HEADERS</text>
+    <text x="60" y="156" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">email · flanker</text>
+    <text x="60" y="174" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">+ our own rules</text>
+    <text x="60" y="194" font-size="11" fill="var(--free)" font-weight="600">FREE · microseconds</text>
+
+    <line x1="300" y1="155" x2="424" y2="155" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="362" y="147" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">decided</text>
+    <rect x="430" y="120" width="410" height="70" rx="4" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+    <text x="450" y="145" font-size="13" font-weight="600">Junk filed · sender known · sensitive flagged</text>
+    <text x="450" y="166" font-size="11.5" fill="var(--ink-2)">Nothing opened. Nothing read.</text>
+    <text x="450" y="182" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--free)">≈ 60% of all mail stops here</text>
+
+    <!-- ===== LAYER 2 ===== -->
+    <line x1="170" y1="205" x2="170" y2="241" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="185" y="228" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">not sure ↓</text>
+    <rect x="40" y="245" width="260" height="100" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="60" y="272" font-size="13" font-weight="600">2 · EXTRACT</text>
+    <text x="60" y="296" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">duckling</text>
+    <text x="60" y="314" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">dateparser</text>
+    <text x="60" y="334" font-size="11" fill="var(--free)" font-weight="600">FREE · milliseconds</text>
+
+    <line x1="300" y1="295" x2="424" y2="295" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="362" y="287" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">found it</text>
+    <rect x="430" y="260" width="410" height="70" rx="4" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+    <text x="450" y="285" font-size="13" font-weight="600">Deadline &amp; amount pulled out</text>
+    <text x="450" y="306" font-size="11.5" fill="var(--ink-2)">"15 September 2026" · "Rs 8,400"</text>
+    <text x="450" y="322" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--free)">≈ 10% — opened, on our machine only</text>
+
+    <!-- ===== LAYER 3 ===== -->
+    <line x1="170" y1="345" x2="170" y2="381" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="185" y="368" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">not sure ↓</text>
+    <rect x="40" y="385" width="260" height="100" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="60" y="412" font-size="13" font-weight="600">3 · JUDGE</text>
+    <text x="60" y="436" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">ModernBERT</text>
+    <text x="60" y="454" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--accent)">trained with SetFit</text>
+    <text x="60" y="474" font-size="11" fill="var(--free)" font-weight="600">OUR CPU · ~5 ms</text>
+
+    <line x1="300" y1="435" x2="424" y2="435" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+    <text x="362" y="427" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">judged</text>
+    <rect x="430" y="400" width="410" height="70" rx="4" fill="var(--surface-2)" stroke="currentColor" stroke-width="1"/>
+    <text x="450" y="425" font-size="13" font-weight="600">Category · urgency · which date matters</text>
+    <text x="450" y="446" font-size="11.5" fill="var(--ink-2)">"asking me something" · "about a meeting"</text>
+    <text x="450" y="462" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--free)">≈ 25% — never leaves our building</text>
+
+    <!-- ===== LAYER 4 ===== -->
+    <line x1="170" y1="485" x2="170" y2="521" stroke="var(--spend)" stroke-width="1.8" marker-end="url(#ar-spend)"/>
+    <text x="185" y="508" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--spend)">reply needed ↓</text>
+    <rect x="40" y="525" width="260" height="100" rx="5" fill="var(--spend-soft)" stroke="var(--spend)" stroke-width="2"/>
+    <text x="60" y="552" font-size="13" font-weight="600" fill="var(--spend)">4 · WRITE</text>
+    <text x="60" y="576" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--spend)">frontier model</text>
+    <text x="60" y="594" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--spend)">names stripped first</text>
+    <text x="60" y="614" font-size="11" fill="var(--spend)" font-weight="600">COSTS MONEY · leaves us</text>
+
+    <line x1="300" y1="575" x2="424" y2="575" stroke="var(--spend)" stroke-width="1.8" marker-end="url(#ar-spend)"/>
+    <rect x="430" y="540" width="410" height="70" rx="4" fill="var(--spend-soft)" stroke="var(--spend)" stroke-width="1"/>
+    <text x="450" y="565" font-size="13" font-weight="600">A draft reply, in your voice</text>
+    <text x="450" y="586" font-size="11.5" fill="var(--ink-2)">Shown to you. Nothing sends until you say yes.</text>
+    <text x="450" y="602" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--spend)">≈ 5% — the only thing we pay for</text>
+
+    <!-- ===== SHOW USER ===== -->
+    <line x1="170" y1="625" x2="170" y2="661" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+    <text x="185" y="648" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-3)">nobody knew</text>
+    <rect x="40" y="665" width="260" height="52" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 3"/>
+    <text x="170" y="688" text-anchor="middle" font-size="13" font-weight="600">THE ESCAPE HATCH</text>
+    <text x="170" y="706" text-anchor="middle" font-size="11" fill="var(--ink-2)">show it to the human</text>
+
+    <line x1="300" y1="691" x2="424" y2="691" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+    <rect x="430" y="661" width="410" height="60" rx="4" fill="var(--surface-2)" stroke="currentColor" stroke-width="1" stroke-dasharray="5 3"/>
+    <text x="450" y="686" font-size="13" font-weight="600">"I'm not sure about this one"</text>
+    <text x="450" y="706" font-size="11.5" fill="var(--ink-2)">Never guessed. Never hidden.</text>
+
+    <!-- footer note inside svg -->
+    <text x="40" y="762" font-size="11.5" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">Each layer answers, or admits it doesn't know. No layer is allowed to guess.</text>
+  </g>
+</svg>
+<figcaption><b>Every email falls down the left column until something is confident enough to answer.</b> Roughly 60% never gets past the free header rules; a further 35% is handled on our own machine. Only the 5% that needs a reply written reaches the paid model — and it arrives there with names already replaced by placeholders.</figcaption>
+</figure>
+
+<!-- ============ THE TOOLS ============ -->
+<h2>What each tool actually is</h2>
+
+<div class="tw">
+<table>
+  <thead><tr><th>Layer</th><th>Tool</th><th>What it does</th><th>What it can't do</th><th>Cost</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="num">1</td>
+      <td class="tool">email<br>flanker</td>
+      <td>Takes a raw email apart — sender, subject, headers, body, attachments. <code>flanker</code> is Mailgun's, up to 20× faster than the standard library.</td>
+      <td>Nothing. This is a solved problem.</td>
+      <td><span class="chip free">Free</span></td>
+    </tr>
+    <tr>
+      <td class="num">1</td>
+      <td class="tool">our own<br>header rules</td>
+      <td>~200 lines. Checks for the unsubscribe header, <code>Precedence: bulk</code>, <code>noreply@</code> senders, bulk-mail providers, and whether you've ever replied to this sender.</td>
+      <td>Can't tell an automated receipt from a real person — transactional mail deliberately omits those headers.</td>
+      <td><span class="chip free">Free</span></td>
+    </tr>
+    <tr>
+      <td class="num">2</td>
+      <td class="tool">duckling</td>
+      <td>Facebook's, open source. Pulls out dates, times, <strong>money</strong>, numbers, durations — and gives a <strong>probability for each result</strong>, which is what tells us when to escalate.</td>
+      <td>Composite durations ("two days and three hours"). Date ranges are experimental. Five languages.</td>
+      <td><span class="chip free">Free</span></td>
+    </tr>
+    <tr>
+      <td class="num">2</td>
+      <td class="tool">dateparser</td>
+      <td>Dates only, but very good at them — "in 2 days", "tomorrow", "3 months and 1 week ago". <strong>200+ language locales.</strong></td>
+      <td>No money, no numbers. Around 36% on deliberately messy text.</td>
+      <td><span class="chip free">Free</span></td>
+    </tr>
+    <tr>
+      <td class="num">3</td>
+      <td class="tool">ModernBERT<br>+ SetFit</td>
+      <td>Our own small model. <strong>SetFit</strong> is a training method that reaches ~92.7% accuracy from <strong>8 labelled examples per class</strong> — so about 64 hand-labelled emails builds a working classifier.</td>
+      <td>Can't write. Needs its answers checked against the original text before we trust them.</td>
+      <td><span class="chip free">Our CPU</span></td>
+    </tr>
+    <tr>
+      <td class="num">4</td>
+      <td class="tool">frontier model</td>
+      <td>Writes the reply, in your voice, using 4–5 of your own past emails as examples.</td>
+      <td>Everything else — it's overkill for anything with a checkable answer.</td>
+      <td><span class="chip spend">Costs money</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============ ESCALATION RULES ============ -->
+<h2>When does it hand over to the next layer?</h2>
+<p>Every layer returns an answer <em>and</em> a confidence. These are the actual rules:</p>
+
+<div class="rules">
+<span class="lbl">LAYER 1</span> — header rules<br>
+&nbsp;&nbsp;deterministic: the header is there, or it isn't<br>
+&nbsp;&nbsp;→ no clear signal either way ......................... <span class="esc">ESCALATE</span><br><br>
+
+<span class="lbl">LAYER 2</span> — duckling / dateparser<br>
+&nbsp;&nbsp;→ duckling's top result scores below 0.80 ............. <span class="esc">ESCALATE</span><br>
+&nbsp;&nbsp;→ two results within 0.10 of each other .............. <span class="esc">ESCALATE</span> <span class="c">(ambiguous)</span><br>
+&nbsp;&nbsp;→ nothing found at all ............................... <span class="esc">ESCALATE</span><br><br>
+
+<span class="lbl">LAYER 3</span> — our model<br>
+&nbsp;&nbsp;→ top category scores below the threshold ............ <span class="esc">ESCALATE</span><br>
+&nbsp;&nbsp;<span class="c">threshold set from real data, not guessed</span><br><br>
+
+<span class="lbl">LAYER 4</span> — or, if it isn't a writing job ....... <span class="esc">SHOW THE USER</span>
+</div>
+
+<h3>And one more gate on top: verify before trusting</h3>
+<div class="rules">
+model says: <span class="lbl">deadline = 2026-09-15</span>, quote = <span class="lbl">"before 15 September 2026"</span><br><br>
+&nbsp;&nbsp;does that quote appear in the email? .......... ✗ → <span class="esc">THROW AWAY</span><br>
+&nbsp;&nbsp;is the date in the future? .................... ✗ → <span class="esc">THROW AWAY</span><br>
+&nbsp;&nbsp;does the date match the quote? ................ ✗ → <span class="esc">THROW AWAY</span>
+</div>
+
+<div class="key">
+  <span class="tag">Why this matters</span>
+  <p><strong>Confidence is not trust.</strong> A model can be confident and wrong. Because every answer below layer 4 is <em>checkable against the original text</em>, we can catch that automatically and discard it.</p>
+  <p>Writing is the one job with no checkable answer — there's no automatic test for whether a draft sounds like you. <strong>That's why it's the only thing we pay for.</strong></p>
+</div>
+
+<!-- ============ DECIDES VS ACTS ============ -->
+<h2>The model decides. The code acts.</h2>
+
+<figure>
+<svg viewBox="0 0 820 250" role="img" aria-label="The model returns a small answer to the worker, and the worker sends the instruction to the mailbox. The model never contacts the mailbox directly.">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g font-family="IBM Plex Sans, sans-serif" fill="currentColor">
+
+    <rect x="30" y="90" width="180" height="70" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="120" y="119" text-anchor="middle" font-size="13" font-weight="600">The model</text>
+    <text x="120" y="139" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">answers one question</text>
+
+    <line x1="210" y1="125" x2="304" y2="125" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+    <text x="257" y="115" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--accent)">"junk"</text>
+
+    <rect x="310" y="90" width="180" height="70" rx="5" fill="var(--surface)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="400" y="119" text-anchor="middle" font-size="13" font-weight="600">Our code</text>
+    <text x="400" y="139" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">does the work</text>
+
+    <line x1="490" y1="125" x2="584" y2="125" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar2)"/>
+    <text x="537" y="115" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--accent)">add label</text>
+
+    <rect x="590" y="90" width="180" height="70" rx="5" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="680" y="119" text-anchor="middle" font-size="13" font-weight="600">The mailbox</text>
+    <text x="680" y="139" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">Gmail, Outlook, …</text>
+
+    <!-- crossed-out direct path -->
+    <path d="M 120 90 Q 400 20 680 90" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="5 4" opacity="0.4"/>
+    <line x1="386" y1="34" x2="414" y2="58" stroke="currentColor" stroke-width="2.2" opacity="0.75"/>
+    <line x1="414" y1="34" x2="386" y2="58" stroke="currentColor" stroke-width="2.2" opacity="0.75"/>
+    <text x="400" y="82" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">never happens</text>
+
+    <text x="400" y="205" text-anchor="middle" font-size="12.5" fill="var(--ink-2)">The model produces a label. It cannot touch anyone's mailbox.</text>
+  </g>
+</svg>
+<figcaption><b>No model ever contacts a mailbox.</b> It answers a narrow question — <em>junk / not junk</em>, <em>15 September</em>, <em>urgent</em> — and hands that answer back. Ordinary code then sends one instruction to Gmail or Outlook. This is what makes the system auditable: every change to a mailbox came from a line of our own code, not from something a model decided to do.</figcaption>
+</figure>
+
+<footer>
+  Percentages are current estimates and must be measured against a real 1,000-message mailbox before the cost model is relied on. Library capabilities and the SetFit accuracy figure are from published documentation and benchmarks.
+</footer>
+
+</div>

@@ -1,0 +1,189 @@
+TITLE|Email agent - what I need to know
+SUB|Working notes. Started 3 Sept 2026.
+B|
+P|This is my research list for the mail agent. I go through it item by item and write what I find under each one. Anything with (must) I need to be able to answer without looking it up - those are the ones I keep getting caught on.
+B|
+P|Marking: (must) = answer cold. (know) = understand it. (look) = fine to look up.
+B|
+H1|1. Connecting to the mailbox
+Q|(must) OAuth - what actually happens when someone clicks connect
+F|
+Q|(must) Scopes - what gmail.modify lets us do and what it doesn't. Same for Mail.ReadWrite on Outlook
+F|
+Q|(must) Quotas and rate limits per provider. This is the real ceiling on how fast we can read a mailbox
+F|
+Q|(must) How we find out new mail arrived - push vs polling, on each provider
+F|
+Q|(know) Tokens - expiry, refresh, what happens when one dies or gets revoked
+F|
+Q|(know) Gmail labels vs Outlook folders - they are not the same model
+F|
+Q|(know) IMAP fallback - IDLE, CONDSTORE, what breaks on old servers
+F|
+Q|(know) The Google and Microsoft security review - cost, how long, who is exempt
+F|
+Q|(look) More than one account per user
+F|
+B|
+H1|2. What an email actually is
+Q|(must) MIME structure - parts, multipart, why one email contains three copies of itself
+F|
+Q|(must) Threading - Message-ID, In-Reply-To, References. This is what the obligation ledger runs on
+F|
+Q|(must) Which headers matter and what each one declares
+F|
+Q|(know) Encodings - base64, quoted-printable, charsets, what corrupts text
+F|
+Q|(know) Authentication headers, and the rule about only trusting the top one
+F|
+Q|(know) Attachments, inline images, Content-Disposition
+F|
+Q|(look) Malformed mail - how much is out there, what to do with it
+F|
+B|
+H1|3. Cleaning the email up
+Q|(must) Quote stripping - the 85 percent. Test it on my own mail
+F|
+Q|(know) Signature detection
+F|
+Q|(know) HTML to text, and why the usual article-extraction tools are wrong for this
+F|
+Q|(look) Language detection, deduplication
+F|
+B|
+H1|4. The small models - theory
+Q|(must) What an encoder model actually does. Be able to explain it in a minute
+F|
+Q|(must) Tokens and context length - why 256 vs 8192 decided our choice
+F|
+Q|(must) What fine-tuning is, and why off-the-shelf fails at this size
+F|
+Q|(must) Parameters - what 149M means physically, on disk and in memory
+F|
+Q|(know) Quantisation - how int8 makes it four times smaller
+F|
+Q|(know) ONNX - what conversion does, why it is ~14x faster
+F|
+Q|(know) Embeddings - what they are, and why they are not safe storage
+F|
+B|
+H1|5. The small models - practice
+Q|(must) How much labelled data, and how I actually get it. This is the real bottleneck
+F|
+Q|(must) What a training run looks like - what I run, where, how long, what it costs
+F|
+Q|(know) Train/test split - and why email needs a time split, not a random one
+F|
+Q|(know) Overfitting - what it looks like, how to catch it
+F|
+Q|(know) How often to retrain, and drift
+F|
+Q|(look) Which hyperparameters are worth touching
+F|
+B|
+H1|6. Decision trees - stage 9
+Q|(must) What a decision tree is, what boosting adds on top
+F|
+Q|(must) The ~65 features - what each one is and where it comes from
+F|
+Q|(must) Class imbalance - 92 percent of email never gets a reply. This breaks the naive approach
+F|
+Q|(know) Why AUC and not accuracy
+F|
+Q|(know) Feature importance - how to prove which signals actually matter
+F|
+B|
+H1|7. The frontier model
+Q|(must) The cost model - input vs output tokens, and what caching saves
+F|
+Q|(must) Context window, and what we actually send in a request
+F|
+Q|(know) Prompt design for writing in someone's voice
+F|
+Q|(know) Structured output - forcing a fixed shape, and the two-stage trick
+F|
+Q|(know) Latency, rate limits, retries
+F|
+Q|(know) Zero-retention terms - what the provider does with what we send
+F|
+B|
+H1|8. Security - he pushes hardest here
+Q|(must) Prompt injection - what it is, why every agent tested got broken
+F|
+Q|(must) Why the approval gate lives in our code and not in the model
+F|
+Q|(must) The instruction vs data rule - user text is an instruction, email text is data
+F|
+Q|(must) PII detection, and why published scores fall apart on real mail
+F|
+Q|(know) Data at rest, in transit, key handling
+F|
+Q|(know) What we log and for how long
+F|
+Q|(look) Deletion and export on request
+F|
+B|
+H1|9. Building the system
+Q|(must) Idempotency - never send the same reply twice
+F|
+Q|(must) The approval state machine, and surviving a restart in the middle of it
+F|
+Q|(know) Job queue in Postgres - why not Redis or Celery
+F|
+Q|(know) Retries and backoff against provider limits
+F|
+Q|(know) The database schema - every table and why it exists
+F|
+Q|(know) Logging - what I need to debug a wrong decision after the fact
+F|
+Q|(look) Deployment, secrets, environments
+F|
+B|
+H1|10. WhatsApp
+Q|(must) The 24-hour window, and why the daily brief exists to keep it open
+F|
+Q|(must) Registration in Pakistan - SECP, FBR NTN, the website requirement
+F|
+Q|(know) Template messages vs free-form, and cost per message
+F|
+Q|(know) Webhooks, delivery receipts, failures
+F|
+B|
+H1|11. Proving it works
+Q|(must) How to build a test set from a real mailbox
+F|
+Q|(must) Precision, recall, F1, AUC - what each one actually means
+F|
+Q|(must) Why you cannot judge a draft reply by an automatic score
+F|
+Q|(know) Human evaluation done properly
+F|
+Q|(know) What to measure in the pilot, and the target for each
+F|
+B|
+H1|12. Business side
+Q|(know) Cost per user - the model, and what is still unknown
+F|
+Q|(know) Competitors, and the honest gap we are filling
+F|
+Q|(know) Payments in Pakistan
+F|
+Q|(look) Pricing tiers
+F|
+B|
+H1|Things to measure myself
+P|These cannot be researched. They need a real mailbox.
+Q|What share of a real mailbox exits at each stage
+F|
+Q|How often the name-masking misses something on our own mail
+F|
+Q|Our actual cost per user per month
+F|
+Q|Whether quote-stripping really cuts 85 percent on my own mail
+F|
+Q|How long a full envelope backfill really takes against live quotas
+F|
+B|
+H1|Log
+P|Date, what I looked at, what I concluded.
+B|

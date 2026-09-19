@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fifty Use Cases Reviewed</title>
+<link rel="stylesheet" href="_docstyle.css">
+<style>
+.uc{border:1pt solid var(--rule);border-radius:1.5mm;padding:3.5mm 4.5mm;margin:3.5mm 0;page-break-inside:avoid}
+.uc h4{margin:0 0 1.5mm;color:var(--ink);font-size:11pt}
+.uc .l{font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-top:2mm}
+.uc p{margin:0.6mm 0 1.2mm}
+.built{background:var(--pass-bg);color:var(--pass)} .part{background:var(--part-bg);color:var(--part)}
+.not{background:var(--tint2);color:var(--soft)} .conf{background:var(--fail-bg);color:var(--fail)} .na{background:var(--tint2);color:var(--soft)}
+</style>
+</head>
+<body>
+
+<section>
+  <div class="cover">
+    <div class="eyebrow">Custodian · Use-case review</div>
+    <h1>Fifty use cases, one at a time:<br>what each means, where it argues with itself, and whether we can build it</h1>
+    <p class="meta">Umar's Use Case Template v2.0, dated 9 September 2026 &nbsp;·&nbsp; reviewed against the code on 19 September 2026 &nbsp;·&nbsp; 61,902 words read</p>
+  </div>
+
+  <p class="lead">Every use case below gets the same four things: what it means in
+  plain words, the problem with it if there is one, what our system does today,
+  and whether it can be added. The verdicts are honest about effort. A few need
+  a decision from sir before anyone writes code, and those are marked.</p>
+
+  <div class="figs">
+    <div class="fig"><b>14</b><span>already built, or nearly</span></div>
+    <div class="fig"><b>16</b><span>partly built &mdash; the pieces exist</span></div>
+    <div class="fig"><b>12</b><span>not built, buildable</span></div>
+    <div class="fig"><b>8</b><span>commercial or product layer &mdash; not a POC job</span></div>
+  </div>
+
+  <h3>The three things you noticed, checked</h3>
+  <p><b>1 · Sending.</b> You are right. The documents say, in bold, that the
+  product never sends: <em>"We never send. The Owner sends every draft from
+  their own mail app. No exceptions, no settings, no trusted mode."</em> (UC-25,
+  BR-91). Outlook is connected without send permission at all (UC-05). Every
+  forward is a draft (UC-35). A typed rule can never send (UC-38). Our system
+  sends &mdash; after an exact typed yes, through a gate in our own code &mdash; and it
+  was proved to work over both doors. <b>The documents and the code disagree,
+  and the documents also disagree with themselves:</b> UC-26 <em>"Send a Quick
+  Answer"</em> has the system send a one-tap reply from the receiving account,
+  which BR-91 forbids two pages earlier.</p>
+  <p><b>2 · Deletion.</b> Half right. He did think about it &mdash; UC-15, 16, 18
+  and 46 are all about clearing mail &mdash; but the rule is <em>"the provider
+  deletes, on the customer's own click; we never issue a deletion"</em> (BR-59),
+  and clearing means moving to the provider's Trash. That is exactly what our
+  <code>trash()</code> does behind the typed-yes gate, and we never ask for the
+  permission that could delete permanently. So deletion is consistent with our
+  system. What is missing on our side is the <em>pile</em>: the grouped,
+  explained, safety-checked list that the click acts on.</p>
+  <p><b>3 · Chat.</b> You are right, and it is explicit. <em>"A conversation.
+  One sentence in, one rule out. This is not a chat assistant."</em> (UC-38).
+  <em>"Parsing typed instructions is a chat assistant, which the scope guard
+  excludes."</em> (UC-35). Sir mandated text input; we built <code>chat.py</code>
+  on exactly that instruction. <b>This is a decision for sir and Umar, not for
+  code.</b> Both are buildable; they cannot both be the product.</p>
+
+  <h3>How to read the verdicts</h3>
+  <table>
+    <tr><td class="k"><span class="tag built">built</span></td><td>Works today, or the remaining gap is a morning.</td></tr>
+    <tr><td class="k"><span class="tag part">partly</span></td><td>The pieces exist (a stage, a table, a connector method); the surface or the glue does not.</td></tr>
+    <tr><td class="k"><span class="tag not">not built</span></td><td>Nothing yet, but nothing stops it. Effort: S = a day, M = a few days, L = a week or more.</td></tr>
+    <tr><td class="k"><span class="tag na">not for POC</span></td><td>Accounts, billing, storage regions. A product company builds these; a proof of concept does not.</td></tr>
+    <tr><td class="k"><span class="tag conf">decision</span></td><td>Buildable, but it contradicts sir's instruction, another use case, or what we already proved. Needs a yes before code.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ A · ACCOUNT & COMMERCIAL ═══════════════ -->
+<section class="sheet">
+  <h2>A &nbsp;·&nbsp; Account and commercial &mdash; UC-01, 02, 03, 47, 48, 49</h2>
+  <p class="lead">Six use cases about being a company with customers. None of
+  them touch the pipeline. They are listed for completeness and marked not for
+  POC.</p>
+
+  <div class="uc"><h4>UC-01 Register Account <span class="tag na">not for POC</span></h4>
+  <p class="l">Means</p><p>A visitor creates an account with email + password, or Google/Microsoft sign-in used only to prove who they are. Where their data is stored is picked silently from their country. The trial does not start yet.</p>
+  <p class="l">Problem</p><p>None in itself. The open question at the end &mdash; which storage regions we really have servers in &mdash; drives UC-47 too.</p>
+  <p class="l">Ours today</p><p>No accounts. The POC signs in at the keyboard.</p></div>
+
+  <div class="uc"><h4>UC-02 Sign In <span class="tag na">not for POC</span></h4>
+  <p class="l">Means</p><p>Four ways in, all reaching the same account. Signing in never grants mailbox access &mdash; that is a separate grant per mailbox.</p>
+  <p class="l">Ours today</p><p>Nothing. The separation it insists on (identity ≠ mailbox access) already matches how our two doors work.</p></div>
+
+  <div class="uc"><h4>UC-03 Start a Subscription <span class="tag na">not for POC</span></h4>
+  <p class="l">Means</p><p>Card first, then a 7-day trial in which the scan runs but the cleanup is locked. Confirm on day 7 before any charge. Miss a renewal: stop, don't delete; 15 days to pay; then disconnect, and still nothing in the mailbox changes.</p>
+  <p class="l">Problem</p><p>This use case gates <em>other</em> use cases: UC-15, 16, 17, 18 and 46 all say "clearing needs an active subscription". A POC has no subscription, so every "locked during trial" branch is moot for us.</p></div>
+
+  <div class="uc"><h4>UC-47 View or Change Where My Data Is Stored <span class="tag na">not for POC</span></h4>
+  <p class="l">Means</p><p>One line in settings: "Your data is stored in Europe." Move it on request; all or nothing. Cheap because we keep ~20 MB per customer, never their mail.</p>
+  <p class="l">Ours today</p><p>One SQLite file on one laptop. The claim "moving is cheap because we hold so little" is true of our schema.</p></div>
+
+  <div class="uc"><h4>UC-48 Change Plan · UC-49 Cancel Subscription <span class="tag na">not for POC</span></h4>
+  <p class="l">Means</p><p>Upgrade now, downgrade at the next billing date, the billing date never moves. Cancelling runs to the end of the paid period, then disconnects, and nothing in the mailbox is undone.</p>
+  <p class="l">Ours today</p><p>Nothing. The one rule that reaches our code &mdash; "nothing in the mailbox is reversed on the way out" &mdash; is already how <code>my_data.py --erase</code> behaves.</p></div>
+</section>
+
+<!-- ═══════════════ B · CONNECTING ═══════════════ -->
+<section class="sheet">
+  <h2>B &nbsp;·&nbsp; Connecting a mailbox &mdash; UC-04 to UC-13, UC-50</h2>
+
+  <div class="uc"><h4>UC-04 Connect Gmail by App Password <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Show Google's real steps (2-Step Verification on, create an app password), strip spaces, refuse anything that isn't 16 characters before contacting Google, connect over IMAP, warn that changing the Google password kills the app password.</p>
+  <p class="l">Problem</p><p>T-6 promises <em>"We never delete or send your email."</em> Our system sends over SMTP with this very password (proved: 4.9 s). Same conflict as UC-25.</p>
+  <p class="l">Ours today</p><p>The IMAP door with the app password is the default door. The 16-character check and the "your Google password changed" pause are small additions.</p>
+  <p class="l">Can it be added</p><p>The connection is done. The guided screen is S once there is a web sign-up.</p></div>
+
+  <div class="uc"><h4>UC-05 Connect Outlook by Microsoft Sign-In <span class="tag not">not built · M</span></h4>
+  <p class="l">Means</p><p>No passwords &mdash; Microsoft withdrew them. Sign in on Microsoft's page, then read the mailbox over IMAP using the sign-in token (XOAUTH2), on the same IMAP engine as everyone else. Never request send permission; replies go to Outlook's Drafts.</p>
+  <p class="l">Problem</p><p>Deliberately no send. Same BR-91 conflict. Also note Microsoft publisher verification is needed before company accounts can connect &mdash; the document says start early.</p>
+  <p class="l">Ours today</p><p>Nothing for Microsoft. Sir said Google only for now.</p>
+  <p class="l">Can it be added</p><p>Yes. Our IMAP connector already speaks the protocol; it needs <code>AUTHENTICATE XOAUTH2</code> instead of <code>LOGIN</code>, an OAuth flow for Microsoft, and the Outlook folder names in <code>KNOWN</code>. M.</p></div>
+
+  <div class="uc"><h4>UC-06 Yahoo · UC-07 Zoho · UC-08 iCloud <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Each is UC-04 with that provider's quirks: Yahoo hides two-step behind passwordless sign-in; Zoho needs IMAP switched on in one place and an app password made in another, has regional servers, and refuses new free accounts; iCloud's username is the part before the @ and the password looks like <code>abcd-efgh-ijkl-mnop</code>.</p>
+  <p class="l">Ours today</p><p><code>connect.HOSTS</code> already maps yahoo, icloud, me.com, zoho, fastmail to their IMAP servers, and <code>imap.KNOWN</code> has their Sent/Trash names. Untested on a real account of each.</p>
+  <p class="l">Can it be added</p><p>Yes, S each &mdash; mostly the on-screen help and the shape checks. Zoho's regional server retry is the only real code.</p></div>
+
+  <div class="uc"><h4>UC-09 Connect Any Other IMAP Mailbox <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Work out the server from the address &mdash; MX records, a public settings list, then <code>imap.&lt;domain&gt;</code> / <code>mail.&lt;domain&gt;</code> &mdash; and ask only if all of that fails. Never accept an unverifiable certificate. Only encrypted connections.</p>
+  <p class="l">Ours today</p><p><code>host_for()</code> falls back to <code>imap.&lt;domain&gt;</code>. No MX lookup, no settings directory, no certificate policy stated.</p>
+  <p class="l">Can it be added</p><p>Yes. Discovery chain is M. Certificate refusal is S (imaplib verifies by default; we must never pass an unverified context).</p></div>
+
+  <div class="uc"><h4>UC-10 Establish Mailbox Connection <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>The shared check under every connection: prove the credential works, list folders, open the inbox read-write, find Sent/Drafts/Spam/Archive in any language, record the access level and capabilities, store the credential only after it worked, at most 2 connections per mailbox, pause (never delete) when it stops working later.</p>
+  <p class="l">Ours today</p><p>Capability detection at connect time is exactly this idea (X-GM-EXT-1 flips flags). Spam folder found by trying names. No read-only detection, no "paused" state, no vault.</p>
+  <p class="l">Can it be added</p><p>Yes, M. The read-only check is the SELECT reply's <code>[READ-ONLY]</code>; we already look at that reply.</p></div>
+
+  <div class="uc"><h4>UC-11 Connect Gmail by Google Sign-In <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>After Google approves us: OAuth with the narrowest scope (modify, never full), typed address pre-selected, partial grants produce a reduced service not a dead end, quota limits slow us down and never show as errors.</p>
+  <p class="l">Problem</p><p>The document's own note: going to production unverified burns a permanent 100-user cap. And the 7-day token expiry is now measured on our side (11 → 18 Sept).</p>
+  <p class="l">Ours today</p><p>The Gmail API door, with exactly the two scopes it asks for. Expired-token re-prompt fixed today.</p></div>
+
+  <div class="uc"><h4>UC-12 Upgrade a Mailbox to Google Sign-In <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Move a mailbox from app password to Google sign-in in place, keeping every rule and correction, re-mapping stored message ids to the new route's ids, destroying the app password only after the new connection is proven.</p>
+  <p class="l">Ours today</p><p>The hard part exists: both doors work on one database, and <code>connect.live_id</code> already re-maps an id from one door to the other by Message-ID. There is no "upgrade" action.</p>
+  <p class="l">Can it be added</p><p>Yes, S. It is a settings change plus the re-map we already do on every open.</p></div>
+
+  <div class="uc"><h4>UC-13 Disconnect a Mailbox <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>End access, destroy the credential at once, erase the index on a stated schedule, and change nothing in the mailbox &mdash; labels and cleared mail stay. List pending reminders that will be lost.</p>
+  <p class="l">Ours today</p><p><code>my_data.py --erase</code> deletes our rows and leaves the mailbox alone. No per-mailbox scope, no credential vault to destroy.</p></div>
+
+  <div class="uc"><h4>UC-50 Identify the Mail Provider <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>From the typed address alone: known endings go straight to their flow; unknown domains are checked by MX record (Google, Microsoft, Zoho, iCloud, other); still unknown → pick a logo.</p>
+  <p class="l">Ours today</p><p>The known-endings half (<code>HOSTS</code>). No MX lookup.</p>
+  <p class="l">Can it be added</p><p>Yes, S &mdash; one DNS query.</p></div>
+</section>
+
+<!-- ═══════════════ C · THE CLEANUP ═══════════════ -->
+<section class="sheet">
+  <h2>C &nbsp;·&nbsp; The scan and the cleanup &mdash; UC-14 to UC-18, UC-46</h2>
+
+  <div class="uc"><h4>UC-14 Scan Mailbox History <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Read every envelope in bulk, never one at a time; classify from the envelope; fetch a body only where the envelope can't settle it and discard it at once; honest progress against a true count; resume, never restart; read-only.</p>
+  <p class="l">Ours today</p><p><code>run.py</code>. Bulk fetch on both doors (IMAP batched at 100 since the limits test). Resume by skipping what is held. 7,391 envelopes, no bodies. The mailbox is byte-for-byte unchanged.</p></div>
+
+  <div class="uc"><h4>UC-15 Review and Clear the Pile <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>"The most dangerous use case in the system." Everything worthless, grouped by sender with a one-line reason, strongest evidence first. Five safety rules: only positive proof of bulk; never anyone you have replied to; never person-to-person; never anything that looks like a record; when unsure, keep. The provider trashes on the customer's click.</p>
+  <p class="l">Problem</p><p>None &mdash; this is the best-written one. Note BR-147: these safety rules outrank any typed rule (UC-38).</p>
+  <p class="l">Ours today</p><p>Every signal exists: stage 4 (bulk/unsubscribe/auto-reply), <code>engagement_exit</code> (never opened), <code>store.history</code> (replied-to), stage 5 (records). <code>api.py /api/cleanup</code> groups by sender. What is missing is the assembled pile with the five rules enforced and the one click that trashes through the gate.</p>
+  <p class="l">Can it be added</p><p>Yes, M. Mostly assembly; the trash action already exists and is gated.</p></div>
+
+  <div class="uc"><h4>UC-16 Clear a Brand's Mail <span class="tag not">not built · M</span></h4>
+  <p class="l">Means</p><p>Recognise that a dozen addresses are one company (from DKIM / public sending records), split its mail into advertising vs records, clear the first and protect the second. Two companies on a shared bulk provider are never merged.</p>
+  <p class="l">Ours today</p><p>Nothing brand-level. Stage 4 reads authentication results, which is where the DKIM signing domain comes from.</p></div>
+
+  <div class="uc"><h4>UC-17 Unsubscribe from a Sender <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Only the machine-readable route (RFC 8058), never a link in the body. Sent from the mailbox that received the mail. Never automatic. Watch afterwards and report senders that ignored it.</p>
+  <p class="l">Ours today</p><p>Stage 15: one-click only, refuses body links, gated as irreversible. Not built: the weeks-later "did it actually stop" check.</p>
+  <p class="l">Can it be added</p><p>The follow-up check is S: a query over new mail from that sender.</p></div>
+
+  <div class="uc"><h4>UC-18 Reclaim Storage Space <span class="tag not">not built · S</span></h4>
+  <p class="l">Means</p><p>The few huge messages, grouped by sender, with how much each would free. Size alone never justifies deletion; records are protected.</p>
+  <p class="l">Ours today</p><p>Sizes are in the index (<code>size</code> column; the limits test weighed all 7,882 in 7 s). No view.</p></div>
+
+  <div class="uc"><h4>UC-46 The First Cleanup <span class="tag not">not built · S once 15–18 exist</span></h4>
+  <p class="l">Means</p><p>The four stages in the only order that works &mdash; unsubscribe, clear the pile, brand sweep, reclaim space &mdash; one confirmation each, one result. Unsubscribe first so the mailbox does not refill while you clear it.</p>
+  <p class="l">Problem</p><p>It depends on UC-15, 16, 17, 18. Nothing new of its own.</p></div>
+</section>
+
+<!-- ═══════════════ D · DAILY ═══════════════ -->
+<section class="sheet">
+  <h2>D &nbsp;·&nbsp; New mail, every day &mdash; UC-19 to UC-24, UC-33, UC-36</h2>
+
+  <div class="uc"><h4>UC-19 Prioritise Newly Arrived Mail <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>From day one: bulk or personal from the envelope, what the sender wants, first-time sender flagged, does this owner care. Every rank carries a reason. Labels are written into the mailbox. Nothing is ever hidden or moved out of the inbox by ranking. An explicit rule beats the model.</p>
+  <p class="l">Ours today</p><p>Stages 4, 8, 9, 16; <code>watch.py</code> / <code>web.py --watch</code>; labels via <code>sort_mailbox</code>; reasons recorded at the moment (BR-105). Corrections checked before the model.</p></div>
+
+  <div class="uc"><h4>UC-20 Recover Important Mail from Spam <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Read the spam folder's envelopes only; score on signals spam cannot fake (you've written to them before, passed authentication, in a thread you started); surface a short list or nothing; never move anything out automatically; never load an image.</p>
+  <p class="l">Ours today</p><p><code>list_spam()</code> and <code>rescue_from_spam()</code> on both doors, tested. The three signals exist (<code>store.history</code>, <code>read_auth</code>, <code>in_reply_to</code>). No scoring pass over the spam folder.</p>
+  <p class="l">Can it be added</p><p>Yes, S.</p></div>
+
+  <div class="uc"><h4>UC-21 Inspect a Suspicious Message Safely <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Text only, no images ever loaded, links shown as text with their true destination beside disguising text, the real sending address in full, attachments listed by name only.</p>
+  <p class="l">Ours today</p><p>Stage 2 strips to text and the web page shows it in a <code>&lt;pre&gt;</code> &mdash; no image or remote request is made. Not built: link-text vs destination display, sender-in-full panel.</p>
+  <p class="l">Can it be added</p><p>Yes, S.</p></div>
+
+  <div class="uc"><h4>UC-22 Track Unanswered Outgoing Mail <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Only messages that asked something; a reply from anyone in the thread clears it; bulk recipients never tracked; thresholds by relationship; never chase the recipient.</p>
+  <p class="l">Ours today</p><p><code>waiting.py</code>. Gap: API door only.</p></div>
+
+  <div class="uc"><h4>UC-23 Record Commitments from Structured Mail <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Embedded data first (calendar files, wallet passes, invoice XML) &mdash; no model at all. Learn a sender's layout once, relearn on redesign. Label Flights / Orders / Invoices. Body discarded after extraction.</p>
+  <p class="l">Ours today</p><p>Stages 5 and 16; <code>label_key</code> applies category labels only from declared data.</p></div>
+
+  <div class="uc"><h4>UC-24 Warn About an Approaching Deadline <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Warn by type of commitment, not a fixed offset; learn from how the owner reacts; ration notifications &mdash; anything not time-critical waits for the digest; several deadlines become one message.</p>
+  <p class="l">Ours today</p><p>Stage 16 <code>LEAD</code> by kind, <code>learn_from_reaction</code>, <code>correct.py --timing</code>. Delivery is the terminal / web page; no notification channel.</p></div>
+
+  <div class="uc"><h4>UC-33 Identify a Request and Its Deadline <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>"The use case that makes the product agentic." Read a personal message once and name what was asked, by when, and of whom. When unsure, record nothing &mdash; two humans agree only 72% of the time. Runs only on mail arriving after subscribing, never the backlog.</p>
+  <p class="l">Problem</p><p>"Never on the backlog" contradicts our <code>scan.py</code>, which runs the pipeline over the backlog. Their reason is cost. Ours is that stage 9 needs history. Worth a conversation.</p>
+  <p class="l">Ours today</p><p>Stages 7, 8, 9, 16 do "what / by when". Not built: "of whom" (owner vs sender vs third party) and the record-nothing threshold as a separate step.</p>
+  <p class="l">Can it be added</p><p>Yes, M. It is a new output of stage 8 plus a rule.</p></div>
+
+  <div class="uc"><h4>UC-36 Resurface an Unread Important Message <span class="tag not">not built · S</span></h4>
+  <p class="l">Means</p><p>Something we ranked important is still unopened after ~3 days: one line in the digest, once, never repeated. Three dismissals for one sender become a correction.</p>
+  <p class="l">Ours today</p><p>Both inputs exist (<code>unread</code>, <code>decisions</code>). One query away.</p></div>
+</section>
+
+<!-- ═══════════════ E · REPLYING ═══════════════ -->
+<section class="sheet">
+  <h2>E &nbsp;·&nbsp; Replying and sending &mdash; UC-25, 26, 35, 42</h2>
+
+  <div class="uc"><h4>UC-25 Generate a Reply Draft <span class="tag conf">decision</span></h4>
+  <p class="l">Means</p><p>Redact, draft in the owner's voice, restore names locally, write the draft into the provider's Drafts folder in the right thread from the account the message arrived at &mdash; and never, ever send. No timer, no trusted mode, no setting.</p>
+  <p class="l">Problem</p><p><b>The central conflict.</b> Everything up to the last step is what we built (stages 10, 19, 11, 12; <code>--drafts</code> writes to Drafts, proved on IMAP). But we also send after a typed yes, and sir's brief was an agent that "asks you before it sends anything as you" &mdash; which implies it can send. BR-91 says the product never sends under any condition. These are two different products.</p>
+  <p class="l">Ours today</p><p>Both paths exist: draft-only (<code>--drafts</code>) and gated send. Switching to draft-only is deleting one branch, not building anything.</p></div>
+
+  <div class="uc"><h4>UC-26 Send a Quick Answer <span class="tag conf">decision</span></h4>
+  <p class="l">Means</p><p>Two or three fixed one-tap answers chosen by what the message asked; the exact text is shown; the tap is the approval; <em>the system sends it</em> from the receiving account.</p>
+  <p class="l">Problem</p><p>This use case sends. BR-91 in UC-25 says the product never sends. The document set contradicts itself here, and this is the page to show Umar.</p>
+  <p class="l">Ours today</p><p>Stage 17 suggests; the send goes through the same typed-yes gate. If BR-91 wins, this becomes a one-line draft (which UC-25 ALT-3 also describes).</p></div>
+
+  <div class="uc"><h4>UC-35 Forward a Batch to Someone <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Select a set, one recipient the owner typed or picked &mdash; never an address found inside a message &mdash; review every draft on one screen, write one draft per message into Drafts, all or nothing, with an upper limit.</p>
+  <p class="l">Problem</p><p>BR-129 is a strong rule we should adopt whatever else is decided: no address from inside an email may ever address a draft. Our <code>user_input.py</code> already treats email text as data, never instruction, but it does accept an address the user types in chat.</p>
+  <p class="l">Ours today</p><p>Single <code>forward()</code> on both doors, gated as irreversible (it sends). Batch-as-drafts not built.</p>
+  <p class="l">Can it be added</p><p>Yes, S: loop over <code>create_draft</code> with a review step.</p></div>
+
+  <div class="uc"><h4>UC-42 Tune My Writing Voice <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Show the tone recipe in plain words &mdash; "you open with Hi Sarah, sign off Best, three or four sentences, use contractions" &mdash; let the owner change it, keep separate voices for colleagues / clients / friends. An explicit setting always beats what was learned. Never show a past email.</p>
+  <p class="l">Ours today</p><p>Stage 19 builds and describes the profile. No screen to edit it, no per-group voices.</p>
+  <p class="l">Can it be added</p><p>Yes, S for editing; M for groups.</p></div>
+</section>
+
+<!-- ═══════════════ F · VIEWING ═══════════════ -->
+<section class="sheet">
+  <h2>F &nbsp;·&nbsp; Seeing your mail &mdash; UC-27, 28, 39, 40, 41, 43</h2>
+
+  <div class="uc"><h4>UC-27 View the Unified Inbox <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Every account in one list; each row shows its account; duplicates across accounts collapsed on Message-ID but remembered so an action reaches both; one button means "label" on Gmail and "move" on Yahoo; reading a message fetches it live; one provider down never blanks the screen. Not a mail client: no compose-from-scratch, no calendar, no contacts.</p>
+  <p class="l">Ours today</p><p><code>inbox.py</code>, <code>web.py</code>, the Next.js app. Duplicate collapse proved on a real message in four folders. Live fetch in under a second. Gap: one live connection at a time, so multi-account actions are half live.</p></div>
+
+  <div class="uc"><h4>UC-28 Search Across All Mailboxes <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Search our own index &mdash; sender, subject, date, category, account &mdash; not the providers. State coverage. <b>Whether to search inside message text is an open decision that changes the storage design.</b></p>
+  <p class="l">Ours today</p><p><code>inbox.py --find</code>, envelope-only, says so. BR-103 is still open, as it was.</p></div>
+
+  <div class="uc"><h4>UC-39 Catch Up After Time Away <span class="tag not">not built · M</span></h4>
+  <p class="l">Means</p><p>After several quiet days: four groups in a fixed order &mdash; still needs you, answered by someone else, expired, for information. Bulk counted, never listed. Nothing marked read without a click. When unsure, "still needs you".</p>
+  <p class="l">Ours today</p><p>The inputs exist (decisions, threads, dates, unread). Needs UC-40 for "answered by someone else".</p></div>
+
+  <div class="uc"><h4>UC-40 See Where a Conversation Stands <span class="tag not">not built · M</span></h4>
+  <p class="l">Means</p><p>At the top of any thread of three or more: who is in it, what was asked and whether each was answered, who is waiting on whom, the latest decision. State, never a narrative summary. Each item links to its message. When unsure, participants only.</p>
+  <p class="l">Ours today</p><p>Threads are stitched (<code>In-Reply-To</code> / <code>X-GM-THRID</code>). No state extraction.</p></div>
+
+  <div class="uc"><h4>UC-41 See Everything About One Person <span class="tag not">not built · M</span></h4>
+  <p class="l">Means</p><p>Link the addresses one person uses (same name and signature, replies moving between them &mdash; never on a name alone), show what you owe them and what they owe you, split a wrong link in one click. Not a contact manager: no phone numbers, no notes.</p>
+  <p class="l">Ours today</p><p>Per-address history only.</p></div>
+
+  <div class="uc"><h4>UC-43 Work Through Today <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>One ordered list: due today, promises made, requests of you, unread important, waiting on others, spam rescues. Nothing new decided here. Every item can be done, reminded later, or dismissed in place. An empty list is the goal.</p>
+  <p class="l">Ours today</p><p><code>brief.py</code> is the same idea with fewer sections; the API's <code>/api/overview</code> and the dashboard page are the beginning of the surface.</p>
+  <p class="l">Can it be added</p><p>Yes, S once UC-36 and UC-45 exist.</p></div>
+</section>
+
+<!-- ═══════════════ G · CONTROL ═══════════════ -->
+<section class="sheet">
+  <h2>G &nbsp;·&nbsp; Control and trust &mdash; UC-29, 30, 31, 32, 34, 37, 38, 44, 45</h2>
+
+  <div class="uc"><h4>UC-29 Correct a Decision <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>The reason is on the item, never behind a click. Correct in place; a correction made inside Gmail counts too; takes effect from the next message; similar past decisions are offered, never applied silently; repeated corrections are a defect in our rules, not a stubborn customer.</p>
+  <p class="l">Ours today</p><p><code>correct.py</code>, corrections table, the Gmail-removal feed on both doors (diff-based on IMAP, tested). Not built: "offer to revise similar past decisions".</p></div>
+
+  <div class="uc"><h4>UC-30 Undo an Action <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Every action records the state before it; an undo is its own entry; the log covers every mailbox in plain words; trashed mail is restored via the provider; expired trash is stated plainly as unrecoverable.</p>
+  <p class="l">Ours today</p><p><code>history.py</code> and the API, one shared <code>reverse_action</code>, every reversal tested over IMAP today. Not built: batch undo as one unit.</p></div>
+
+  <div class="uc"><h4>UC-31 Receive the Weekly Digest <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>One message on the owner's schedule covering every mailbox; silence when there is nothing; sent from our own address, never from their mailbox; "never" is a supported frequency.</p>
+  <p class="l">Problem</p><p>"Sent from our own address" needs an outbound mail service of ours. We have none; <code>brief.py --email</code> sends from the owner's mailbox, which BR-91 would forbid.</p>
+  <p class="l">Ours today</p><p><code>brief.py</code> assembles the content; <code>/api/digest</code> too. No scheduler.</p></div>
+
+  <div class="uc"><h4>UC-32 Export or Erase My Data <span class="tag built">built</span></h4>
+  <p class="l">Means</p><p>Everything on our side, in a readable file, or gone &mdash; with anything kept for legal reasons named. Nothing in the mailbox changes. Refused without identity confirmation.</p>
+  <p class="l">Ours today</p><p><code>my_data.py</code>, and export in the API. Erase stays at the keyboard on purpose.</p></div>
+
+  <div class="uc"><h4>UC-34 Connect a Calendar <span class="tag not">not built · L</span></h4>
+  <p class="l">Means</p><p>Read today's events for the morning plan; add important events (deadlines, bookings, bills, promises) only after "Add this?" &mdash; yes; never move, change or delete an event; never email an invite; never suggest from spam or marketing. On Gmail-by-app-password the calendar needs a one-time Google sign-in for calendar only.</p>
+  <p class="l">Ours today</p><p>We read <code>.ics</code> attachments (stage 5). No calendar connection of any kind.</p>
+  <p class="l">Can it be added</p><p>Yes, but it is a new connector family (CalDAV for iCloud/Yahoo/Zoho, Google Calendar API, Graph). L.</p></div>
+
+  <div class="uc"><h4>UC-37 Set a Follow-Up Reminder <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>Not snooze: the message never moves or hides. A note we keep &mdash; "mention this again on Thursday" &mdash; delivered in the digest, the owner's own words repeated verbatim, cleared if they reply first.</p>
+  <p class="l">Ours today</p><p>The <code>reminders</code> table with kind <code>remind</code>. No way to set one on a chosen message from a surface.</p>
+  <p class="l">Can it be added</p><p>Yes, S.</p></div>
+
+  <div class="uc"><h4>UC-38 Create a Rule in Plain English <span class="tag conf">decision</span></h4>
+  <p class="l">Means</p><p>Type one sentence; the AI reads it once; the interpretation is shown back and must be confirmed; the rule then matches with no AI at all. A typed rule can never unlock send, delete or clear &mdash; those become approval items. Explicitly: "This is not a chat assistant."</p>
+  <p class="l">Problem</p><p>The sentence "one sentence in, one rule out, not a conversation" is the exact opposite of sir's text-input mandate that <code>chat.py</code> implements. The mechanics are the same &mdash; our <code>user_input.py</code> already does rules-first, model-second, multiple-choice-only &mdash; but the product shape differs.</p>
+  <p class="l">Ours today</p><p><code>correct.py</code> is menu-driven; <code>chat.py</code> reads sentences into a fixed action set. The "show the interpretation back and confirm" loop is the missing piece and is S.</p></div>
+
+  <div class="uc"><h4>UC-44 Mark a Person as Important <span class="tag part">partly</span></h4>
+  <p class="l">Means</p><p>One action: never in the pile, never unsubscribed, never swept, always at the top, across every address they use. Never an alert.</p>
+  <p class="l">Ours today</p><p>Corrections can say "always needs a reply" per sender; sensitivity marks per domain. No single "important" mark spanning all of it, and no person model (UC-41).</p>
+  <p class="l">Can it be added</p><p>Yes, S as a correction kind that every stage consults.</p></div>
+
+  <div class="uc"><h4>UC-45 Track What You Promised <span class="tag not">not built · M</span></h4>
+  <p class="l">Means</p><p>The mirror of UC-33, pointed at the Sent folder: "I'll send it by Friday" becomes a promise, raised before Friday, closed when a reply in the thread carries an attachment or "here it is". Only mail sent after subscribing.</p>
+  <p class="l">Ours today</p><p>Stage 19 reads Sent for voice; nothing extracts promises. Same machinery as UC-33 once that exists.</p></div>
+</section>
+
+<!-- ═══════════════ H · WHAT CHANGED ═══════════════ -->
+<section class="sheet">
+  <h2>H &nbsp;·&nbsp; UC-22 to UC-32 changed since the first set</h2>
+  <p>All eleven you had before are different in this version. The changes that
+  matter to us:</p>
+  <ul>
+    <li><b>UC-25</b> now says never send, in absolute terms (BR-91 hardened), and adds the one-word draft (ALT-3) that overlaps UC-26.</li>
+    <li><b>UC-23, 24, 33, 45</b> now hand dates to the calendar (UC-34) &mdash; a new dependency.</li>
+    <li><b>UC-15, 16, 17, 18, 27</b> now carry "locked during the trial" and "read-only mailbox" branches from UC-03 and UC-10.</li>
+    <li><b>UC-29</b> now names UC-38 as the one allowed settings box.</li>
+    <li><b>UC-31</b> now lists ten sources for the digest, including rules, promises and read-only features.</li>
+  </ul>
+
+  <h2 style="margin-top:8mm">I &nbsp;·&nbsp; The decisions to take to sir and Umar</h2>
+  <table>
+    <tr><th>Question</th><th>Documents say</th><th>We built / sir said</th><th>Cost of each answer</th></tr>
+    <tr><td class="k">Does the product ever send?</td><td>Never (BR-91) &mdash; except UC-26, which does.</td><td>Yes, after an exact typed yes; sir's brief: "asks you before it sends anything as you".</td><td>Draft-only: delete one branch, keep the gate for trash/unsubscribe. Send: keep as is, ask Umar to reconcile UC-25 and UC-26.</td></tr>
+    <tr><td class="k">Is there a chat?</td><td>No. "Not a chat assistant."</td><td>Sir mandated text input; <code>chat.py</code> exists.</td><td>Either is cheap. The machinery (<code>user_input.py</code>) serves both.</td></tr>
+    <tr><td class="k">Run the pipeline on the backlog?</td><td>UC-33: never on history.</td><td><code>scan.py</code> does, because stage 9 needs history.</td><td>Splitting "extract requests" (new mail only) from "score" (all mail) satisfies both.</td></tr>
+    <tr><td class="k">Full-text search?</td><td>Open (BR-103).</td><td>Open; envelope-only built.</td><td>Unchanged since last time.</td></tr>
+    <tr><td class="k">Digest sender</td><td>From our own address.</td><td>From the owner's mailbox.</td><td>Needs an outbound service if BR-91 holds.</td></tr>
+  </table>
+
+  <div class="foot">Custodian · Use-case review · 19 September 2026 · 50 use cases · verdicts against the code in c:\mob_ai\poc</div>
+</section>
+</body>
+</html>

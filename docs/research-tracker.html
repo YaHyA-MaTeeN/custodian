@@ -1,0 +1,508 @@
+<title>Custodian Research Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground: #EFF2F4;
+    --surface: #FFFFFF;
+    --surface-2: #F6F9FA;
+    --ink: #10222B;
+    --ink-2: #566B76;
+    --ink-3: #85979F;
+    --rule: #D4DFE4;
+    --rule-soft: #E4ECEF;
+    --accent: #0F5673;
+    --accent-soft: #E0EDF3;
+    --red: #A32C22;
+    --red-soft: #F7E4E1;
+    --amber: #8A6110;
+    --amber-soft: #F8EEDA;
+    --green: #1C6647;
+    --green-soft: #DFEFE7;
+    --f-display: "IBM Plex Serif", Georgia, serif;
+    --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0B151B; --surface: #11212A; --surface-2: #162932;
+      --ink: #E3EDF1; --ink-2: #9AAFB9; --ink-3: #6C838D;
+      --rule: #223945; --rule-soft: #1A2E38;
+      --accent: #64B8DB; --accent-soft: #13303E;
+      --red: #E8897C; --red-soft: #37201D;
+      --amber: #DCAE5C; --amber-soft: #332916;
+      --green: #6DBF97; --green-soft: #163025;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0B151B; --surface: #11212A; --surface-2: #162932;
+    --ink: #E3EDF1; --ink-2: #9AAFB9; --ink-3: #6C838D;
+    --rule: #223945; --rule-soft: #1A2E38;
+    --accent: #64B8DB; --accent-soft: #13303E;
+    --red: #E8897C; --red-soft: #37201D;
+    --amber: #DCAE5C; --amber-soft: #332916;
+    --green: #6DBF97; --green-soft: #163025;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px 100px; }
+
+  header.top { padding: 52px 0 26px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: clamp(30px, 4.6vw, 44px); line-height: 1.08;
+    letter-spacing: -.02em; margin: 12px 0 0; text-wrap: balance;
+  }
+  .sub { max-width: 62ch; color: var(--ink-2); font-size: 16px; margin: 13px 0 0; }
+
+  /* progress */
+  .progress-block { margin: 28px 0 0; }
+  .pbar { height: 9px; border-radius: 5px; background: var(--rule-soft); overflow: hidden; display: flex; }
+  .pbar i { display: block; height: 100%; }
+  .pbar .pdone { background: var(--green); }
+  .pbar .ppart { background: var(--amber); }
+  .plegend {
+    display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 10px;
+    font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-2);
+    font-variant-numeric: tabular-nums; letter-spacing: .02em;
+  }
+  .plegend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .dot.d { background: var(--green); } .dot.p { background: var(--amber); } .dot.o { background: var(--rule); border: 1px solid var(--ink-3); }
+
+  /* filters */
+  .filters { display: flex; flex-wrap: wrap; gap: 7px; margin: 26px 0 4px; }
+  .filters button {
+    font-family: var(--f-mono); font-size: 11px; font-weight: 500;
+    letter-spacing: .09em; text-transform: uppercase;
+    background: var(--surface); color: var(--ink-2);
+    border: 1px solid var(--rule); border-radius: 3px;
+    padding: 6px 11px; cursor: pointer; line-height: 1.3;
+  }
+  .filters button:hover { border-color: var(--accent); color: var(--accent); }
+  .filters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  :root[data-theme="dark"] .filters button[aria-pressed="true"],
+  .filters button[aria-pressed="true"] { color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .filters button[aria-pressed="true"] { color: #0B151B; }
+  }
+  :root[data-theme="dark"] .filters button[aria-pressed="true"] { color: #0B151B; }
+  .filters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .reset {
+    margin-left: auto; background: none !important; border-color: transparent !important;
+    color: var(--ink-3) !important; text-transform: none !important; letter-spacing: .02em !important;
+  }
+  .reset:hover { color: var(--red) !important; }
+
+  /* tracks */
+  .track { margin: 38px 0 0; }
+  .track-head {
+    display: flex; align-items: baseline; gap: 12px;
+    padding-bottom: 9px; border-bottom: 1px solid var(--rule); margin-bottom: 2px;
+  }
+  .track-id {
+    font-family: var(--f-mono); font-size: 12px; font-weight: 600;
+    color: var(--accent); letter-spacing: .1em;
+  }
+  .track-name {
+    font-family: var(--f-display); font-size: 21px; font-weight: 600;
+    letter-spacing: -.012em;
+  }
+  .track-count {
+    margin-left: auto; font-family: var(--f-mono); font-size: 11px;
+    color: var(--ink-3); font-variant-numeric: tabular-nums; letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  .track-why {
+    font-size: 13.5px; color: var(--ink-2); font-style: italic;
+    margin: 9px 0 12px; max-width: 68ch;
+  }
+
+  /* items */
+  .item {
+    display: grid; grid-template-columns: 22px 42px 1fr auto; gap: 12px;
+    align-items: start; padding: 11px 12px 11px 4px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .item:hover { background: var(--surface); }
+  .item.checked .q { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .item input[type="checkbox"] { width: 15px; height: 15px; margin-top: 3px; accent-color: var(--accent); cursor: pointer; }
+  .item input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .iid {
+    font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3);
+    padding-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: .03em;
+  }
+  .q { font-size: 14.5px; line-height: 1.5; }
+  .q b { font-weight: 600; }
+  .quote {
+    display: block; margin-top: 5px; padding-left: 10px;
+    border-left: 2px solid var(--rule);
+    font-family: var(--f-mono); font-size: 11.5px; line-height: 1.5;
+    color: var(--ink-3); font-style: normal;
+  }
+  .quote::before { content: "sir: "; color: var(--accent); }
+  .marks { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 2px; }
+
+  .chip {
+    display: inline-block; font-family: var(--f-mono); font-size: 9.5px;
+    font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+    padding: 2.5px 7px; border-radius: 3px; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .chip.done { background: var(--green-soft); color: var(--green); border-color: color-mix(in srgb, var(--green) 28%, transparent); }
+  .chip.partial { background: var(--amber-soft); color: var(--amber); border-color: color-mix(in srgb, var(--amber) 30%, transparent); }
+  .chip.open { background: var(--surface-2); color: var(--ink-2); border-color: var(--rule); }
+  .chip.crit { background: var(--red-soft); color: var(--red); border-color: color-mix(in srgb, var(--red) 28%, transparent); }
+
+  .hidden { display: none !important; }
+
+  .note {
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0; padding: 15px 20px; margin: 30px 0 0; max-width: 74ch;
+  }
+  .note p { margin: 0; }
+  .note p + p { margin-top: 10px; }
+  .note .tag {
+    font-family: var(--f-mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: 5px;
+  }
+
+  .empty { padding: 30px 4px; color: var(--ink-3); font-family: var(--f-mono); font-size: 13px; }
+
+  footer {
+    margin-top: 54px; padding-top: 20px; border-top: 1px solid var(--rule);
+    font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3);
+    letter-spacing: .03em; line-height: 1.7;
+  }
+
+  @media (max-width: 640px) {
+    .item { grid-template-columns: 20px 1fr; gap: 9px; }
+    .iid { grid-column: 2; padding-top: 0; margin-bottom: -6px; }
+    .q { grid-column: 2; }
+    .marks { grid-column: 2; flex-direction: row; align-items: center; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <span class="eyebrow">Research agenda — every item traced to the recordings</span>
+    <h1>Custodian Research Tracker</h1>
+    <p class="sub">Everything sir said, mentioned, or hinted at across both recordings, turned into researchable questions. Quotes are shown where an item comes from something he said directly, so nothing here is invented and nothing was dropped.</p>
+
+    <div class="progress-block">
+      <div class="pbar" id="pbar" role="img" aria-label="Research progress"></div>
+      <div class="plegend" id="plegend"></div>
+    </div>
+  </header>
+
+  <div class="filters" id="filters">
+    <button data-f="all" aria-pressed="true">All</button>
+    <button data-f="critical" aria-pressed="false">Critical path</button>
+    <button data-f="open" aria-pressed="false">Not started</button>
+    <button data-f="partial" aria-pressed="false">Needs verifying</button>
+    <button data-f="done" aria-pressed="false">Researched</button>
+    <button class="reset" id="reset" aria-pressed="false">Clear my ticks</button>
+  </div>
+
+  <div id="tracks"></div>
+
+  <div class="note">
+    <span class="tag">The gate he set — apply it to every item above</span>
+    <p>Sir was explicit that each feature has to pass <strong>two</strong> checks, not one: <em>"kar bhi sakte hain ki nahi"</em> — does the platform actually permit it — and then <em>"wo hamari un restrictions ke sath... implement hota bhi hai ke nahi"</em> — does it survive our own cost and privacy constraints.</p>
+    <p>A feature can be perfectly legal on the Gmail API and still fail the second gate because it would mean sending every message body to a frontier model. Both gates, every feature, written down.</p>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = [
+  { id:"A", name:"Product & feature space", why:"“Research karni hai ke is mein kya kya add ho sakta hai — within a confined scope, low hanging fruits.”", items:[
+    {id:"A1", s:"done", q:"Full feature space for an email agent, scored value × effort."},
+    {id:"A2", s:"done", q:"Which features need <b>no LLM at all</b> — the low-hanging fruit."},
+    {id:"A3", s:"done", q:"Tone learning: ask the user up front, or mine their Sent folder?", quote:"Tone poochenge sab se pehle user se... us se bhi badi baat ye hai ke uske replies dekhenge aur uski tone ko understand karenge."},
+    {id:"A4", s:"open", q:"<b>Email type taxonomy</b> — what kinds of mail actually exist, and what action each type implies. Everything downstream (tags, alerts, reminders) depends on this list.", quote:"Is mein email mein bohat saari cheezein aati hain."},
+    {id:"A5", s:"open", q:"<b>Stylometry</b> — how you capture someone's word choice, not just their register. What techniques exist for authorial style capture?", quote:"jo uska selection of word hai usko use karenge."},
+    {id:"A6", s:"partial", q:"Tab schemes — a fixed set of five or six, or negotiated with the user?", quote:"paanch chhe tabs banaye ya main mere sath baat kare, main usko bataun ke is is tarah ki tabs banao."},
+    {id:"A7", s:"open", q:"<b>Conversational taxonomy elicitation</b> — how do you get a usable folder scheme out of a user in chat, without it becoming an interrogation?"},
+    {id:"A8", s:"partial", q:"Backlog cleanup UX — what does “sort 1,900 emails” actually look like as a flow the user trusts?", quote:"emails ka ek plethora ikattha hua wa hai usko pehle to clean up karne ki us mein utility ho."},
+    {id:"A9", s:"partial", q:"Alert taxonomy — what makes something red versus amber versus green, defensibly and consistently?", quote:"ye aapke paas ye red alert hai, ye green alert hai, ye yellow alert hai."},
+    {id:"A10", s:"partial", q:"Deadline lead times per type — the defaults have to be right out of the box.", quote:"Agar meeting ki deadline hai to aadha ghanta pehle... bill payment ki deadline hai to do din pehle bhi bataye."},
+    {id:"A11", s:"open", q:"Escalation and recurrence patterns — what actually works, and at what point a reminder starts being resented.", quote:"phir uske baad periodically wo badhata jaye uski notification."},
+    {id:"A12", s:"open", q:"Notification dismissal and snooze semantics — killing one, killing a type, killing a series.", quote:"User ke paas option ho wo notification khatam kar sake."},
+    {id:"A13", s:"open", q:"<b>Minimal-config UX</b> — he named Gmail's settings as the anti-pattern. What do products that get this right actually do?", quote:"Gmail ke andar saari ki saari setting padi hui hai lekin wo bohat zyada hai, complex hai to nobody goes in there."},
+    {id:"A14", s:"open", crit:true, q:"<b>Rule generalization</b> — when the user changes one notification, how do we infer which <em>other</em> rules fall in the same “type”? This is a genuinely hard, genuinely specific problem he raised.", quote:"dekhna hai ke aur kaun se notification is type mein fall karte hain, usko us tarah se adjust karna hai."},
+    {id:"A15", s:"open", q:"Calendar invite handling — auto-RSVP rules, prep briefs, conflict detection.", quote:"aapko koi calendar invite aata hai... us calendar invite ka automatic reminder uthana hai."},
+    {id:"A16", s:"open", q:"Free-text input versus option-select — when is each the right control?", quote:"user se jo input leni hai wo mostly humne text mein leni hai... ya phir humne user ko option dene hain."}
+  ]},
+
+  { id:"B", name:"Platform & API feasibility", why:"“Agent ke paas itni access hogi ke nahi — Gmail provide karega ya nahi, Outlook provide karega ya nahi, ye bhi dekhna hai.”", items:[
+    {id:"B1", s:"done", q:"Gmail scopes required, and which of them are <em>restricted</em>."},
+    {id:"B2", s:"done", q:"CASA security assessment — cost, tiers, annual renewal, who is exempt."},
+    {id:"B3", s:"done", q:"Can we move mail into Gmail's real tabs via <code>CATEGORY_*</code>?"},
+    {id:"B4", s:"done", q:"Real-time trigger — <code>users.watch</code> + Pub/Sub, silent 7-day expiry, rate caps."},
+    {id:"B5", s:"done", q:"<code>List-Unsubscribe</code> / RFC 8058 one-click — real-world coverage."},
+    {id:"B6", s:"done", q:"Google's Workspace policy on training models with API data."},
+    {id:"B7", s:"done", q:"Microsoft Graph — scopes, consent model, token lifetimes, the Dec 2026 change."},
+    {id:"B8", s:"done", q:"<b>The full provider landscape</b> — not just Gmail and Outlook. Four-tier map.", quote:"Gmail ka inbox hai... ya Outlook ka hai ya koi private hai."},
+    {id:"B9", s:"done", q:"JMAP — what it gives us over IMAP, and who actually supports it."},
+    {id:"B10", s:"done", q:"IMAP <code>IDLE</code> at scale — one socket per mailbox, and what that costs."},
+    {id:"B11", s:"done", q:"Proton and iCloud — structurally reachable at all? (No, and worth saying why.)"},
+    {id:"B12", s:"done", q:"Unified email APIs (Nylas / Aurinko / Unipile) — buy-versus-build economics."},
+    {id:"B13", s:"open", crit:true, q:"<b>Backfill within quota</b> — can we process a 20,000-message backlog without tripping rate limits, and how long does it take? The cleanup demo depends on this.", quote:"jitna mere paas is waqt sara emails ka plethora ikattha hua wa hai usko pehle to clean up karna."},
+    {id:"B14", s:"open", q:"Gmail API quota units per user per second and daily caps — at what user count do we hit a wall?"},
+    {id:"B15", s:"open", q:"Gmail native filters (<code>settings.basic</code>) versus app-side rules — which is better for scope control?"},
+    {id:"B16", s:"open", q:"Outlook.com personal versus Microsoft 365 work accounts — do both behave identically?"},
+    {id:"B17", s:"open", crit:true, q:"<b>Write the per-provider capability matrix down</b> — push, labels, categories, threads, search, calendar. The connector layer is built against this document."}
+  ]},
+
+  { id:"C", name:"Notification channel", why:"“Wo poochenge kahan pe — uske liye channel discover karna hai.”", items:[
+    {id:"C1", s:"done", q:"WhatsApp Cloud API — verification, template rules, the 24-hour window, per-message pricing.", quote:"WhatsApp ki integration waise thodi hectic hoti hai, I don't know wo kaam karegi ya nahi karegi."},
+    {id:"C2", s:"open", crit:true, q:"<b>WhatsApp business verification in Pakistan</b> — real timeline, documents required, failure modes. This is the item most likely to quietly delay a launch."},
+    {id:"C3", s:"partial", q:"Telegram Bot API — rate limits, reliability, what it can't do."},
+    {id:"C4", s:"partial", q:"Channel cost compared at 100, 1,000 and 10,000 users."},
+    {id:"C5", s:"open", q:"SMS, Slack, Discord, native push — which are worth building an adapter for?"},
+    {id:"C6", s:"open", q:"Rich interaction inside chat — buttons, quick replies, editing a draft in place."},
+    {id:"C7", s:"open", q:"Are there WhatsApp routes that avoid the Business API, and do they violate the terms? (Assume yes — confirm and rule out.)"}
+  ]},
+
+  { id:"D", name:"Client surfaces", why:"“Multiple interface ya multiple agents ya multiple clients banane padenge. Ho sakta hai SDK banani pade. We need to find out what is the best option.”", items:[
+    {id:"D1", s:"done", q:"One backend with thin clients, versus several independent agents."},
+    {id:"D2", s:"open", q:"Mobile framework — React Native, Flutter, or native?"},
+    {id:"D3", s:"open", q:"Chrome extension — what can it do that chat can't, and what does Manifest V3 forbid?", quote:"Chrome ki extension banani hai, dono cheezein banani hain."},
+    {id:"D4", s:"open", q:"Desktop — Electron, Tauri, or skip it entirely?", quote:"Window ki koi app banani hai, Mac ki koi app banani hai kya karna hai?"},
+    {id:"D5", s:"open", q:"Push notification infrastructure — FCM and APNs, cost, delivery reliability."},
+    {id:"D6", s:"partial", q:"Does an SDK make sense, and for whom?"},
+    {id:"D7", s:"open", q:"He wants <em>reading</em> mail on mobile too, not just notifications. What does that surface look like when we're not building an email client?", quote:"email read karni hai wo bhi logon ko mobile pe hi chahiye, to lekin ho sakta hai laptop pe bhi chahiye."}
+  ]},
+
+  { id:"E", name:"Cost & optimization", why:"“Munh utha ke frontier models ke paas nahi jana... frontier ke paas jayen to kya minimum le ke jayen jis se hamara kaam ho jaye.”", items:[
+    {id:"E1", s:"done", q:"Naive versus cascaded cost, per user per month."},
+    {id:"E2", s:"done", q:"Current frontier model pricing."},
+    {id:"E3", s:"done", q:"Prompt caching mechanics and the batch API discount."},
+    {id:"E4", s:"open", q:"Non-Anthropic options priced for comparison — the cascade should be provider-agnostic."},
+    {id:"E5", s:"partial", q:"Thread compression and quote-stripping — measure the actual token reduction, don't assume it."},
+    {id:"E6", s:"open", q:"Confidence-threshold calibration — what confidence score should trigger escalation to the frontier model?"},
+    {id:"E7", s:"open", crit:true, q:"<b>What percentage of a real inbox is decidable from headers alone?</b> Export 1,000 of your own emails and count. The entire cost architecture assumes ~70%. If it's 40%, the plan changes. One afternoon of work, highest value item on this page."},
+    {id:"E8", s:"open", q:"Self-hosted inference cost per million tokens versus API — where is the crossover point?"},
+    {id:"E9", s:"open", q:"Willingness to pay, Pakistan versus US — what price does each market bear?", quote:"ek American user ko aap ye product bech rahe ho, ya Pakistani user ko."},
+    {id:"E10", s:"open", q:"<b>What transfers from the LiteRT work</b> — he pointed at your own experience with optimizing communication. Which of those techniques apply here?", quote:"aapne litrate pe kaam kiya hai to dekha hai ke kaise optimize communication karni hoti hai."}
+  ]},
+
+  { id:"F", name:"Privacy & security", why:"“System aise kaise build kar sakte hain ke jo oblivious to user data ho.”", items:[
+    {id:"F1", s:"done", q:"Data minimization by stage; store derived structure, never content."},
+    {id:"F2", s:"done", q:"OTP and sensitive-mail detection from headers alone.", quote:"OTP read karne mein security issues aayenge?"},
+    {id:"F3", s:"open", crit:true, q:"<b>PII redaction tooling</b> — Presidio, spaCy, GLiNER: accuracy, speed, and above all the false-negative rate. The whole privacy story is only real if this works."},
+    {id:"F4", s:"open", q:"Zero-retention and no-training API tiers — who offers this contractually, not just as a blog post?"},
+    {id:"F5", s:"open", q:"Encryption at rest, key management, tenant isolation."},
+    {id:"F6", s:"open", crit:true, q:"<b>How do you <em>prove</em> you didn't read something?</b> He asked this directly. Audit logs, attestation, open-sourcing the gateway, client-side verification — what's actually convincing versus what just sounds convincing?", quote:"wo bhi dekhna hai ke wo waqai read nahi karega, hum user ka trust kis tarah build kar sakte hain."},
+    {id:"F7", s:"open", q:"Trust-building patterns — what has actually persuaded people to connect their mailbox to a third party?"},
+    {id:"F8", s:"open", q:"GDPR, Pakistan's PDPA, CCPA — obligations for a service that processes mail."},
+    {id:"F9", s:"partial", q:"Threat model written out — what an attacker gets if our database, our OAuth tokens, or our model logs leak."},
+    {id:"F10", s:"partial", q:"OTP specifically — what is safe to surface at all? Even “you have a code from X” is a signal."}
+  ]},
+
+  { id:"G", name:"Architecture & stack", why:"“Koi vector DB, koi RAG, kuch use kar sakte hain ke nahi? System overall dikhega kaisa, hoga kya?”", items:[
+    {id:"G1", s:"done", q:"A deterministic pipeline with models at the leaves, versus a free-roaming tool loop."},
+    {id:"G2", s:"done", q:"RAG — is a mailbox-wide vector database the right tool? (No, and the reasoning matters.)"},
+    {id:"G3", s:"done", q:"Style-exemplar retrieval over Sent mail as the tone mechanism."},
+    {id:"G4", s:"open", q:"If we do use vectors — pgvector, Qdrant or Chroma?"},
+    {id:"G5", s:"open", q:"Agent framework — LangGraph, an agent SDK, Temporal, or plain code? Bias towards plain code until proven otherwise."},
+    {id:"G6", s:"open", q:"Queue and scheduler — what runs the reminder engine and the ingestion jobs?"},
+    {id:"G7", s:"open", q:"Backend language and runtime."},
+    {id:"G8", s:"partial", q:"Idempotency and undo for mailbox mutations — reprocessing must never double-act."},
+    {id:"G9", s:"open", crit:true, q:"<b>Existing open-source projects</b> to build on or learn from. Someone has already solved parts of this; find out which parts before writing them again."},
+    {id:"G10", s:"partial", q:"<b>Model abstraction layer</b> — designed so whatever sits underneath can be swapped without the agent changing.", quote:"agent ko hum abstract design karenge taake neeche jo bhi model ho hamare wo chalte rahein."},
+    {id:"G11", s:"open", crit:true, q:"<b>Agent → intermediary model → frontier LLM: the channel, the workflow, the data flow.</b> He asked for this explicitly and by name, and it's the piece that makes the small-model track connect to the agent track.", quote:"channel kaise banega, workflow aur data flow kaisa hoga."},
+    {id:"G12", s:"open", q:"What “lightweight base, but scalable” means concretely — they pull in opposite directions and the tradeoff needs naming.", quote:"iski base jo hai wo as lightweight as possible rakhni hai aur humne isko is tarah banana hai ke ye scalable bhi ho."}
+  ]},
+
+  { id:"H", name:"Small model track", why:"The entire second recording. “SLM type ka agent... 10 million, 100 million parameter... CPU based system ke upar.”", items:[
+    {id:"H1", s:"done", q:"Is 10–100M parameters realistic for these jobs? (For classification yes; for generation no.)"},
+    {id:"H2", s:"partial", q:"Current small-model landscape — surveyed, but only shallowly. Needs a proper pass."},
+    {id:"H3", s:"open", crit:true, q:"<b>Benchmark real candidates on our actual tasks</b> — classification accuracy and extraction F1 on real email, not on published benchmarks. This is what decides whether the intermediary model is possible at all."},
+    {id:"H4", s:"open", q:"Runtimes — llama.cpp, ONNX Runtime, MLC, MediaPipe. Measured CPU throughput, not claimed."},
+    {id:"H5", s:"open", q:"Quantization tradeoffs — what Q4 versus Q8 costs you in classification quality."},
+    {id:"H6", s:"partial", q:"Encoder plus classification head, versus a generative small model, for triage."},
+    {id:"H7", s:"open", q:"Distillation pipeline — teacher/student setup, how much data is needed, what training costs."},
+    {id:"H8", s:"partial", q:"Is fine-tuning on Workspace-derived data legal? The personalization carve-out needs a real answer before the first training run."},
+    {id:"H9", s:"open", q:"Hardware — what CPU spec is enough, and what's the minimum viable GPU?", quote:"CPU based system ke upar run kar ke, ya even GPU ke upar bhi lekin halka GPU."},
+    {id:"H10", s:"partial", q:"On-device feasibility — iOS and Android background limits, battery, model size on a phone.", quote:"jo mobile pe run kar sake."},
+    {id:"H11", s:"partial", q:"What “confined, deterministic, well-defined use case” means in practice — which of our jobs actually qualify?", quote:"ek confined aur deterministic aur well-defined use case ko solve karta ho."}
+  ]},
+
+  { id:"I", name:"Market, competition & USPs", why:"“Maximum USPs add karne hain... wo humne research karne hain.” The track he named explicitly, and the emptiest one here.", items:[
+    {id:"I1", s:"open", crit:true, q:"<b>Competitor teardown</b> — Superhuman, Shortwave, Fyxer, Serif, Cora, SaneBox, and Gmail's own AI. What each does, what it costs, where it stops."},
+    {id:"I2", s:"open", q:"What each competitor <em>refuses</em> to do — the refusals map the gaps."},
+    {id:"I3", s:"partial", q:"Where they all fail, and which of those failures we can occupy."},
+    {id:"I4", s:"partial", crit:true, q:"<b>A ranked USP list</b>, each one checked against the two gates — permitted by the platform, and survivable under our cost and privacy constraints."},
+    {id:"I5", s:"open", q:"<b>Pakistani institutional senders</b> — FBR, NADRA, banks, utilities, universities. What does their mail actually look like, and can we detect it reliably? This is a local advantage no foreign competitor will build.", quote:"aapke paas email mein misal ke taur pe FBR ka tax aa raha hai."},
+    {id:"I6", s:"open", q:"Who is the first paying customer, realistically and by name?"},
+    {id:"I7", s:"partial", q:"Consumer product, B2B product, or university pilot — which one are we?"},
+    {id:"I8", s:"open", q:"<b>State of the art in agentic systems generally</b> — he asked what's possible in this domain, not just in email. Patterns worth stealing from outside the category.", quote:"is domain mein jis mein hum ye kaam kar rahe hain, agentic system banane ki baat kar rahe hain, us mein kya kya add ho sakta hai."},
+    {id:"I9", s:"open", q:"Beyond sorting and automation — what other benefit is there? He named two and asked for more.", quote:"Mazeed kya benefit ho sakta hai wo humne dekhna hai."}
+  ]},
+
+  { id:"J", name:"Scale & operations", why:"“Load bhi handle ho sake, ye na ho ke chaar user aayein aur ye baith jaye.”", items:[
+    {id:"J1", s:"open", q:"Load profile — messages per second at 100, 1,000 and 10,000 users."},
+    {id:"J2", s:"open", q:"Where the bottleneck lands first — provider quotas, inference, or the database?"},
+    {id:"J3", s:"open", q:"Hosting cost at each of those tiers."},
+    {id:"J4", s:"done", q:"Watch-renewal reliability and silent-failure alarms."},
+    {id:"J5", s:"partial", q:"Multi-tenancy and per-user budget enforcement in the router."},
+    {id:"J6", s:"open", q:"Rate-limit strategy across providers — backoff, queueing, fairness between users."}
+  ]},
+
+  { id:"K", name:"Beyond email", why:"The hint most people would miss: “Moving on ye is se zyada kaam karega.” He is not describing an email product. He is describing the first surface of something larger.", items:[
+    {id:"K1", s:"open", q:"<b>What does this agent become after email?</b> He said so directly. Worth having an answer before he asks.", quote:"At the end of the day, humein ek agent chahiye jo starting mein aapki emails ko pakad ke unke around jitne bhi features aa sakte hain wo daal rahe hain. Moving on ye is se zyada kaam karega."},
+    {id:"K2", s:"open", q:"Which adjacent surfaces are the natural next step — calendar, documents, messaging, tasks?"},
+    {id:"K3", s:"open", q:"What must <em>not</em> be hard-coded to email so that expansion stays possible? This is a design constraint on V0, today, not a future problem."}
+  ]}
+];
+
+const KEY = "custodian-research-ticks-v1";
+let ticks = {};
+try { ticks = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { ticks = {}; }
+
+const allItems = DATA.flatMap(t => t.items);
+allItems.forEach(it => { if (!(it.id in ticks)) ticks[it.id] = (it.s === "done"); });
+
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(ticks)); } catch (e) { /* private mode: ticks stay in memory */ }
+}
+
+const LABEL = { done: "Researched", partial: "Verify", open: "Not started" };
+
+function render() {
+  const host = document.getElementById("tracks");
+  host.innerHTML = "";
+  DATA.forEach(track => {
+    const sec = document.createElement("section");
+    sec.className = "track";
+    sec.dataset.track = track.id;
+
+    const doneN = track.items.filter(i => ticks[i.id]).length;
+    sec.innerHTML =
+      '<div class="track-head">' +
+        '<span class="track-id">' + track.id + '</span>' +
+        '<span class="track-name">' + track.name + '</span>' +
+        '<span class="track-count">' + doneN + ' / ' + track.items.length + '</span>' +
+      '</div>' +
+      '<p class="track-why">' + track.why + '</p>';
+
+    track.items.forEach(it => {
+      const row = document.createElement("div");
+      row.className = "item" + (ticks[it.id] ? " checked" : "");
+      row.dataset.status = it.s;
+      row.dataset.crit = it.crit ? "1" : "0";
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = !!ticks[it.id];
+      cb.setAttribute("aria-label", "Mark " + it.id + " handled");
+      cb.addEventListener("change", () => {
+        ticks[it.id] = cb.checked;
+        save();
+        render();
+      });
+
+      const idEl = document.createElement("span");
+      idEl.className = "iid";
+      idEl.textContent = it.id;
+
+      const q = document.createElement("div");
+      q.className = "q";
+      q.innerHTML = it.q + (it.quote ? '<span class="quote">' + it.quote + '</span>' : "");
+
+      const marks = document.createElement("div");
+      marks.className = "marks";
+      if (it.crit) marks.innerHTML = '<span class="chip crit">Critical</span>';
+      marks.innerHTML += '<span class="chip ' + it.s + '">' + LABEL[it.s] + '</span>';
+
+      row.append(cb, idEl, q, marks);
+      sec.appendChild(row);
+    });
+
+    host.appendChild(sec);
+  });
+  applyFilter();
+  renderProgress();
+}
+
+function renderProgress() {
+  const n = allItems.length;
+  const d = allItems.filter(i => i.s === "done").length;
+  const p = allItems.filter(i => i.s === "partial").length;
+  const o = n - d - p;
+  const ticked = allItems.filter(i => ticks[i.id]).length;
+
+  document.getElementById("pbar").innerHTML =
+    '<i class="pdone" style="width:' + (d / n * 100) + '%"></i>' +
+    '<i class="ppart" style="width:' + (p / n * 100) + '%"></i>';
+
+  document.getElementById("plegend").innerHTML =
+    '<span><i class="dot d"></i>' + d + ' researched</span>' +
+    '<span><i class="dot p"></i>' + p + ' need verifying</span>' +
+    '<span><i class="dot o"></i>' + o + ' not started</span>' +
+    '<span>' + n + ' items total · ' + ticked + ' ticked by you</span>';
+
+  document.getElementById("foot").textContent =
+    n + " research items across " + DATA.length + " tracks, extracted from both recordings. " +
+    "Your ticks are saved in this browser only — they are not shared with anyone who opens this link.";
+}
+
+let filter = "all";
+function applyFilter() {
+  document.querySelectorAll(".item").forEach(row => {
+    let show = true;
+    if (filter === "critical") show = row.dataset.crit === "1";
+    else if (filter !== "all") show = row.dataset.status === filter;
+    row.classList.toggle("hidden", !show);
+  });
+  document.querySelectorAll(".track").forEach(sec => {
+    const any = [...sec.querySelectorAll(".item")].some(r => !r.classList.contains("hidden"));
+    sec.classList.toggle("hidden", !any);
+  });
+  const host = document.getElementById("tracks");
+  const old = host.querySelector(".empty");
+  if (old) old.remove();
+  if (![...host.querySelectorAll(".track")].some(s => !s.classList.contains("hidden"))) {
+    const e = document.createElement("p");
+    e.className = "empty";
+    e.textContent = "Nothing in this view.";
+    host.appendChild(e);
+  }
+}
+
+document.getElementById("filters").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.id === "reset") {
+    allItems.forEach(it => { ticks[it.id] = (it.s === "done"); });
+    save();
+    render();
+    return;
+  }
+  filter = b.dataset.f;
+  document.querySelectorAll("#filters button[data-f]").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  applyFilter();
+});
+
+render();
+</script>

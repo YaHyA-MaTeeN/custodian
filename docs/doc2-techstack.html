@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Custodian Technology</title>
+<link rel="stylesheet" href="_docstyle.css">
+</head>
+<body>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<section>
+  <div class="cover">
+    <div class="eyebrow">Custodian · Document 2 of 3 · Technology</div>
+    <h1>Every piece of technology in the system:<br>what it is, why it was chosen, and what it replaces later</h1>
+    <p class="meta">OCloud Solutions &nbsp;·&nbsp; state on 11 September 2026 &nbsp;·&nbsp; from <code>requirements.txt</code>, the imports, and the artefacts on disk</p>
+  </div>
+
+  <p class="lead">The stack is small on purpose. Python and its standard library
+  carry most of the system; twelve third-party libraries do the rest; four of
+  those are only needed to train models and never run in production. Every
+  choice below is stated with the alternative it was chosen over.</p>
+
+  <div class="figs">
+    <div class="fig"><b>1</b><span>language — Python 3.12</span></div>
+    <div class="fig"><b>14</b><span>standard-library modules doing real work</span></div>
+    <div class="fig"><b>12</b><span>third-party libraries at runtime or training</span></div>
+    <div class="fig"><b>0</b><span>web frameworks, JS build steps, agent frameworks</span></div>
+  </div>
+
+  <h3>The stack in one table</h3>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>In the POC</th><th>In production</th></tr>
+    <tr><td class="k">Language</td><td>Python 3.12</td><td>everything</td><td>same</td></tr>
+    <tr><td class="k">Mailbox access</td><td>Gmail API via <code>google-api-python-client</code> + OAuth; IMAP via <code>imaplib</code> + app password; SMTP via <code>smtplib</code></td><td>both doors</td><td>same, plus Graph, JMAP</td></tr>
+    <tr><td class="k">Parsing</td><td><code>email</code>, <code>selectolax</code>, <code>email-reply-parser</code>, <code>icalendar</code>, <code>dateparser</code>, <code>zipfile</code></td><td>as listed</td><td>plus HeidelTime / duckling for dates, factur-x for invoices</td></tr>
+    <tr><td class="k">Our models</td><td><code>transformers</code> + <code>torch</code> (XLM-RoBERTa-base &times;2), <code>lightgbm</code>, <code>scikit-learn</code>, <code>numpy</code></td><td>run on CPU</td><td>ONNX 8-bit, no PyTorch installed</td></tr>
+    <tr><td class="k">Rented model</td><td>Gemini via <code>google-genai</code></td><td>free tier</td><td>Claude or Gemini, by blind comparison</td></tr>
+    <tr><td class="k">Storage</td><td>SQLite via <code>sqlite3</code>; JSON files; <code>prompts.md</code></td><td>one file</td><td>Postgres + pgvector</td></tr>
+    <tr><td class="k">Surfaces</td><td><code>http.server</code> + plain HTML/CSS; terminal with ANSI colour</td><td>local browser and terminal</td><td>WhatsApp as the channel; the web view served properly</td></tr>
+    <tr><td class="k">Training compute</td><td>Kaggle free T4 GPU; laptop CPU</td><td>minutes on Kaggle</td><td>a scheduled retrain per user, weekly</td></tr>
+    <tr><td class="k">Evidence</td><td><code>runlog.py</code> → <code>test_runs/</code>; Chrome headless for PDFs</td><td>every proof run saved</td><td>same</td></tr>
+  </table>
+
+  <table class="toc">
+    <tr><td class="n">A</td><td>Language and runtime</td></tr>
+    <tr><td class="n">B</td><td>The standard library, module by module</td></tr>
+    <tr><td class="n">C</td><td>Reaching the mailbox</td></tr>
+    <tr><td class="n">D</td><td>Parsing mail</td></tr>
+    <tr><td class="n">E</td><td>Models and machine learning</td></tr>
+    <tr><td class="n">F</td><td>Storage</td></tr>
+    <tr><td class="n">G</td><td>Surfaces: web and terminal</td></tr>
+    <tr><td class="n">H</td><td>Secrets, configuration and flags</td></tr>
+    <tr><td class="n">I</td><td>What is deliberately not used</td></tr>
+    <tr><td class="n">J</td><td>The production swap list</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ A ═══════════════ -->
+<section class="sheet">
+  <h2>A &nbsp;·&nbsp; Language and runtime</h2>
+
+  <div class="box"><h4>Python 3.12</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>The one language in the project. Every script, every stage, every connector, the web server and the training code.</dd>
+    <dt>Why</dt><dd>Three reasons that reinforce each other. The mail protocols, SQLite, an HTTP server and email parsing are all in the standard library, so the POC runs with almost nothing installed. The model ecosystem (<code>transformers</code>, <code>lightgbm</code>, <code>scikit-learn</code>) is Python-first, so training and serving share a language. And the people who will read and change this code read Python.</dd>
+    <dt>Why 3.12 specifically</dt><dd>It is what is installed on the build machine. Nothing in the code needs a newer feature; <code>str | None</code> annotations and <code>match</code>-free code mean 3.10+ would run it.</dd>
+    <dt>Why not otherwise</dt><dd>A Node or Go service would need a separate Python process for the models anyway. Two languages for a proof of concept is two things that can disagree.</dd>
+  </dl></div>
+
+  <div class="box"><h4>No framework, on purpose</h4>
+  <p>There is no Flask, FastAPI, Django, LangChain, LlamaIndex or agent framework
+  anywhere in the project. Flask and FastAPI were checked and are simply not
+  installed; the web page was written on <code>http.server</code> instead so that
+  the POC needs no install step to be looked at. Agent frameworks were rejected
+  for a stronger reason: the safety of the system depends on the approval gate
+  being ordinary Python that never sees email text, and on instruction text and
+  email text never sharing a code path. A framework that routes everything
+  through one model loop removes exactly that separation. Sir also specifically
+  refrained from an MCP-server style design; the chat surface is a plain read
+  loop with a multiple-choice question our code constructs.</p></div>
+</section>
+
+<!-- ═══════════════ B ═══════════════ -->
+<section class="sheet">
+  <h2>B &nbsp;·&nbsp; The standard library, module by module</h2>
+  <p class="lead">Fourteen modules from Python's own library carry more of the
+  system than any third-party package. Listed with where each is used and why
+  it was enough.</p>
+
+  <table>
+    <tr><th>Module</th><th>Used in</th><th>What for, and why the standard one</th></tr>
+    <tr><td class="k">sqlite3</td><td>store.py, stage19_voice.py</td><td>The whole database. Zero setup, one file, transactional, and every query in the POC touches a few thousand rows. Opened with <code>check_same_thread=False</code> so the web page and its background watcher can share the file.</td></tr>
+    <tr><td class="k">imaplib</td><td>connectors/imap.py</td><td>The IMAP door. Speaks the protocol over TLS on port 993. Its <code>.uid()</code> method is used for <em>every</em> command because its plain <code>fetch/search/store/copy</code> use sequence numbers, which shift. It does not quote arguments, so folder names with spaces are quoted by hand.</td></tr>
+    <tr><td class="k">smtplib</td><td>connectors/imap.py</td><td>Sending through the IMAP door, on port 587 with STARTTLS, using the same app password. The sent copy is then APPENDed to the Sent folder over IMAP, because SMTP keeps no record.</td></tr>
+    <tr><td class="k">email</td><td>stage02, stage05, both connectors, audit</td><td>Parsing raw RFC 822 bytes into headers and parts (<code>message_from_bytes</code> with the modern <code>default</code> policy), building outgoing messages (<code>EmailMessage</code>), and <code>make_msgid</code> / <code>formatdate</code> / <code>parsedate_to_datetime</code>. Handles encoded headers so a curly apostrophe in a subject survives.</td></tr>
+    <tr><td class="k">http.server</td><td>web.py</td><td>The browser view. <code>BaseHTTPRequestHandler</code> with four routes. Enough for one user on localhost; not a production server and not pretending to be.</td></tr>
+    <tr><td class="k">threading</td><td>web.py, connectors/gmail.py</td><td>The background agent thread in the web page (its own connection and its own database handle), and thread-local Google clients because Google's client is not thread-safe.</td></tr>
+    <tr><td class="k">concurrent.futures</td><td>connectors/gmail.py</td><td>Six worker threads fetching envelopes in parallel through the API, inside the quota.</td></tr>
+    <tr><td class="k">re</td><td>almost everywhere</td><td>Sensitive-subject patterns, identifier patterns for redaction, the chat's rule matcher, header parsing. Regular expressions do the structured work so models are not spent on it.</td></tr>
+    <tr><td class="k">json</td><td>store, corrections, audits, model metadata</td><td>Small records on disk (<code>applied_labels.json</code>, <code>gate_model.json</code>, <code>user_sensitive.json</code>) and parsing model answers.</td></tr>
+    <tr><td class="k">hashlib</td><td>stage13_approval.py</td><td>SHA-256 of the draft text. A typed yes is bound to that hash; editing the draft voids the yes.</td></tr>
+    <tr><td class="k">zipfile</td><td>stage05_forms.py</td><td>Opening <code>.pkpass</code> wallet passes, which are ZIPs with a JSON file inside.</td></tr>
+    <tr><td class="k">datetime</td><td>stages 7, 9, 16; store</td><td>All date arithmetic. Reminder lead times, business-hours checks, ISO dates for sorting. Never a model.</td></tr>
+    <tr><td class="k">contextlib</td><td>scan.py</td><td><code>redirect_stdout</code> to capture the pipeline's sixteen-stage trace during a backlog scan and log one line instead.</td></tr>
+    <tr><td class="k">statistics · webbrowser · pathlib</td><td>limits test; web.py; everywhere</td><td>Medians over every message size; opening the browser on start; paths.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ C ═══════════════ -->
+<section class="sheet">
+  <h2>C &nbsp;·&nbsp; Reaching the mailbox</h2>
+
+  <div class="box"><h4>google-api-python-client + google-auth-oauthlib &mdash; the Gmail API door</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>Google's official Python client for the Gmail REST API, and the OAuth 2 flow that gets a user's consent. <code>credentials.json</code> identifies our app to Google; <code>token.json</code> holds the user's grant and refresh token.</dd>
+    <dt>Why</dt><dd>The richest access: push, native labels, threads, <code>history.list</code> ("what changed since X" for one quota unit), and the label-removal feed that makes corrections made inside Gmail visible.</dd>
+    <dt>How it is constrained</dt><dd>Two scopes, <code>gmail.modify</code> and <code>gmail.send</code>. The full-access scope that allows permanent delete is never requested. Headers are fetched by name with <code>format=metadata</code>, so an envelope scan never downloads a body.</dd>
+    <dt>The cost, and why it is not the only door</dt><dd>Google's CASA security audit ($540&ndash;3,000 a year, repeated annually) before the OAuth screen can serve more than 100 users; 7-day token expiry until approved; 2&ndash;3 months of approval. A billing rule, not a technical one.</dd>
+  </dl></div>
+
+  <div class="box"><h4>IMAP + an app password &mdash; the free door</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>The protocol every mail server speaks, authenticated with a 16-character password Google issues from the account's security page. No OAuth screen, so none of the audit, expiry or user cap.</dd>
+    <dt>Why it is not a downgrade on Gmail</dt><dd>Gmail's IMAP advertises <code>X-GM-EXT-1</code>, which adds <code>X-GM-RAW</code> (the full Gmail search language over IMAP, including <code>category:primary</code>), <code>X-GM-LABELS</code> (real labels, readable and writable) and <code>X-GM-THRID</code> (real thread ids). Measured: 45 of 47 audited capabilities work.</dd>
+    <dt>What it genuinely lacks</dt><dd>Server push (IDLE exists but holds a socket per mailbox; we poll by highest UID every 20 s) and snooze. Everything else, including sending, is covered.</dd>
+    <dt>Limits, measured</dt><dd>2,500 MB/day download cap: our whole design uses 2.3% on the first day. 15 simultaneous connections per account: we use one or two. Sending: 500 recipients/day on consumer Gmail.</dd>
+  </dl></div>
+
+  <div class="box"><h4>SMTP &mdash; sending through the free door</h4>
+  <p><code>smtp.gmail.com:587</code>, STARTTLS, the same app password. Measured 4.9 s
+  for a delivered message with the copy filed in Sent. It is called from one
+  place only, the executor in stage 14, after the gate.</p></div>
+
+  <div class="box"><h4>Not yet: Microsoft Graph, JMAP, Zoho</h4>
+  <p>Each is one new connector file behind the same interface. Deferred because
+  sir asked for Google only for now. Proton is impossible (end-to-end
+  encrypted); iCloud was declined (no API, only a password route).</p></div>
+</section>
+
+<!-- ═══════════════ D ═══════════════ -->
+<section class="sheet">
+  <h2>D &nbsp;·&nbsp; Parsing mail</h2>
+
+  <table>
+    <tr><th>Library</th><th>Used for</th><th>Why this one</th><th>Instead of</th></tr>
+    <tr><td class="k">selectolax</td><td>HTML email → text, in stage 2</td><td>A C-backed HTML parser. Marketing mail is hundreds of kilobytes of HTML; this parses it in milliseconds and stripping is the biggest cost saving in the pipeline.</td><td>BeautifulSoup (pure Python, many times slower on large HTML), lxml (heavier dependency, more to install).</td></tr>
+    <tr><td class="k">email-reply-parser</td><td>Cutting the quoted previous conversation and signature, in stage 2</td><td>Purpose-built for exactly this; published measurement puts the reduction at ~85% of tokens. One real message went from 156,130 bytes to 5,399 characters.</td><td>Hand-written "On … wrote:" regexes, which break on every mail client's variation.</td></tr>
+    <tr><td class="k">icalendar</td><td>Reading <code>.ics</code> invites, in stage 5</td><td>The standard parser for the calendar format. The invite is data: start, end, summary, attendees, read without interpretation.</td><td>A model reading the invite text, which can only be as right as the file and can be wrong.</td></tr>
+    <tr><td class="k">dateparser</td><td>Finding date phrases in text, in stage 7</td><td>Finds "next Tuesday at 3" in prose, in many languages. Good at the phrases it finds; bad at deciding what counts as a phrase &mdash; so our own <em>looks-like-a-date</em> filter and a relative-phrase pattern sit around it.</td><td>A model doing date arithmetic: encoders score below chance on it. Production adds HeidelTime and duckling for looser phrasing.</td></tr>
+    <tr><td class="k">factur-x</td><td>Structured invoice XML embedded in PDFs (Factur-X / ZUGFeRD / XRechnung), in stage 5</td><td>The embedded-file table in a PDF is fiddly; this library reads it properly. In the POC the embedded XML is detected and flagged; full parsing is the library's job in production.</td><td>OCR or a model over the PDF's text, both of which guess at numbers the file already states.</td></tr>
+    <tr><td class="k">email (stdlib) + zipfile</td><td>MIME, headers, <code>.pkpass</code></td><td>Standard library, no dependency.</td><td>&mdash;</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ E ═══════════════ -->
+<section class="sheet">
+  <h2>E &nbsp;·&nbsp; Models and machine learning</h2>
+
+  <div class="box"><h4>transformers + torch &mdash; the two XLM-RoBERTa models</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>Hugging Face <code>transformers</code> loads and runs the models; PyTorch is the numerical engine underneath. Two fine-tuned copies of <code>xlm-roberta-base</code> (278M parameters, MIT licence, multilingual) are on disk: the stage-8 classifier in <code>classifier/</code> (547 MB) and the stage-10 name finder in <code>pii_model/</code> (1.1 GB).</dd>
+    <dt>Why XLM-RoBERTa-base</dt><dd>Multilingual &mdash; the market is the US, Canada and the UK but mail is not only English, and a test mailbox here contains Urdu. The right size to run on a laptop CPU in ~110 ms. And stable: <code>mdeberta-v3-base</code> was tried first, trained fine for one epoch and then collapsed to a single class with the loss going to NaN. XLM-R is the same size and better behaved.</dd>
+    <dt>Why two copies, not one</dt><dd>Different heads: sequence classification (one label per email) versus token classification (one label per word). Same base, two jobs.</dd>
+    <dt>Loaded once</dt><dd>Both are loaded once per process and held in memory. Loading a 1 GB model per email would be slower than the API it replaces.</dd>
+    <dt>Why not a 7B open model</dt><dd>Sir's requirement was 10&ndash;100M parameters, CPU-runnable. 278M is already above that band, which is why ONNX 8-bit shrinking is in the plan; a 7B model would need a GPU per worker.</dd>
+  </dl></div>
+
+  <div class="box"><h4>lightgbm &mdash; the reply gate</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>Gradient-boosted decision trees. 300 trees over 17 features. Under 1 MB on disk; trains in 0.24 s on 5,895 rows.</dd>
+    <dt>Why trees and not a neural network</dt><dd>The features are tabular (counts, rates, booleans, hour of day). Trees are the right tool for tabular data, train instantly per user, are cheap to retrain weekly, and give feature importance for free. A neural net would be slower to train, harder to explain and no better on seventeen numbers.</dd>
+    <dt>Why per person</dt><dd>"Will Yahya reply to this" has nothing to do with what Sara does; a shared model averages away the signal. It is also a privacy requirement: Google's terms forbid pooling many users' mail into one model.</dd>
+    <dt>Honest number</dt><dd>AUC 0.684 against a published ceiling of 0.72&ndash;0.79, which is why it is blended with hand-set weights rather than trusted alone.</dd>
+  </dl></div>
+
+  <div class="box"><h4>scikit-learn + numpy</h4>
+  <p><code>TfidfVectorizer</code> turns the person's past replies into 384-dimension
+  vectors for stage 19's "find the four most similar replies", compared with a
+  dot product in numpy; <code>roc_auc_score</code> evaluates the gate. Production
+  swaps TF-IDF for sentence embeddings and the numpy search for pgvector; the
+  code is written so that swap is one class.</p></div>
+
+  <div class="box"><h4>google-genai &mdash; Gemini</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>Google's client for Gemini. <code>gemini-flash-latest</code> first, with <code>gemini-2.5-flash</code>, <code>gemini-flash-lite-latest</code> and <code>gemini-2.5-flash-lite</code> as fallbacks when the free tier is busy. One client per process.</dd>
+    <dt>Used for</dt><dd>Writing the draft (stage 11); reading an email only when our classifier's confidence is under 0.65 (stage 6); picking which date phrase is the real deadline; the chat's multiple-choice interpreter when rules do not match; the eight one-line summaries in the brief; and, during training, labelling ten emails per request as the teacher.</dd>
+    <dt>Why Gemini in the POC</dt><dd>A free tier that is enough to prove the flow. Production chooses between Claude and Gemini by blind comparison on real drafts, not by benchmark.</dd>
+    <dt>What it never sees</dt><dd>Anything that did not pass through stage 10. Names, numbers and addresses are placeholders; the text is cut to 3,000 characters.</dd>
+  </dl></div>
+
+  <div class="box"><h4>datasets · accelerate · sentencepiece · protobuf &mdash; training only</h4>
+  <p><code>datasets</code> downloads <code>ai4privacy/pii-masking-200k</code>;
+  <code>accelerate</code> drives the Hugging Face <code>Trainer</code>;
+  <code>sentencepiece</code> and <code>protobuf</code> are the XLM-R tokenizer's
+  dependencies. None of these run in production.</p></div>
+
+  <div class="box"><h4>Kaggle's free T4 GPU</h4>
+  <p>Fine-tuning a 278M model on a laptop CPU takes 20&ndash;40 minutes; on Kaggle's
+  free T4 it takes about three. <code>kaggle_train.py</code> and
+  <code>kaggle_train_pii.py</code> are notebooks-as-files: upload the data, paste
+  the file, run, download the folder. Two hard-won notes live in the file: use
+  the T4, not the P100 (compute capability 6.0 is below what Kaggle's PyTorch
+  build supports), and restrict to one GPU, because the Trainer's DataParallel
+  over two cards fails on 199 examples.</p></div>
+
+  <div class="box"><h4>Planned: ONNX Runtime, 8-bit</h4>
+  <p><code>shrink_model.py</code> exports the classifier to ONNX and quantises to
+  8 bits: ~1.1 GB → ~280 MB, measured elsewhere at roughly 14&times; faster on CPU,
+  and production never installs PyTorch, taking the container from gigabytes to
+  megabytes. Written; not yet run.</p></div>
+</section>
+
+<!-- ═══════════════ F ═══════════════ -->
+<section class="sheet">
+  <h2>F &nbsp;·&nbsp; Storage</h2>
+
+  <div class="box"><h4>SQLite now, Postgres later</h4>
+  <p>One file, <code>mailbox.db</code>, nine tables (see Document 1, Part D). Chosen
+  because it is in the standard library, needs no server, and every query in
+  the POC is small. Production is Postgres with the same schema and pgvector for
+  the style vectors. No query relies on anything SQLite-specific, so the swap is
+  a connection string and a migration.</p></div>
+
+  <div class="box"><h4>Why no separate vector database</h4>
+  <p>Stage 19 needs "the four past replies most like this situation": thousands of
+  vectors per user, a few searches a day. Postgres with pgvector does that. Adding
+  Pinecone, Qdrant or Weaviate would mean running a second system for a job the
+  first one handles, and a second place user text would live.</p></div>
+
+  <div class="box"><h4>JSON files, and why they are not tables</h4>
+  <table>
+    <tr><td class="k">applied_labels.json</td><td>Every label the sorter or watcher applied, with which door applied it. Read by <code>sort_mailbox.py --undo</code> and by the IMAP label-removal check. A file because it must survive a database reset and be readable by eye.</td></tr>
+    <tr><td class="k">user_sensitive.json</td><td>Domains the Owner marked private. Read fresh on every call to stage 3 so a mark takes effect at once.</td></tr>
+    <tr><td class="k">gate_model.json</td><td>Metadata beside the LightGBM model: feature order, AUC, sizes, when trained. The feature order is what makes the model loadable safely.</td></tr>
+    <tr><td class="k">labelled.jsonl · labels.txt · to_label.txt</td><td>The classifier's training data and the hand-labelling round trip. Local only; delete when labelling is done because whoever labels reads the content.</td></tr>
+  </table></div>
+
+  <div class="box"><h4>prompts.md &mdash; prompts as a document</h4>
+  <p>Every instruction the system gives any model is in one Markdown file with
+  six sections: <code>classify</code>, <code>pick_deadline</code>,
+  <code>draft_reply</code>, <code>read_command</code>, <code>clarify</code>,
+  <code>summarise_for_brief</code>. <code>pipeline/prompts.py</code> loads it.
+  Wording is a product decision; sir can change how the system speaks without a
+  developer, the prompts can be reviewed and versioned, and "what are you telling
+  the AI?" has one honest answer.</p></div>
+</section>
+
+<!-- ═══════════════ G ═══════════════ -->
+<section class="sheet">
+  <h2>G &nbsp;·&nbsp; Surfaces: web and terminal</h2>
+
+  <div class="box"><h4>http.server + hand-written HTML and CSS</h4>
+  <dl class="qa">
+    <dt>What</dt><dd>A single Python file serves four routes: the list, one message, "how it works", and a favicon no-op. The CSS is a small token set with a dark-mode media query. No JavaScript framework, no build step, no npm.</dd>
+    <dt>Why</dt><dd>A POC that needs twenty minutes of setup before anyone can look at it does not get looked at. And the page only <em>reads</em>: it renders decisions already in the database, so there is no second copy of the logic that could disagree with the pipeline.</dd>
+    <dt>What it is not</dt><dd>A production web server. One user, localhost, no auth. The production view is the same HTML behind a real server, or the WhatsApp channel the design specifies.</dd>
+  </dl></div>
+
+  <div class="box"><h4>The terminal</h4>
+  <p>Every script prints with ANSI colours (a small <code>C</code> dictionary of
+  escape codes) and <code>os.system("")</code> on Windows to switch them on. Output
+  is designed to be pasted into a chat and read, which is how most of the
+  debugging in this project happened. The <code>-X utf8</code> flag is needed on
+  Windows consoles for subjects containing characters outside cp1252.</p></div>
+</section>
+
+<!-- ═══════════════ H ═══════════════ -->
+<section class="sheet">
+  <h2>H &nbsp;·&nbsp; Secrets, configuration and flags</h2>
+
+  <table>
+    <tr><th>Item</th><th>Where</th><th>Note</th></tr>
+    <tr><td class="k">IMAP_USER · IMAP_PASSWORD</td><td>Windows user environment variables via <code>setx</code></td><td>Only visible in terminals opened afterwards. The password is a Google app password, never the account password. Never printed; the setup check prints <code>SET</code> or <code>MISSING</code>.</td></tr>
+    <tr><td class="k">GEMINI_API_KEY</td><td>environment variable</td><td>Optional. Without it stages 8 (our model only), 9, 10, 13, 14 still run; 11 is skipped and says so. <b>A key was once pasted into a chat and must be treated as exposed until its replacement is confirmed.</b></td></tr>
+    <tr><td class="k">credentials.json · token.json</td><td>beside the code</td><td>The OAuth client and the user's grant. <code>token.json</code> present means the API door is the default.</td></tr>
+    <tr><td class="k">--imap · --api</td><td>any script</td><td>Force a door. The flag wins over the environment.</td></tr>
+    <tr><td class="k">--draft · --drafts</td><td>agent, watch</td><td>Write a reply; put it in Gmail Drafts instead of asking to send.</td></tr>
+    <tr><td class="k">--watch · --port</td><td>web.py</td><td>Run the agent behind the page; change the port.</td></tr>
+    <tr><td class="k">--write · --send · --no-connections</td><td>the proofs</td><td>Enable the tests that change something, send a mail to yourself, skip the connection probe.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ I ═══════════════ -->
+<section class="sheet">
+  <h2>I &nbsp;·&nbsp; What is deliberately not used</h2>
+
+  <table>
+    <tr><th>Not used</th><th>Why not</th></tr>
+    <tr><td class="k">Our own SMTP server or mail client</td><td>Sir's hard constraint. We are a layer on top of mailboxes people already have; every company that tried to own the whole mail experience here has died or been sold. Sending goes through the provider's own SMTP or API.</td></tr>
+    <tr><td class="k">The full Gmail scope</td><td><code>https://mail.google.com/</code> permits permanent delete. Not asking is stronger than promising not to.</td></tr>
+    <tr><td class="k">A vector database</td><td>Postgres with pgvector does the one vector job the system has.</td></tr>
+    <tr><td class="k">An agent framework / MCP server</td><td>They collapse instruction text and email text into one model loop, which is exactly the separation the safety of the system rests on. Sir refrained from it explicitly.</td></tr>
+    <tr><td class="k">A web framework or JS build</td><td>Nothing to install; nothing to break; the page only reads.</td></tr>
+    <tr><td class="k">A model for date arithmetic, sensitivity, or the approval gate</td><td>Models score below chance on date arithmetic; the gate must be un-arguable; sensitivity must be certain, not probable.</td></tr>
+    <tr><td class="k">Summarising the whole mailbox</td><td>Thousands of paid calls to produce a wall nobody reads. The brief summarises at most eight things that survived the pipeline.</td></tr>
+    <tr><td class="k">Body-link unsubscribe</td><td>Clicking through a stranger's page automatically executes whatever that page asks. Only RFC 8058 one-click is done.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ J ═══════════════ -->
+<section class="sheet">
+  <h2>J &nbsp;·&nbsp; The production swap list</h2>
+  <p class="lead">What changes between this proof of concept and a product, and
+  what does not. The pipeline, the schema, the gate and the connector interface
+  do not change.</p>
+
+  <table>
+    <tr><th>Component</th><th>POC</th><th>Production</th><th>What has to change in code</th></tr>
+    <tr><td class="k">Stage 8 reader</td><td>XLM-R fine-tuned on 199 examples; Gemini when unsure</td><td>Same model, ONNX 8-bit, on a few hundred careful labels; escalation stays</td><td><code>local_classifier._load()</code> loads ONNX instead of PyTorch</td></tr>
+    <tr><td class="k">Stage 9 gate</td><td>LightGBM per mailbox, blended with hand weights</td><td>Same, retrained weekly per user, weights learned</td><td>A scheduler; nothing in the stage</td></tr>
+    <tr><td class="k">Stage 10 redaction</td><td>Regex + XLM-R token model</td><td>Presidio wrapping a fine-tuned DeBERTa-v3-small (44M)</td><td>The model behind <code>local_pii.find()</code></td></tr>
+    <tr><td class="k">Stage 11 writer</td><td>Gemini free tier</td><td>Claude or Gemini by blind comparison</td><td>The client in <code>model._generate()</code></td></tr>
+    <tr><td class="k">Stage 19 vectors</td><td>TF-IDF blobs in SQLite, numpy search</td><td>Sentence embeddings in pgvector</td><td>The <code>Embedder</code> class and one query</td></tr>
+    <tr><td class="k">Storage</td><td>SQLite file</td><td>Postgres</td><td>Connection string, migration</td></tr>
+    <tr><td class="k">Trigger</td><td>Poll every 15&ndash;20 s</td><td>Gmail push via Pub/Sub; IMAP IDLE per worker</td><td><code>watch.py</code> and the web watcher; the pipeline is untouched</td></tr>
+    <tr><td class="k">Channel to the person</td><td>Terminal chat, local web page</td><td>WhatsApp; the web view served properly</td><td>A new surface using the same <code>user_input.read()</code> and gate</td></tr>
+    <tr><td class="k">Doors</td><td>Gmail API, IMAP</td><td>+ Microsoft Graph, JMAP, Zoho</td><td>One new file each under <code>connectors/</code></td></tr>
+    <tr><td class="k">Date finding</td><td>dateparser + our filters</td><td>+ HeidelTime, duckling</td><td>Inside <code>stage07_dates.find_candidates()</code></td></tr>
+  </table>
+
+  <div class="foot">Custodian · Document 2 · Technology · 11 September 2026 · companion to Document 1 (components) and Document 3 (code)</div>
+</section>
+</body>
+</html>

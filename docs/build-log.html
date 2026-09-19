@@ -1,0 +1,378 @@
+<title>Custodian Build Log</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#F1F4F5;
+    --surface:#FFFFFF;
+    --surface-2:#F7FAFA;
+    --ink:#13212A;
+    --ink-2:#4C5F68;
+    --ink-3:#7C8D95;
+    --rule:#D2DBDF;
+    --rule-soft:#E4EBEE;
+    --accent:#12626E;
+    --accent-soft:#E1EFF1;
+    --warn:#9A4220;
+    --warn-soft:#F8E9E2;
+    --good:#1D6046;
+    --good-soft:#E2F0EA;
+    --f-display:"Source Serif 4",Georgia,serif;
+    --f-body:"Public Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0C161C; --surface:#122029; --surface-2:#172931;
+      --ink:#E4EDF0; --ink-2:#9BAFB7; --ink-3:#6E848C;
+      --rule:#22383F; --rule-soft:#1B2E36;
+      --accent:#5FBECB; --accent-soft:#0F3239;
+      --warn:#E09070; --warn-soft:#33201A;
+      --good:#6BC29C; --good-soft:#153026;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0C161C; --surface:#122029; --surface-2:#172931;
+    --ink:#E4EDF0; --ink-2:#9BAFB7; --ink-3:#6E848C;
+    --rule:#22383F; --rule-soft:#1B2E36;
+    --accent:#5FBECB; --accent-soft:#0F3239;
+    --warn:#E09070; --warn-soft:#33201A;
+    --good:#6BC29C; --good-soft:#153026;
+    color-scheme: dark;
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    background:var(--ground); color:var(--ink);
+    font-family:var(--f-body); font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page { max-width:1000px; margin:0 auto; padding:0 28px 100px; }
+
+  /* ---------- masthead ---------- */
+  header.top { padding:52px 0 0; }
+  .kicker {
+    font-family:var(--f-mono); font-size:11px; font-weight:600;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--accent);
+  }
+  h1 {
+    font-family:var(--f-display); font-weight:700; font-size:clamp(34px,5vw,46px);
+    line-height:1.05; letter-spacing:-.02em; margin:12px 0 0; text-wrap:balance;
+  }
+  .standfirst {
+    font-family:var(--f-display); font-size:19px; line-height:1.5;
+    color:var(--ink-2); margin:16px 0 0; max-width:60ch;
+  }
+  .standfirst strong { color:var(--ink); font-weight:600; }
+
+  .tally {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px; background:var(--rule); border:1px solid var(--rule);
+    margin:34px 0 0;
+  }
+  .tally div { background:var(--surface); padding:16px 18px; }
+  .tally .n {
+    font-family:var(--f-mono); font-size:26px; font-weight:600;
+    color:var(--accent); font-variant-numeric:tabular-nums; line-height:1;
+  }
+  .tally .l {
+    font-size:12px; color:var(--ink-2); margin-top:7px; line-height:1.35;
+  }
+
+  /* ---------- entries ---------- */
+  h2 {
+    font-family:var(--f-mono); font-size:11.5px; font-weight:600;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+    margin:56px 0 0; padding-bottom:9px; border-bottom:2px solid var(--ink);
+  }
+
+  .entry {
+    display:grid; grid-template-columns:104px 1fr; gap:26px;
+    padding:26px 0; border-bottom:1px solid var(--rule-soft);
+  }
+  .entry:last-of-type { border-bottom:none; }
+  @media (max-width:680px) { .entry { grid-template-columns:1fr; gap:12px; } }
+
+  .marker { padding-top:3px; }
+  .tag {
+    display:inline-block; font-family:var(--f-mono); font-size:10px; font-weight:600;
+    letter-spacing:.1em; text-transform:uppercase; padding:3px 8px;
+    border:1px solid; white-space:nowrap;
+  }
+  .tag.built { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+  .tag.fixed { color:var(--warn); border-color:var(--warn); background:var(--warn-soft); }
+  .tag.new   { color:var(--good); border-color:var(--good); background:var(--good-soft); }
+  .tag.open  { color:var(--ink-2); border-color:var(--ink-3); background:var(--surface-2); }
+
+  .body h3 {
+    font-family:var(--f-display); font-size:22px; font-weight:600; line-height:1.25;
+    margin:0 0 9px; letter-spacing:-.01em; text-wrap:balance;
+  }
+  .body p { margin:0 0 11px; max-width:64ch; }
+  .body p:last-child { margin-bottom:0; }
+  .body strong { font-weight:600; }
+  .body em { color:var(--ink-2); }
+
+  .quote {
+    border-left:3px solid var(--accent); padding:2px 0 2px 16px;
+    margin:14px 0; font-family:var(--f-display); font-size:17px;
+    line-height:1.5; color:var(--ink); max-width:60ch;
+  }
+
+  ul.plain { margin:11px 0; padding-left:18px; max-width:64ch; }
+  ul.plain li { margin-bottom:6px; }
+
+  /* ---------- tables ---------- */
+  .tw { overflow-x:auto; margin:15px 0; border:1px solid var(--rule); background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:400px; }
+  th {
+    text-align:left; font-family:var(--f-mono); font-size:10px; font-weight:600;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
+    padding:9px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2);
+    white-space:nowrap;
+  }
+  td { padding:9px 14px; border-bottom:1px solid var(--rule-soft); vertical-align:top; line-height:1.45; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num { font-family:var(--f-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  td.em { font-weight:600; }
+  code {
+    font-family:var(--f-mono); font-size:.86em; color:var(--accent);
+    background:var(--surface-2); border:1px solid var(--rule-soft); padding:1px 4px;
+  }
+
+  /* ---------- evidence strip ---------- */
+  .evidence {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:1px; background:var(--rule); border:1px solid var(--rule); margin:18px 0;
+  }
+  .evidence > div { background:var(--surface); padding:15px 17px; }
+  .evidence h4 {
+    font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.1em;
+    text-transform:uppercase; margin:0 0 7px;
+  }
+  .evidence.m h4 { color:var(--good); }
+  .evidence.c h4 { color:var(--accent); }
+  .evidence.u h4 { color:var(--warn); }
+  .evidence p { margin:0; font-size:13.5px; line-height:1.5; color:var(--ink-2); }
+
+  footer {
+    margin-top:60px; padding-top:20px; border-top:2px solid var(--ink);
+    font-family:var(--f-mono); font-size:11.5px; color:var(--ink-3); line-height:1.8;
+  }
+  a { color:var(--accent); text-decoration-thickness:1px; text-underline-offset:2px; }
+  a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+</style>
+
+<div class="page">
+
+<header class="top">
+  <span class="kicker">Custodian · Engineering log · 4 September 2026</span>
+  <h1>From a diagram to something buildable</h1>
+  <p class="standfirst">Yesterday we had a pipeline diagram. Today it became a build specification — and two design faults surfaced in the process that would have been expensive to find in production. <strong>Both are now fixed.</strong></p>
+
+  <div class="tally">
+    <div><div class="n">2,500</div><div class="l">lines of build specification written</div></div>
+    <div><div class="n">2</div><div class="l">design faults found and corrected</div></div>
+    <div><div class="n">1</div><div class="l">new capability added</div></div>
+    <div><div class="n">7</div><div class="l">hosting platforms costed</div></div>
+    <div><div class="n">4</div><div class="l">decisions needing your call</div></div>
+  </div>
+</header>
+
+<h2>The main deliverable</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag built">Built</span></div>
+  <div class="body">
+    <h3>A complete build specification</h3>
+    <p>The diagram showed <em>what</em> the system does. It did not say how to build any of it. That gap is now closed — roughly <strong>2,500 lines</strong> covering every stage, every library, every model.</p>
+    <ul class="plain">
+      <li><strong>All four ways to reach a mailbox</strong> — Gmail API, Microsoft Graph, JMAP, IMAP — what each one is, what it can and cannot do, and where each one breaks</li>
+      <li><strong>Every stage of the pipeline</strong>, with each library named, what it does, and the specific trap it carries</li>
+      <li><strong>Every model</strong> — where it comes from, what it costs to train, why that size and not another</li>
+      <li><strong>Permissions, database design, deployment, and how we prove any of it works</strong></li>
+    </ul>
+    <p>Each section opens with a plain-English summary, so the document can be read two ways: skim the summaries to understand the system, read the detail when actually writing that part.</p>
+  </div>
+</div>
+
+<h2>Two faults found before we built them</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag fixed">Corrected</span></div>
+  <div class="body">
+    <h3>Stage 4 was treating "machine-generated" as "junk"</h3>
+    <p>The original design filtered bulk mail out early. That is wrong, and the reason is worth stating plainly: <strong>bank statements, flight bookings, invoices and password resets are all machine-generated.</strong> So is a shop's sale email — which is noise to most people and the entire reason someone opened their mailbox if they are waiting on a price drop.</p>
+    <p>Any category list we write is wrong for somebody. The fix removes categories entirely.</p>
+    <div class="quote">We do not decide what is important. We measure what this person actually engages with.</div>
+    <p>The day-one mailbox scan already tells us whether someone has ever opened a given sender. That is personal, learned, needs no taxonomy — and costs nothing, because it is the same data another stage already uses.</p>
+    <p><strong>A rule we adopted as a result:</strong> a rule may route mail; it may never discard it. The user is the only thing that deletes.</p>
+  </div>
+</div>
+
+<div class="entry">
+  <div class="marker"><span class="tag fixed">Corrected</span></div>
+  <div class="body">
+    <h3>Stage 5 was misnamed, and its failure mode was undocumented</h3>
+    <p>It was called "template matching", but three of the four things it does are not templates — they are reading a data file the sender already attached. Renamed, and the two halves separated.</p>
+    <p>More importantly, its real risk is now written down: when a sender changes their email layout <em>slightly</em>, the extraction can silently read the wrong field. Three defences were specified, and one rule makes the residual risk acceptable:</p>
+    <div class="quote">An extracted layout never triggers an action. It only ever becomes something we show the user.</div>
+    <p>The output is a reminder — <em>"K-Electric, due the 15th"</em> — which a person reads and can correct. We never pay, send or delete on the strength of one.</p>
+  </div>
+</div>
+
+<h2>Added today</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag new">New</span></div>
+  <div class="body">
+    <h3>Spam rescue</h3>
+    <p>Spam filters make mistakes in both directions, and the second kind is the one people actually complain about: a real email buried in the spam folder and never seen. A university offer with five days to reply. A letter from a court.</p>
+    <p>Once a day we read the spam folder's <strong>envelopes only</strong> — never a message — and surface anything from a sender the person genuinely corresponds with.</p>
+    <p><strong>The safety condition is the whole design.</strong> Sender names are trivially forged, so we only surface a message whose cryptographic verification passed. If it failed, that is very likely why it was filtered in the first place, and we leave it there.</p>
+    <p>Costs nothing to run: no new permissions, no model, headers only. <em>No commercial email product looks in the spam folder at all.</em></p>
+  </div>
+</div>
+
+<h2>Decisions taken</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag built">Decided</span></div>
+  <div class="body">
+    <h3>The main model changes, because of Canada</h3>
+    <p>We had chosen an English-only model. With the market confirmed as the US, Canada and the UK, that fails — <strong>French is an official language of Canada, and Quebec business mail is in French.</strong></p>
+    <div class="tw"><table>
+      <thead><tr><th></th><th>Was</th><th>Now</th></tr></thead>
+      <tbody>
+        <tr><td class="em">Model</td><td><code>ModernBERT-base</code></td><td><code>mdeberta-v3-base</code></td></tr>
+        <tr><td class="em">Size</td><td class="num">149M</td><td class="num">278M</td></tr>
+        <tr><td class="em">Languages</td><td>English only</td><td>English, French, Spanish</td></tr>
+        <tr><td class="em">Cost of the change</td><td colspan="2">+500&nbsp;MB of memory. <strong>Still runs on an ordinary server with no graphics card.</strong></td></tr>
+      </tbody>
+    </table></div>
+    <p>Both are free, both come from Hugging Face, both are MIT licensed. Nothing to negotiate.</p>
+  </div>
+</div>
+
+<div class="entry">
+  <div class="marker"><span class="tag built">Decided</span></div>
+  <div class="body">
+    <h3>How the user talks to it, given text input rather than buttons</h3>
+    <p>The instruction was text, not buttons. That makes every single interaction something the system has to interpret — so the design has to make interpretation easy rather than clever.</p>
+    <div class="quote">Our own code remembers what is on screen, so the model is only ever asked a multiple-choice question.</div>
+    <p>When someone types <em>"make it shorter"</em>, the model never has to work out what <em>"it"</em> means — our code already knows. It is handed eight options and picks one. <strong>It cannot invent an action we did not offer</strong>, and when no draft is pending, "send" is not on the list at all.</p>
+    <p>Approval defaults to no. Only an unambiguous yes sends anything — which is safer than a button, because anything unclear does nothing.</p>
+  </div>
+</div>
+
+<h2>Infrastructure, costed</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag built">Built</span></div>
+  <div class="body">
+    <h3>What it runs on, from one thousand users to five million</h3>
+    <p>Seven hosting platforms compared on price and on whether they can host in all three of our countries. The headline is that this is a cheap system to run.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Users</th><th>Cores</th><th>Servers</th><th>Cheapest</th><th>All three countries</th></tr></thead>
+      <tbody>
+        <tr><td class="num">10,000</td><td class="num">4</td><td class="num">1</td><td class="num">€14</td><td class="num">$70</td></tr>
+        <tr><td class="num">100,000</td><td class="num">32</td><td class="num em">1</td><td class="num">€138</td><td class="num">$395</td></tr>
+        <tr><td class="num">1,000,000</td><td class="num">224</td><td class="num">7</td><td class="num">€1,290</td><td class="num">$2,300</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>One machine covers a hundred thousand users.</strong> No graphics card is needed at any size. The second server is for safety, not speed.</p>
+    <p>The finding worth carrying: at scale, <strong>servers are about one percent of the bill</strong> and the paid AI is the rest. That is precisely why the pipeline has fourteen stages — every email that exits early is money, and the hosting choice barely matters.</p>
+  </div>
+</div>
+
+<h2>The 29-feature plan, audited</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag built">Reviewed</span></div>
+  <div class="body">
+    <h3>Twenty-six of them are already covered</h3>
+    <p>The feature plan was checked line by line against the architecture. Most of it either already exists in the design or is a straightforward database query over data we already hold.</p>
+    <div class="tw"><table>
+      <thead><tr><th></th><th>Count</th><th>What it means for us</th></tr></thead>
+      <tbody>
+        <tr><td class="em">Already in the design</td><td class="num">26</td><td>No new work beyond what is specified</td></tr>
+        <tr><td class="em">Genuinely new</td><td class="num">5</td><td>Brand grouping by DNS record, per-user models, deadline timing by commitment type, safe preview, hosting per country</td></tr>
+        <tr><td class="em">Adds real cost</td><td class="num">1</td><td><strong>Hosting per country</strong> — and that is a commercial decision, not an engineering one</td></tr>
+      </tbody>
+    </table></div>
+    <p>One item is worth adopting immediately: grouping a brand's mail by looking up its mail-signing record, which identifies the same company across a dozen different sending addresses. That was not in our design and it is a good idea.</p>
+  </div>
+</div>
+
+<h2>Where the numbers come from</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag open">Honesty</span></div>
+  <div class="body">
+    <p>Every figure in the specification is marked as one of three kinds. This matters more than any individual number, because it is what makes the document safe to quote from.</p>
+    <div class="evidence">
+      <div class="m">
+        <h4>Measured</h4>
+        <p>Published results from other people's work — model size effects, the cost of prompt injection attacks, how much of an email is repeated text.</p>
+      </div>
+      <div class="c">
+        <h4>Calculated</h4>
+        <p>Our arithmetic on those measurements — memory footprints, users per server, break-even points. Sound, but not our own measurements.</p>
+      </div>
+      <div class="u">
+        <h4>Not yet known</h4>
+        <p>What share of a real mailbox exits at each stage, our true cost per user, how many users one server actually holds.</p>
+      </div>
+    </div>
+    <p>All three unknowns are answerable in about a week with one real mailbox. <strong>I would rather bring a measured number next week than a confident guess today.</strong></p>
+  </div>
+</div>
+
+<h2>Needing your decision</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag open">Open</span></div>
+  <div class="body">
+    <h3>Four questions, in the order they block work</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Question</th><th>Why it matters now</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="em">Is WhatsApp still the channel?</td>
+          <td>About 75% of people in the UK use it — but only around a quarter in the US and a third in Canada. <strong>Two of our three markets barely use it.</strong> Business registration for it also takes weeks, so this blocks work either way.</td>
+        </tr>
+        <tr>
+          <td class="em">Gmail or Outlook first?</td>
+          <td>These are business markets, which leans Microsoft. But Microsoft's terms restrict what mail data may be used for unless the customer explicitly permits more — worth an hour of legal reading before committing.</td>
+        </tr>
+        <tr>
+          <td class="em">Which country first?</td>
+          <td>Decides where we host, and therefore which provider we start on.</td>
+        </tr>
+        <tr>
+          <td class="em">What do we charge?</td>
+          <td>Products in this category priced under $50 per user keep only 23% of their revenue year to year. Above $250 they keep 70%. This decides more than the feature list does.</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<h2>Next</h2>
+
+<div class="entry">
+  <div class="marker"><span class="tag open">Planned</span></div>
+  <div class="body">
+    <p>The specification is complete enough to start building against. The most useful next step is not more writing — it is <strong>connecting one real mailbox and measuring the three unknowns above</strong>, which turns the estimates in this document into facts.</p>
+    <p>That also produces the first labelled training data, which is the genuine bottleneck of the whole project. Not compute, not money — <strong>a few hundred emails labelled by hand.</strong></p>
+  </div>
+</div>
+
+<footer>
+  Custodian · engineering log · 4 September 2026<br>
+  Specification: REFERENCE.md, 19 parts. System diagram published separately.<br>
+  Figures marked <em>calculated</em> are arithmetic on published measurements, not our own tests.
+</footer>
+
+</div>
