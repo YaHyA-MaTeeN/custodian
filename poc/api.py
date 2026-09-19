@@ -904,6 +904,12 @@ def api_typed_rules():
 # ══════════════════════════ running it ══════════════════════════
 
 
+# -- accounts + the feature routes (docs/API.md "planned") --
+import api_auth, api_mvp
+api_auth.register(app)
+api_mvp.register(app)
+
+
 def main():
     global NO_MAILBOX
     p = argparse.ArgumentParser(description="JSON API over the Custodian POC")

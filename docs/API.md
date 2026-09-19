@@ -36,7 +36,7 @@ found · 409 cannot, and why · 502 the mailbox refused).
 
 ---
 
-## Session and account (planned)
+## Session and account (live when DATABASE_URL is set)
 
 Until accounts exist, the API serves the one mailbox on the machine and every
 route below behaves as if one user is signed in.
@@ -58,9 +58,9 @@ All other routes require `Authorization: Bearer <token>`.
 | Route | Status | Body → Response |
 |---|---|---|
 | `GET /api/accounts` | **live** | → `{accounts: [{address, provider, route, messages, connectedAt, accessLevel}]}` |
-| `POST /api/mailboxes/identify` | planned | `{address}` → `{provider: "gmail"｜"outlook"｜"yahoo"｜"zoho"｜"icloud"｜"other", route: "app_password"｜"microsoft_signin"｜"google_signin", server}` (UC-50) |
-| `POST /api/mailboxes/connect` | planned | `{address, appPassword}` → `{ok, accessLevel, folders, scanQueued: true}` or 400 with the provider's real reason in `detail` (UC-04/06/07/08/09/10). Passwords are verified before they are stored, never logged. |
-| `DELETE /api/mailboxes/{address}` | planned | `{confirm: "disconnect"}` → `{ok, willStay: [...], erased: [...], lost: [...]}` (UC-13) |
+| `POST /api/mailboxes/identify` | **live** | `{address}` → `{provider: "gmail"｜"outlook"｜"yahoo"｜"zoho"｜"icloud"｜"other", route: "app_password"｜"microsoft_signin"｜"google_signin", server}` (UC-50) |
+| `POST /api/mailboxes/connect` | **live** | `{address, appPassword}` → `{ok, accessLevel, folders, scanQueued: true}` or 400 with the provider's real reason in `detail` (UC-04/06/07/08/09/10). Passwords are verified before they are stored, never logged. |
+| `DELETE /api/mailboxes/{address}` | **live** | `{confirm: "disconnect"}` → `{ok, willStay: [...], erased: [...], lost: [...]}` (UC-13) |
 | `POST /api/mailboxes/{address}/upgrade` | planned | → `{ok}` (UC-12; opens the provider's sign-in) |
 | `GET /api/mailboxes/{address}/scan` | planned | → `{state: "running"｜"done"｜"paused", read, total, reason}` (UC-14) |
 | `GET /api/health` | **live** | → `{ok, mailbox, counts}` |
@@ -75,8 +75,8 @@ All other routes require `Authorization: Bearer <token>`.
 | `GET /api/messages?view=all｜people｜reply｜held｜machine&q=&account=` | **live** | `{messages: [{messageId, providerId, account, sender, senderName, subject, date, unread, kind, reason, held}]}` — `kind` is one of `reply｜filed｜machine｜dormant｜private｜unseen` |
 | `GET /api/messages/{providerId}?fetch=true` | **live** | one message: `{…, decisions: [{stage, decision, reason, score, at}], body, bodySource, blocked}` — plus the UC-21 safe facts: `{realSender, verification, corresponded, links: [{text, host}], attachments: [name]}` (planned field) |
 | `POST /api/messages/{providerId}/score` | **live** | runs the pipeline on one message, never drafts or sends |
-| `GET /api/threads/{messageId}` | planned | UC-40: `{participants, questions: [{what, askedBy, owedBy, answered, messageId, due}], waitingOnYou: [...], latest}` — or `{participants, unsure: true}` |
-| `GET /api/search?q=&account=&from=&to=` | planned | UC-28: `{results: [...], coverage: {mailboxes, backTo}}` |
+| `GET /api/threads/{messageId}` | **live** | UC-40: `{participants, questions: [{what, askedBy, owedBy, answered, messageId, due}], waitingOnYou: [...], latest}` — or `{participants, unsure: true}` |
+| `GET /api/search?q=&account=&from=&to=` | **live** | UC-28: `{results: [...], coverage: {mailboxes, backTo}}` |
 
 ---
 
@@ -85,16 +85,16 @@ All other routes require `Authorization: Bearer <token>`.
 | Route | Status | Body → Response |
 |---|---|---|
 | `GET /api/today` | **live** | UC-43: `{items: [{kind: "due"｜"promise"｜"ask"｜"unread"｜"waiting"｜"spam", text, note, messageId}]}` in fixed order |
-| `POST /api/today/{n}/dismiss` | planned | → `{ok}`; recorded as a correction |
+| `POST /api/today/{n}/dismiss` | **live** | → `{ok}`; recorded as a correction |
 | `GET /api/asks` | **live** | UC-33/45: `{asks: [...], promises: [...]}` each `{id, what, who, due, evidence, confidence, sender, subject, messageId}` |
-| `POST /api/asks/scan` | planned | `{days?}` → `{read, found}` (reads new personal mail once, bodies discarded) |
-| `POST /api/asks/{id}/done` · `/dismiss` | planned | → `{ok}` |
+| `POST /api/asks/scan` | **live** | `{days?}` → `{read, found}` (reads new personal mail once, bodies discarded) |
+| `POST /api/asks/{id}/done` · `/dismiss` | **live** | → `{ok}` |
 | `GET /api/deadlines` | **live** | reminders and commitments, soonest first |
 | `POST /api/deadlines/{messageId}/dismiss` | **live** | → `{ok}` |
-| `POST /api/reminders` | planned | UC-37: `{messageId, on: "2026-09-25"｜"thursday", note?}` → `{ok, due}`; 400 for a past date; the message never moves |
-| `DELETE /api/reminders/{messageId}` | planned | → `{ok}` |
-| `GET /api/catchup?since=` | planned | UC-39: `{days, arrived, needs: [...], answered: [...], expired: [...], info: [...], bulk, unsure}` |
-| `POST /api/catchup/mark-read` | planned | `{messageIds: [...]}` → `{marked}` (reversible, logged) |
+| `POST /api/reminders` | **live** | UC-37: `{messageId, on: "2026-09-25"｜"thursday", note?}` → `{ok, due}`; 400 for a past date; the message never moves |
+| `DELETE /api/reminders/{messageId}` | **live** | → `{ok}` |
+| `GET /api/catchup?since=` | **live** | UC-39: `{days, arrived, needs: [...], answered: [...], expired: [...], info: [...], bulk, unsure}` |
+| `POST /api/catchup/mark-read` | **live** | `{messageIds: [...]}` → `{marked}` (reversible, logged) |
 
 ---
 
@@ -102,14 +102,14 @@ All other routes require `Authorization: Bearer <token>`.
 
 | Route | Status | Body → Response |
 |---|---|---|
-| `POST /api/messages/{providerId}/draft` | planned | UC-25: → `{draft, confirm, account, voice}` — redacted, written in the user's voice, restored locally; **nothing sent** |
-| `POST /api/messages/{providerId}/drafts` | planned | writes the draft into the mailbox's own Drafts folder, threaded → `{ok, draftId}` (reversible) |
-| `GET /api/messages/{providerId}/quick` | planned | UC-26: `{suggestions: [{key, text}]}` — at most 3, no model |
-| `POST /api/messages/{providerId}/send` | planned | `{body, confirm}` → `{ok, sentId}` · 409 without the exact `confirm` from the preview · sends from the account the message arrived at, never another |
-| `POST /api/forward-batch/preview` | planned | UC-35: `{messageIds: [...], to, note?}` → `{drafts: [{messageId, subject, account}], limit}` · 400 if `to` is not the user's own typed/saved address · 409 above the limit |
-| `POST /api/forward-batch` | planned | same body → `{written}`; all or nothing; **drafts only** |
-| `GET /api/recipients` · `POST /api/recipients` | planned | the user's own saved recipient list |
-| `GET /api/voice` · `PUT /api/voice` | planned | UC-42: `{greeting, signOff, length, formality, contractions, groups: {domain: {...}}, description}`; a set field always beats what was learned |
+| `POST /api/messages/{providerId}/draft` | **live** | UC-25: → `{draft, confirm, account, voice}` — redacted, written in the user's voice, restored locally; **nothing sent** |
+| `POST /api/messages/{providerId}/drafts` | **live** | writes the draft into the mailbox's own Drafts folder, threaded → `{ok, draftId}` (reversible) |
+| `GET /api/messages/{providerId}/quick` | **live** | UC-26: `{suggestions: [{key, text}]}` — at most 3, no model |
+| `POST /api/messages/{providerId}/send` | **live** | `{body, confirm}` → `{ok, sentId}` · 409 without the exact `confirm` from the preview · sends from the account the message arrived at, never another |
+| `POST /api/forward-batch/preview` | **live** | UC-35: `{messageIds: [...], to, note?}` → `{drafts: [{messageId, subject, account}], limit}` · 400 if `to` is not the user's own typed/saved address · 409 above the limit |
+| `POST /api/forward-batch` | **live** | same body → `{written}`; all or nothing; **drafts only** |
+| `GET /api/recipients` · `POST /api/recipients` | **live** | the user's own saved recipient list |
+| `GET /api/voice` · `PUT /api/voice` | **live** | UC-42: `{greeting, signOff, length, formality, contractions, groups: {domain: {...}}, description}`; a set field always beats what was learned |
 
 ---
 
@@ -118,18 +118,18 @@ All other routes require `Authorization: Bearer <token>`.
 | Route | Status | Body → Response |
 |---|---|---|
 | `GET /api/pile` | **live** | UC-15: `{groups: [{sender, name, count, opened, first, last, reason, never, kept}], heldBack, excludedSenders}` |
-| `POST /api/pile/preview` | planned | `{senders: [...]｜"all"}` → `{count, confirm, wording}` |
-| `POST /api/pile/clear` | planned | `{senders, confirm}` → `{moved, failed}`; provider trashes; every message logged |
-| `POST /api/pile/rescue` | planned | `{sender}` → `{ok}`; a correction |
-| `GET /api/brands` · `GET /api/brands/{company}` | planned | UC-16: companies, then `{advertising: [...], protected: [...], certain}` |
-| `POST /api/brands/{company}/clear` | planned | `{confirm}` → `{moved, kept}` |
-| `GET /api/unsubscribe` | planned | UC-17: `{ready: [...], cannot: [{sender, why, link}], watching: [...]}` |
-| `POST /api/unsubscribe` | planned | `{sender, confirm}` → `{ok}`; one-click route only; then watched |
-| `GET /api/unsubscribe/outcomes` | planned | `{stopped: [...], ignoring: [...]}` |
-| `GET /api/storage` | planned | UC-18: largest messages and per-sender totals, protected marked |
-| `POST /api/storage/clear` | planned | `{sender, confirm}` → `{moved, freedMb}` |
-| `GET /api/spam` | planned | UC-20: `{likely: [{providerId, subject, sender, reasons}]}` — envelopes only |
-| `POST /api/spam/{providerId}/rescue` | planned | → `{ok}` (reversible) |
+| `POST /api/pile/preview` | **live** | `{senders: [...]｜"all"}` → `{count, confirm, wording}` |
+| `POST /api/pile/clear` | **live** | `{senders, confirm}` → `{moved, failed}`; provider trashes; every message logged |
+| `POST /api/pile/rescue` | **live** | `{sender}` → `{ok}`; a correction |
+| `GET /api/brands` · `GET /api/brands/{company}` | **live** | UC-16: companies, then `{advertising: [...], protected: [...], certain}` |
+| `POST /api/brands/{company}/clear` | **live** | `{confirm}` → `{moved, kept}` |
+| `GET /api/unsubscribe` | **live** | UC-17: `{ready: [...], cannot: [{sender, why, link}], watching: [...]}` |
+| `POST /api/unsubscribe` | **live** | `{sender, confirm}` → `{ok}`; one-click route only; then watched |
+| `GET /api/unsubscribe/outcomes` | **live** | `{stopped: [...], ignoring: [...]}` |
+| `GET /api/storage` | **live** | UC-18: largest messages and per-sender totals, protected marked |
+| `POST /api/storage/clear` | **live** | `{sender, confirm}` → `{moved, freedMb}` |
+| `GET /api/spam` | **live** | UC-20: `{likely: [{providerId, subject, sender, reasons}]}` — envelopes only |
+| `POST /api/spam/{providerId}/rescue` | **live** | → `{ok}` (reversible) |
 | `GET /api/cleanup` | **live** | junk grouped by sender (older view; `pile` supersedes it) |
 | `GET /api/cleanup/plan` | planned | UC-46: the four stages and what each would do |
 
@@ -141,18 +141,18 @@ All other routes require `Authorization: Bearer <token>`.
 |---|---|---|
 | `GET /api/rules` · `POST /api/rules` · `DELETE /api/rules/{id}` | **live** | corrections (UC-29): `{scope: "sender"｜"domain"｜"message", target, was, shouldBe}` |
 | `GET /api/typed-rules` | **live** | UC-38/44: `{rules: [{id, sentence, matchKind, matchValue, action, actionArg, plain, group}]}` |
-| `POST /api/typed-rules/interpret` | planned | `{sentence}` → `{matchKind, matchValue, action, plain, wouldMatch}` or `{unclear: "which part"}` — **nothing saved** |
-| `POST /api/typed-rules` | planned | `{sentence, confirm: "yes"}` → `{id, plain}` (saved only after the interpretation was shown) |
-| `POST /api/typed-rules/{id}/apply` | planned | `{confirm}` → `{labelled}` (existing mail; separate action) |
-| `POST /api/people/{address}/important` · `DELETE …` | planned | UC-44 |
-| `GET /api/people` · `GET /api/people/{address}` | planned | UC-41: `{addresses: [{address, evidence, byOwner}], owe, owed, promised, recent}` |
-| `POST /api/people/link` · `POST /api/people/split` | planned | `{a, b}` / `{address}` |
+| `POST /api/typed-rules/interpret` | **live** | `{sentence}` → `{matchKind, matchValue, action, plain, wouldMatch}` or `{unclear: "which part"}` — **nothing saved** |
+| `POST /api/typed-rules` | **live** | `{sentence, confirm: "yes"}` → `{id, plain}` (saved only after the interpretation was shown) |
+| `POST /api/typed-rules/{id}/apply` | **live** | `{confirm}` → `{labelled}` (existing mail; separate action) |
+| `POST /api/people/{address}/important` · `DELETE …` | **live** | UC-44 |
+| `GET /api/people` · `GET /api/people/{address}` | **live** | UC-41: `{addresses: [{address, evidence, byOwner}], owe, owed, promised, recent}` |
+| `POST /api/people/link` · `POST /api/people/split` | **live** | `{a, b}` / `{address}` |
 | `GET /api/activity` | **live** | UC-30: every action, newest first, plain words |
 | `POST /api/activity/{id}/undo` | **live** | → `{ok, what}` · 409 for send/forward/unsubscribe with the reason |
 | `GET /api/digest` | **live** | what a digest would say now |
-| `GET /api/digest/settings` · `PUT /api/digest/settings` | planned | `{frequency: "daily"｜"weekly"｜"monthly"｜"never"}` |
-| `GET /api/calendar/today` | planned | UC-34: `{events: [{when, title}]}` or `{connected: false}` |
-| `GET /api/calendar/suggestions` · `POST /api/calendar/add` | planned | `{n}` → `{ok}` after "Add this?"; `POST /api/calendar/decline {key}` |
+| `GET /api/digest/settings` · `PUT /api/digest/settings` | **live** | `{frequency: "daily"｜"weekly"｜"monthly"｜"never"}` |
+| `GET /api/calendar/today` | **live** | UC-34: `{events: [{when, title}]}` or `{connected: false}` |
+| `GET /api/calendar/suggestions` · `POST /api/calendar/add` | **live** | `{n}` → `{ok}` after "Add this?"; `POST /api/calendar/decline {key}` |
 | `GET /api/privacy` | **live** | row counts behind the privacy claims |
 | `POST /api/privacy/export` | **live** | → `{file}` |
 | erase | **deliberately absent** | erasing stays at the keyboard (`python my_data.py --erase`) until identity confirmation exists |
@@ -182,3 +182,24 @@ Frankfurt for Pakistan). For local work with no network in the loop, unset
 A route's shape here is a promise. To change one: edit this file in the same
 commit as the code, and tell the frontend. New routes are added under the
 right heading with status **planned** first.
+
+## How the gate works over HTTP (for the frontend)
+
+Every irreversible route is two calls. The first is a **preview** and returns
+a `confirm` token together with the exact `wording` (or `draft`) it belongs to.
+The second is the **action** and must send that token back. The token is a
+hash of the wording, so if the wording changes the token stops matching and
+the backend answers `409`. Show the wording to the person, get their yes, send
+the token. Never store a token across sessions.
+
+| preview | action |
+|---|---|
+| `POST /api/pile/preview` | `POST /api/pile/clear` |
+| `GET /api/brands/{company}` | `POST /api/brands/{company}/clear` |
+| `POST /api/unsubscribe/preview` | `POST /api/unsubscribe` |
+| `POST /api/forward-batch/preview` | `POST /api/forward-batch` (drafts only) |
+| `POST /api/messages/{id}/draft` or `GET …/quick` | `POST /api/messages/{id}/send` |
+| `POST /api/typed-rules/interpret` | `POST /api/typed-rules` |
+| — | `DELETE /api/mailboxes/{address}` needs `{confirm: "disconnect"}` |
+
+Run `python api_smoke.py` from `poc/` to see every refusal happen.
