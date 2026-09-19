@@ -203,3 +203,18 @@ the token. Never store a token across sessions.
 | — | `DELETE /api/mailboxes/{address}` needs `{confirm: "disconnect"}` |
 
 Run `python api_smoke.py` from `poc/` to see every refusal happen.
+
+## The worker (always on, no browser)
+
+```
+cd c:\mob_ai\poc
+python worker.py            keeps every connected mailbox current, forever
+python worker.py --once     one pass (use this from Task Scheduler)
+```
+
+It reads, decides and labels. It never sends, never clears, never
+unsubscribes — there is nobody there to say yes. Once an hour it also scans
+for requests and promises, checks whether unsubscribed senders really
+stopped, and sends the digest if it is due. In accounts mode it opens every
+mailbox in `public.mailboxes` with the app password from the vault
+(`CUSTODIAN_SECRET` must be set, or the vault cannot be read).
