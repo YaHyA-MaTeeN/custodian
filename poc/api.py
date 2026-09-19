@@ -169,7 +169,17 @@ def inbox_rows(limit: int = 300) -> list:
     than repeated here.
     """
     web.STORE = store()
-    return web.rows(limit=limit)
+    rows = web.rows(limit=limit)
+    s = store()
+    if hasattr(s, "prefetch"):               # Postgres: bulk-load what classify() asks per row
+        me = ""
+        try:
+            c = conn(required=False)
+            me = c.account_email() if c else ""
+        except Exception:
+            pass
+        s.prefetch(rows, me)
+    return rows
 
 
 def row_to_dict(r, held: bool | None = None) -> dict:

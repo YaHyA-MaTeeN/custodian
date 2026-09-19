@@ -154,9 +154,15 @@ def page(title, body):
 
 
 def rows(limit=200, only=None):
+    # ⚠️ BYTES ARE THE COST NOW, NOT QUERIES. Over a slow link the page's one
+    # query weighed 292 KB for 400 rows, most of it List-Unsubscribe header
+    # text nobody displays — classify() only asks whether it EXISTS. A 'y'
+    # carries the same truth in one byte. Measured: the same query taking
+    # 1 s or 24 s depending on the moment, purely on transfer size.
     q = """SELECT message_id, provider_id, sender, sender_name, subject,
                   COALESCE(NULLIF(date_iso,''), date), unread,
-                  COALESCE(account,'?'), auto_sub, unsubscribe, bulk, categories
+                  COALESCE(account,'?'), auto_sub,
+                  CASE WHEN unsubscribe!='' THEN 'y' ELSE '' END, bulk, categories
              FROM messages WHERE in_inbox=1
              ORDER BY date_iso DESC, date DESC LIMIT ?"""
     out, seen = [], set()
@@ -234,6 +240,8 @@ def render_list(view="all"):
     total = STORE.one("SELECT COUNT(*) FROM messages")
     cutoff = datetime.now() - timedelta(days=WINDOW_DAYS)
     all_rows = rows()
+    if hasattr(STORE, "prefetch"):            # Postgres: four queries, not a thousand
+        STORE.prefetch(all_rows, CONN.account_email())
 
     counts = {"reply": 0, "private": 0, "machine": 0, "dormant": 0}
     items = []

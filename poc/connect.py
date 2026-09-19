@@ -147,6 +147,7 @@ def open_mailbox(quiet: bool = False):
             sys.exit(1)
         from connectors.imap import ImapConnector
         conn = ImapConnector(host_for(user), user, pw)
+        _register(conn)
         if not quiet:
             extras = []
             if getattr(conn, "supports_categories", False):
@@ -161,9 +162,29 @@ def open_mailbox(quiet: bool = False):
 
     from connectors.gmail import GmailConnector
     conn = GmailConnector()
+    _register(conn)
     if not quiet:
         print(f"  door: Gmail API — push available, paid audit at scale")
     return conn
+
+
+def _register(conn) -> None:
+    """
+    On Postgres, record the mailbox against the account (public.mailboxes):
+    door, capabilities, access level. Refuses an address already connected
+    to a different account (UC-10 BR-34). A no-op on the SQLite file.
+    """
+    if not os.environ.get("DATABASE_URL"):
+        return
+    try:
+        from store import Store
+        s = Store()
+        if hasattr(s, "register_mailbox"):
+            s.register_mailbox(conn)
+    except PermissionError as e:
+        raise SystemExit(f"\n  {e}\n")
+    except Exception as e:
+        print(f"  (could not record the mailbox: {str(e)[:60]})")
 
 
 def describe(conn) -> str:

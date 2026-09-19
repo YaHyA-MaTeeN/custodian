@@ -159,6 +159,24 @@ All other routes require `Authorization: Bearer <token>`.
 
 ---
 
+## Environment
+
+| Variable | Effect |
+|---|---|
+| `DATABASE_URL` | set → every script and the API use Postgres (one schema per account). Unset → the local SQLite file. |
+| `CUSTODIAN_STORE=sqlite` | force the SQLite file for one run even with `DATABASE_URL` set |
+| `CUSTODIAN_ACCOUNT` | which account's schema a script runs in (default: `IMAP_USER`) |
+| `IMAP_USER` / `IMAP_PASSWORD` | the app-password door |
+| `GEMINI_API_KEY` | the rented model (stages 6, 11, 18, rules) |
+
+**Where the database lives matters.** Measured on 19 September: from a laptop in
+Pakistan to Neon in `us-east-2`, one 292 KB query took between 1 s and 39 s
+depending on the moment — the link, not the SQL. The backend must run in the
+same region as the database in production (then a query is ~1 ms), and for
+development the database should be in the nearest region (Singapore or
+Frankfurt for Pakistan). For local work with no network in the loop, unset
+`DATABASE_URL` and use the SQLite file; `db/import_sqlite.py` copies it up.
+
 ## Change control
 
 A route's shape here is a promise. To change one: edit this file in the same

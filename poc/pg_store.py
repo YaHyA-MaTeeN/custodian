@@ -91,12 +91,42 @@ class _Cursor:
 class _Proxy:
     """Looks like sqlite3.Connection to store.Store; speaks psycopg underneath."""
 
-    def __init__(self, conn, columns: dict):
+    def __init__(self, conn, columns: dict, on_commit=None):
         self.conn = conn
         self.columns = columns
+        self.on_commit = on_commit
+
+    @staticmethod
+    def _placeholders(sql: str) -> str:
+        """
+        ? → %s, but only OUTSIDE quoted strings; % → %% everywhere.
+
+        ⚠️ Two real queries broke the naive replace. LIKE '%Waiting%' has a
+        literal % that psycopg reads as a placeholder; and web.py's
+        COALESCE(account,'?') has a literal ? inside quotes. Both surfaced as
+        "the query has 2 placeholders but 1 parameters were passed" on Neon.
+        So the text is walked once, tracking whether we are inside '…'
+        (with '' as the escape), and only bare ? are converted.
+        """
+        out, inside, i = [], False, 0
+        while i < len(sql):
+            ch = sql[i]
+            if ch == "'":
+                if inside and i + 1 < len(sql) and sql[i + 1] == "'":
+                    out.append("''"); i += 2; continue
+                inside = not inside
+                out.append(ch)
+            elif ch == "%":
+                out.append("%%")
+            elif ch == "?" and not inside:
+                out.append("%s")
+            else:
+                out.append(ch)
+            i += 1
+        return "".join(out)
 
     def _translate(self, sql: str) -> tuple:
-        s = sql.replace("?", "%s")
+        s = self._placeholders(sql)
         m = re.match(r"\s*INSERT OR REPLACE INTO (\w+)\s+VALUES\s*\(", s, re.I)
         if m:
             table = m.group(1)
@@ -125,6 +155,8 @@ class _Proxy:
 
     def commit(self):
         self.conn.commit()
+        if self.on_commit:
+            self.on_commit()
 
     def rollback(self):
         self.conn.rollback()
@@ -149,7 +181,14 @@ class PgStore(_sqlite.SqliteStore):
         ddl = self._account_ddl()
         self.conn.execute(f"CREATE SCHEMA IF NOT EXISTS {self.schema}")
         self.conn.execute(f"SET search_path TO {self.schema}, public")
-        self.conn.execute(ddl)
+        # ⚠️ The DDL is ~40 statements; over the network that is 3.7 s on
+        # every Store(). Once the schema has its tables, skip it — one
+        # count instead of forty round trips. CUSTODIAN_DDL=1 forces it.
+        have = self.conn.execute(
+            "SELECT count(*) FROM information_schema.tables WHERE table_schema=%s",
+            (self.schema,)).fetchone()[0]
+        if have < 16 or os.environ.get("CUSTODIAN_DDL"):
+            self.conn.execute(ddl)
         columns = {t: _columns_of(t, ddl) for t in _PK}
         # Only the extras the CREATE TABLE text does not already carry — the
         # SQLite schema gained recipients/account/date_iso in its own DDL and
@@ -161,7 +200,104 @@ class PgStore(_sqlite.SqliteStore):
                 self.conn.execute(f"ALTER TABLE messages ADD COLUMN IF NOT EXISTS {col}")
                 columns["messages"].append(name)
         self.conn.commit()
-        self.db = _Proxy(self.conn, columns)
+        self._memo = {}
+        self.db = _Proxy(self.conn, columns, on_commit=self._memo.clear)
+
+    # ── a memo for the read-heavy lookups ────────────────────────────
+    #
+    # ⚠️ THE SQLITE FILE HAD NO LATENCY. NEON HAS ~100 ms A QUERY.
+    #
+    # The mailbox page calls history(), decision_for(), is_protected() and
+    # has_body() for every row — a few thousand tiny queries that cost
+    # nothing on a local file and minutes across the internet. Each is a pure
+    # read keyed on its arguments, so the answer is kept for the life of this
+    # store object and thrown away on every commit (any write could change
+    # it). Same answers, one round trip instead of hundreds.
+
+    def _memoised(self, key, compute):
+        if key in self._memo:
+            return self._memo[key]
+        v = compute()
+        self._memo[key] = v
+        return v
+
+    def history(self, address, me=""):
+        return self._memoised(("history", (address or "").lower(), (me or "").lower()),
+                              lambda: super(PgStore, self).history(address, me))
+
+    def decision_for(self, message_id):
+        return self._memoised(("decision", message_id or ""),
+                              lambda: super(PgStore, self).decision_for(message_id))
+
+    def has_body(self, message_id):
+        return self._memoised(("has_body", message_id or ""),
+                              lambda: super(PgStore, self).has_body(message_id))
+
+    def correction_for(self, sender, domain=""):
+        return self._memoised(("correction", (sender or "").lower(), (domain or "").lower()),
+                              lambda: super(PgStore, self).correction_for(sender, domain))
+
+    def rules(self):
+        return self._memoised(("rules",), lambda: super(PgStore, self).rules())
+
+    def prefetch(self, rows, me: str = "") -> None:
+        """
+        Load, in FOUR queries, everything the page will ask for row by row.
+
+        ⚠️ Measured on Neon: history() 750 ms, decision_for() 270 ms,
+        has_body() 300 ms — per row, 200 rows a page. That is the mailbox
+        view taking four minutes to open. Fetching the same facts for every
+        row at once and filling the memo turns it into four round trips.
+        The per-row methods are untouched; they simply find their answers
+        already there.
+
+        `rows` are the tuples rows() returns: (message_id, provider_id,
+        sender, …). Anything else passed here is ignored.
+        """
+        mids = sorted({r[0] for r in rows if r and r[0]})
+        senders = sorted({(r[2] or "").lower() for r in rows if r and len(r) > 2 and r[2]})
+        me = (me or "").lower()
+        if not mids:
+            return
+        # decisions, all at once
+        dec = {m: [] for m in mids}
+        for mid, st, d, why, sc, at in self.conn.execute(
+                "SELECT message_id, stage, decision, reason, score, at FROM decisions "
+                "WHERE message_id = ANY(%s) ORDER BY at", (mids,)).fetchall():
+            dec.setdefault(mid, []).append((st, d, why, sc, at))
+        for m, v in dec.items():
+            self._memo[("decision", m)] = v
+        # bodies held
+        held = {r[0] for r in self.conn.execute(
+            "SELECT message_id FROM bodies WHERE message_id = ANY(%s)", (mids,)).fetchall()}
+        for m in mids:
+            self._memo[("has_body", m)] = m in held
+        # sender history: sent/opened per sender in one query; replied from
+        # our own outgoing mail's recipient lines, counted in Python
+        stats = {s: (0, 0) for s in senders}
+        for s, n, opened in self.conn.execute(
+                "SELECT sender, COUNT(*), COALESCE(SUM(1-unread),0) FROM messages "
+                "WHERE sender = ANY(%s) GROUP BY sender", (senders,)).fetchall():
+            stats[s] = (n or 0, opened or 0)
+        recips = [r[0].lower() for r in self.conn.execute(
+            "SELECT COALESCE(recipients,'') FROM messages WHERE sender=%s", (me,)).fetchall()] if me else []
+        for s in senders:
+            n, opened = stats[s]
+            replied = sum(1 for line in recips if s in line) if me else 0
+            self._memo[("history", s, me)] = {"sent": n, "opened": opened, "replied": replied}
+            # web.classify() asks history(sender) with no account, so that key
+            # must be filled too or every row still pays two round trips.
+            self._memo[("history", s, "")] = {"sent": n, "opened": opened, "replied": 0}
+        # corrections: the table is small — load once, answer per key in memory
+        corr = self.conn.execute(
+            "SELECT scope, target, should_be, at FROM corrections ORDER BY id DESC").fetchall()
+        for r in rows:
+            s = (r[2] or "").lower() if len(r) > 2 else ""
+            d = s.split("@")[-1] if "@" in s else ""
+            hit = next((c for c in corr if (c[0] == "sender" and c[1] == s)
+                        or (c[0] == "domain" and c[1] == d)), None)
+            self._memo[("correction", s, d)] = (
+                {"scope": hit[0], "target": hit[1], "should_be": hit[2], "at": hit[3]} if hit else None)
 
     # ── account row in public ─────────────────────────────────────────
     def _ensure_account(self) -> int:
@@ -182,6 +318,48 @@ class PgStore(_sqlite.SqliteStore):
         for pat, rep in _DDL_SWAPS:
             ddl = pat.sub(rep, ddl)
         return ddl
+
+    # ── mailboxes in public (UC-10 BR-34, BR-36) ────────────────────────
+    def register_mailbox(self, conn_) -> int:
+        """
+        Record a connected mailbox against this account: which door, what it
+        can do, its access level. One address belongs to one account only;
+        a second account trying the same address is refused here.
+        """
+        import json
+        address = (conn_.account_email() or "").lower()
+        name = getattr(conn_, "name", "")
+        provider = ("gmail" if "gmail" in name or "imap.gmail" in getattr(conn_, "host", "")
+                    else "outlook" if "office365" in getattr(conn_, "host", "")
+                    else "other")
+        route = "google_signin" if name == "gmail" else "app_password"
+        caps = {k: bool(getattr(conn_, k, False)) for k in
+                ("supports_push", "supports_labels", "supports_categories",
+                 "supports_threads", "supports_send")}
+        level = conn_.access_level() if hasattr(conn_, "access_level") else "full"
+        r = self.conn.execute("SELECT id, account_id FROM public.mailboxes WHERE address=%s",
+                              (address,)).fetchone()
+        if r and r[1] != self.account_id:
+            raise PermissionError("This email address is already connected to a different account.")
+        if r:
+            self.conn.execute(
+                "UPDATE public.mailboxes SET route=%s, host=%s, access_level=%s, capabilities=%s, "
+                "state='connected', state_reason=NULL WHERE id=%s",
+                (route, getattr(conn_, "host", ""), level, json.dumps(caps), r[0]))
+            mid = r[0]
+        else:
+            mid = self.conn.execute(
+                "INSERT INTO public.mailboxes (account_id, address, provider, route, host, "
+                "access_level, capabilities) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                (self.account_id, address, provider, route, getattr(conn_, "host", ""),
+                 level, json.dumps(caps))).fetchone()[0]
+        self.conn.commit()
+        return mid
+
+    def mailboxes(self) -> list:
+        return self.conn.execute(
+            "SELECT address, provider, route, access_level, state, connected_at "
+            "FROM public.mailboxes WHERE account_id=%s ORDER BY id", (self.account_id,)).fetchall()
 
     # ── the few queries that need a Postgres spelling ────────────────
     def tables(self) -> list:
