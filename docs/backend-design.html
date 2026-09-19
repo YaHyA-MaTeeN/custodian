@@ -27,8 +27,8 @@
 <div class="cover">
   <div class="eyebrow">Custodian · MVP backend · design draft for review</div>
   <h1>Backend design and database architecture</h1>
-  <p class="lead" style="margin-top:4mm">A first draft of how the MVP backend is put together: the components, how a request travels through them, and how the database is laid out. Written to be discussed and changed before more is built on it.</p>
-  <div class="meta">draft 0.1 · 19 September 2026 · Yahya Mateen · status: for review, nothing here is final</div>
+  <p class="lead" style="margin-top:4mm">A first draft of how the MVP backend could be put together: the components, how each major use case travels from input to output, and how the database would be laid out. This design is the main output so far. Written to be discussed and changed before real implementation starts.</p>
+  <div class="meta">draft 0.1 · 19 September 2026 · Yahya Mateen · status: for review · implementation not started beyond exploratory checks</div>
 </div>
 
 <h2>1 · What the backend has to do</h2>
@@ -114,22 +114,464 @@
 
 <table>
 <tr><th>Component</th><th>Responsibility</th><th>Status</th></tr>
-<tr><td class="k">API</td><td>Everything the frontend needs, as JSON. Checks the session, picks the account's store, calls the same functions the terminal scripts call. Holds the preview/confirm gate.</td><td><span class="st draft">first draft</span></td></tr>
-<tr><td class="k">Auth</td><td>Scrypt password hashes, single-use confirm and reset tokens, session tokens, throttling on failed logins, one error message for wrong email or wrong password.</td><td><span class="st draft">first draft</span></td></tr>
-<tr><td class="k">Worker</td><td>One process, no browser. New mail first, a little backlog when idle, hourly housekeeping (requests scan, unsubscribe outcomes, digest). Cannot send, cannot clear.</td><td><span class="st draft">first draft</span></td></tr>
-<tr><td class="k">Pipeline</td><td>16 deterministic stages; models only where rules cannot decide. Unchanged from the POC. Redaction before every model call, restoration after.</td><td><span class="st have">from POC</span></td></tr>
-<tr><td class="k">Store</td><td>One SQL dialect written once. SQLite for local work, Postgres for the MVP through a thin translation layer. Caches the handful of lookups that repeat per page.</td><td><span class="st draft">first draft</span></td></tr>
-<tr><td class="k">Connectors</td><td>IMAP/SMTP for every provider, Gmail API as an optional door. Same method names, same undo for each action, capability flags so callers never guess.</td><td><span class="st have">from POC</span></td></tr>
-<tr><td class="k">Vault</td><td>App passwords encrypted with a key that exists only in the server's environment. Verified against the mail server before being stored.</td><td><span class="st draft">first draft</span></td></tr>
+<tr><td class="k">API</td><td>Everything the frontend needs, as JSON. Checks the session, picks the account's store, calls the same functions the terminal scripts call. Holds the preview/confirm gate.</td><td><span class="st draft">exploratory</span></td></tr>
+<tr><td class="k">Auth</td><td>Scrypt password hashes, single-use confirm and reset tokens, session tokens, throttling on failed logins, one error message for wrong email or wrong password.</td><td><span class="st draft">exploratory</span></td></tr>
+<tr><td class="k">Worker</td><td>One process, no browser. New mail first, a little backlog when idle, hourly housekeeping (requests scan, unsubscribe outcomes, digest). Cannot send, cannot clear.</td><td><span class="st draft">exploratory</span></td></tr>
+<tr><td class="k">Pipeline</td><td>16 deterministic stages; models only where rules cannot decide. Unchanged from the POC. Redaction before every model call, restoration after.</td><td><span class="st have">POC code · to be reviewed</span></td></tr>
+<tr><td class="k">Store</td><td>One SQL dialect written once. SQLite for local work, Postgres for the MVP through a thin translation layer. Caches the handful of lookups that repeat per page.</td><td><span class="st draft">exploratory</span></td></tr>
+<tr><td class="k">Connectors</td><td>IMAP/SMTP for every provider, Gmail API as an optional door. Same method names, same undo for each action, capability flags so callers never guess.</td><td><span class="st have">POC code · to be reviewed</span></td></tr>
+<tr><td class="k">Vault</td><td>App passwords encrypted with a key that exists only in the server's environment. Verified against the mail server before being stored.</td><td><span class="st draft">exploratory</span></td></tr>
 <tr><td class="k">Outbound email</td><td>Confirmation and reset emails to the account holder. No service chosen yet; tokens are currently returned to the caller for testing.</td><td><span class="st prop">not started</span></td></tr>
 <tr><td class="k">Chat</td><td>Sentence in, plain answer out, over the same feature functions. Design not started; only the typed-rules box exists.</td><td><span class="st prop">not started</span></td></tr>
 <tr><td class="k">Deployment</td><td>API and worker hosted beside the database. Nothing is deployed; everything runs on one laptop.</td><td><span class="st prop">not started</span></td></tr>
 </table>
 
-<div class="sheet"></div>
-<h2>3 · How requests travel</h2>
 
-<h3>3.1 · Sign in and connect a mailbox</h3>
+<div class="sheet"></div>
+<h2>3 · Every message, end to end</h2>
+
+<svg viewBox="0 0 760 300" role="img" aria-label="End to end: a message on the mail server is fetched by a connector, its headers saved, then passed through the pipeline in four groups of stages, producing outputs in the database, in the mailbox and on the screen.">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<rect x="0" y="20" width="120" height="60" rx="4" class="box ok"/><text x="60" y="44" text-anchor="middle" class="t">Mail server</text><text x="60" y="60" text-anchor="middle" class="s">one new message</text>
+<rect x="150" y="20" width="120" height="60" rx="4" class="box"/><text x="210" y="44" text-anchor="middle" class="t">Connector</text><text x="210" y="60" text-anchor="middle" class="s">headers only (stage 3)</text>
+<rect x="300" y="20" width="120" height="60" rx="4" class="box"/><text x="360" y="44" text-anchor="middle" class="t">Store</text><text x="360" y="60" text-anchor="middle" class="s">envelope saved</text>
+<path d="M120 50 H148" class="ln"/><path d="M270 50 H298" class="ln"/><path d="M360 80 V108" class="ln"/>
+<rect x="0" y="110" width="760" height="80" rx="4" class="box acc"/>
+<text x="12" y="128" class="t">Pipeline</text>
+<rect x="90" y="122" width="150" height="58" rx="3" class="box"/><text x="165" y="140" text-anchor="middle" style="font-weight:600">1-4 · parse, verify</text><text x="165" y="154" text-anchor="middle" class="s">strip · sensitive? · headers</text><text x="165" y="167" text-anchor="middle" class="s">rules only</text>
+<rect x="255" y="122" width="150" height="58" rx="3" class="box"/><text x="330" y="140" text-anchor="middle" style="font-weight:600">5-9 · classify</text><text x="330" y="154" text-anchor="middle" class="s">person or machine · category</text><text x="330" y="167" text-anchor="middle" class="s">needs a reply? · dates</text>
+<rect x="420" y="122" width="150" height="58" rx="3" class="box"/><text x="495" y="140" text-anchor="middle" style="font-weight:600">10-13 · judge</text><text x="495" y="154" text-anchor="middle" class="s">redact · requests · priority</text><text x="495" y="167" text-anchor="middle" class="s">approval gate</text>
+<rect x="585" y="122" width="160" height="58" rx="3" class="box"/><text x="665" y="140" text-anchor="middle" style="font-weight:600">14-19 · write, act</text><text x="665" y="154" text-anchor="middle" class="s">labels · unsubscribe · quick</text><text x="665" y="167" text-anchor="middle" class="s">voice · draft (only on ask)</text>
+<path d="M240 151 H253" class="ln"/><path d="M405 151 H418" class="ln"/><path d="M570 151 H583" class="ln"/>
+<rect x="0" y="220" width="230" height="60" rx="4" class="box ok"/><text x="115" y="242" text-anchor="middle" class="t">Outputs in the database</text><text x="115" y="258" text-anchor="middle" class="s">decision + reason · action + undo</text><text x="115" y="271" text-anchor="middle" class="s">requests · reminders · rules</text>
+<rect x="265" y="220" width="230" height="60" rx="4" class="box ok"/><text x="380" y="242" text-anchor="middle" class="t">Outputs in the mailbox</text><text x="380" y="258" text-anchor="middle" class="s">labels applied · nothing moved</text><text x="380" y="271" text-anchor="middle" class="s">unless the person confirmed</text>
+<rect x="530" y="220" width="230" height="60" rx="4" class="box tint"/><text x="645" y="242" text-anchor="middle" class="t">Outputs on the screen</text><text x="645" y="258" text-anchor="middle" class="s">via the API: today · pile · asks</text><text x="645" y="271" text-anchor="middle" class="s">drafts to approve · what happened</text>
+<path d="M115 190 V218" class="ln"/><path d="M380 190 V218" class="ln"/><path d="M645 190 V218" class="ln"/>
+</svg>
+<p class="cap">Every message takes this path. Earlier stages resolve most mail by rules alone; the model is only consulted where rules cannot decide, and only on redacted text.</p>
+
+<h2 style="margin-top:6mm">4 · Major use cases, input to output</h2>
+<p>Each lane reads left to right: what comes in, which components touch it and in what order, what comes out. Red boxes are the gate; nothing to their right happens without the person's yes.</p>
+<svg viewBox="0 0 760 96" role="img" aria-label="Connect a mailbox: address + app password to connected · worker starts reading">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Connect a mailbox</text><text x="760" y="14" text-anchor="end" class="s mono">UC-04 to UC-10</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">address + app password</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="116.0" height="44" rx="3" class="box acc"/>
+<text x="194.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">API</text>
+<text x="194.0" y="58" text-anchor="middle" style="font-size:8.8px">shape check</text>
+<path d="M252.0 48.0 H258.0" class="ln"/>
+<rect x="260.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="318.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="318.0" y="58" text-anchor="middle" style="font-size:8.8px">real login</text>
+<path d="M376.0 48.0 H382.0" class="ln"/>
+<rect x="384.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="442.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Vault</text>
+<text x="442.0" y="58" text-anchor="middle" style="font-size:8.8px">encrypt + store</text>
+<path d="M500.0 48.0 H506.0" class="ln"/>
+<rect x="508.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="566.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">DB</text>
+<text x="566.0" y="58" text-anchor="middle" style="font-size:8.8px">mailboxes row</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="56" text-anchor="middle" style="font-size:8.6px">connected</text>
+<text x="701" y="67" text-anchor="middle" style="font-size:8.6px">worker starts reading</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="New mail arrives: one message on the server to labelled mail · a recorded reason">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">New mail arrives</text><text x="760" y="14" text-anchor="end" class="s mono">core flow</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">one message on the server</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="91.2" height="44" rx="3" class="box acc"/>
+<text x="181.6" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Worker</text>
+<text x="181.6" y="58" text-anchor="middle" style="font-size:8.2px">notice new UID</text>
+<path d="M227.2 48.0 H233.2" class="ln"/>
+<rect x="235.2" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="280.8" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="280.8" y="58" text-anchor="middle" style="font-size:8.2px">fetch headers</text>
+<path d="M326.4 48.0 H332.4" class="ln"/>
+<rect x="334.4" y="26" width="91.2" height="44" rx="3" class="box acc"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Pipeline</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.2px">16 stages</text>
+<path d="M425.6 48.0 H431.6" class="ln"/>
+<rect x="433.6" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="479.2" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="479.2" y="58" text-anchor="middle" style="font-size:8.2px">apply labels</text>
+<path d="M524.8 48.0 H530.8" class="ln"/>
+<rect x="532.8" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="578.4" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">DB</text>
+<text x="578.4" y="58" text-anchor="middle" style="font-size:8.2px">decision + action</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="56" text-anchor="middle" style="font-size:8.6px">labelled mail</text>
+<text x="701" y="67" text-anchor="middle" style="font-size:8.6px">a recorded reason</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Today&#x27;s list: the account&#x27;s data to a short list, nothing hidden">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Today&#x27;s list</text><text x="760" y="14" text-anchor="end" class="s mono">UC-43</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">the account&#x27;s data</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="194.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="194.0" y="58" text-anchor="middle" style="font-size:8.8px">reminders due</text>
+<path d="M252.0 48.0 H258.0" class="ln"/>
+<rect x="260.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="318.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="318.0" y="58" text-anchor="middle" style="font-size:8.8px">promises + asks</text>
+<path d="M376.0 48.0 H382.0" class="ln"/>
+<rect x="384.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="442.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="442.0" y="58" text-anchor="middle" style="font-size:8.8px">unread important</text>
+<path d="M500.0 48.0 H506.0" class="ln"/>
+<rect x="508.0" y="26" width="116.0" height="44" rx="3" class="box acc"/>
+<text x="566.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">API</text>
+<text x="566.0" y="58" text-anchor="middle" style="font-size:8.8px">fixed order</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">a short list, nothing hidden</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Reply to a message: one message + person&#x27;s yes to one reply, from the same account">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Reply to a message</text><text x="760" y="14" text-anchor="end" class="s mono">UC-25 · UC-26</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">one message + person&#x27;s yes</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="173.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="173.3" y="58" text-anchor="middle" style="font-size:8.2px">fetch body</text>
+<path d="M210.7 48.0 H216.7" class="ln"/>
+<rect x="218.7" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="256.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Redact</text>
+<text x="256.0" y="58" text-anchor="middle" style="font-size:8.2px">names out</text>
+<path d="M293.3 48.0 H299.3" class="ln"/>
+<rect x="301.3" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="338.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Model</text>
+<text x="338.7" y="58" text-anchor="middle" style="font-size:8.2px">draft in voice</text>
+<path d="M376.0 48.0 H382.0" class="ln"/>
+<rect x="384.0" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="421.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Restore</text>
+<text x="421.3" y="58" text-anchor="middle" style="font-size:8.2px">names back</text>
+<path d="M458.7 48.0 H464.7" class="ln"/>
+<rect x="466.7" y="26" width="74.7" height="44" rx="3" class="box warn"/>
+<text x="504.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Gate</text>
+<text x="504.0" y="58" text-anchor="middle" style="font-size:8.2px">confirm token</text>
+<path d="M541.3 48.0 H547.3" class="ln"/>
+<rect x="549.3" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="586.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="586.7" y="58" text-anchor="middle" style="font-size:8.2px">SMTP send</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">one reply, from the same account</text>
+<text x="0" y="90" class="s">goes through the preview / confirm gate: refused without the person's yes</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Clear the pile: bulk senders in inbox to trash, recoverable · undo row">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Clear the pile</text><text x="760" y="14" text-anchor="end" class="s mono">UC-54 to UC-58</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">bulk senders in inbox</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="173.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="173.3" y="58" text-anchor="middle" style="font-size:8.2px">group by sender</text>
+<path d="M210.7 48.0 H216.7" class="ln"/>
+<rect x="218.7" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="256.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Rules</text>
+<text x="256.0" y="58" text-anchor="middle" style="font-size:8.2px">proof of bulk</text>
+<path d="M293.3 48.0 H299.3" class="ln"/>
+<rect x="301.3" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="338.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Exclude</text>
+<text x="338.7" y="58" text-anchor="middle" style="font-size:8.2px">replied, important</text>
+<path d="M376.0 48.0 H382.0" class="ln"/>
+<rect x="384.0" y="26" width="74.7" height="44" rx="3" class="box acc"/>
+<text x="421.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">API</text>
+<text x="421.3" y="58" text-anchor="middle" style="font-size:8.2px">preview + wording</text>
+<path d="M458.7 48.0 H464.7" class="ln"/>
+<rect x="466.7" y="26" width="74.7" height="44" rx="3" class="box warn"/>
+<text x="504.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Gate</text>
+<text x="504.0" y="58" text-anchor="middle" style="font-size:8.2px">confirm token</text>
+<path d="M541.3 48.0 H547.3" class="ln"/>
+<rect x="549.3" y="26" width="74.7" height="44" rx="3" class="box"/>
+<text x="586.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="586.7" y="58" text-anchor="middle" style="font-size:8.2px">move to trash</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="56" text-anchor="middle" style="font-size:8.6px">trash, recoverable</text>
+<text x="701" y="67" text-anchor="middle" style="font-size:8.6px">undo row</text>
+<text x="0" y="90" class="s">goes through the preview / confirm gate: refused without the person's yes</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Unsubscribe: a bulk sender to stopped or ignoring, reported">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Unsubscribe</text><text x="760" y="14" text-anchor="end" class="s mono">UC-27 · BR-66</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">a bulk sender</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="181.6" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="181.6" y="58" text-anchor="middle" style="font-size:8.2px">unsubscribe header</text>
+<path d="M227.2 48.0 H233.2" class="ln"/>
+<rect x="235.2" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="280.8" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Rules</text>
+<text x="280.8" y="58" text-anchor="middle" style="font-size:8.2px">one-click only</text>
+<path d="M326.4 48.0 H332.4" class="ln"/>
+<rect x="334.4" y="26" width="91.2" height="44" rx="3" class="box warn"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Gate</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.2px">confirm token</text>
+<path d="M425.6 48.0 H431.6" class="ln"/>
+<rect x="433.6" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="479.2" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="479.2" y="58" text-anchor="middle" style="font-size:8.2px">POST one-click</text>
+<path d="M524.8 48.0 H530.8" class="ln"/>
+<rect x="532.8" y="26" width="91.2" height="44" rx="3" class="box acc"/>
+<text x="578.4" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Worker</text>
+<text x="578.4" y="58" text-anchor="middle" style="font-size:8.2px">watch 14 days</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">stopped or ignoring, reported</text>
+<text x="0" y="90" class="s">goes through the preview / confirm gate: refused without the person's yes</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Requests and promises: recent personal mail to who owes whom, by when">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Requests and promises</text><text x="760" y="14" text-anchor="end" class="s mono">UC-33 · UC-45</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">recent personal mail</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="91.2" height="44" rx="3" class="box acc"/>
+<text x="181.6" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Worker</text>
+<text x="181.6" y="58" text-anchor="middle" style="font-size:8.2px">hourly scan</text>
+<path d="M227.2 48.0 H233.2" class="ln"/>
+<rect x="235.2" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="280.8" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Redact</text>
+<text x="280.8" y="58" text-anchor="middle" style="font-size:8.2px">names out</text>
+<path d="M326.4 48.0 H332.4" class="ln"/>
+<rect x="334.4" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Model</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.2px">extract asks</text>
+<path d="M425.6 48.0 H431.6" class="ln"/>
+<rect x="433.6" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="479.2" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Dates</text>
+<text x="479.2" y="58" text-anchor="middle" style="font-size:8.2px">stage 7</text>
+<path d="M524.8 48.0 H530.8" class="ln"/>
+<rect x="532.8" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="578.4" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">DB</text>
+<text x="578.4" y="58" text-anchor="middle" style="font-size:8.2px">requests</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">who owes whom, by when</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Reminders and calendar: a message + a date to reminder due · calendar event on yes">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Reminders and calendar</text><text x="760" y="14" text-anchor="end" class="s mono">UC-30 · UC-46</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">a message + a date</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="194.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Parse</text>
+<text x="194.0" y="58" text-anchor="middle" style="font-size:8.8px">the date</text>
+<path d="M252.0 48.0 H258.0" class="ln"/>
+<rect x="260.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="318.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">DB</text>
+<text x="318.0" y="58" text-anchor="middle" style="font-size:8.8px">reminders</text>
+<path d="M376.0 48.0 H382.0" class="ln"/>
+<rect x="384.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="442.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Today</text>
+<text x="442.0" y="58" text-anchor="middle" style="font-size:8.8px">picks it up</text>
+<path d="M500.0 48.0 H506.0" class="ln"/>
+<rect x="508.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="566.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Calendar</text>
+<text x="566.0" y="58" text-anchor="middle" style="font-size:8.8px">suggestion only</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="56" text-anchor="middle" style="font-size:8.6px">reminder due</text>
+<text x="701" y="67" text-anchor="middle" style="font-size:8.6px">calendar event on yes</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Typed rules / important people: a sentence to a rule in plain words, undoable">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Typed rules / important people</text><text x="760" y="14" text-anchor="end" class="s mono">UC-38 · UC-44</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">a sentence</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="181.6" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Model</text>
+<text x="181.6" y="58" text-anchor="middle" style="font-size:8.2px">interpret to a rule</text>
+<path d="M227.2 48.0 H233.2" class="ln"/>
+<rect x="235.2" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="280.8" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="280.8" y="58" text-anchor="middle" style="font-size:8.2px">count matches</text>
+<path d="M326.4 48.0 H332.4" class="ln"/>
+<rect x="334.4" y="26" width="91.2" height="44" rx="3" class="box warn"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Gate</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.2px">confirm wording</text>
+<path d="M425.6 48.0 H431.6" class="ln"/>
+<rect x="433.6" y="26" width="91.2" height="44" rx="3" class="box"/>
+<text x="479.2" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">DB</text>
+<text x="479.2" y="58" text-anchor="middle" style="font-size:8.2px">rules</text>
+<path d="M524.8 48.0 H530.8" class="ln"/>
+<rect x="532.8" y="26" width="91.2" height="44" rx="3" class="box acc"/>
+<text x="578.4" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Pipeline</text>
+<text x="578.4" y="58" text-anchor="middle" style="font-size:8.2px">honours rule</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">a rule in plain words, undoable</text>
+<text x="0" y="90" class="s">goes through the preview / confirm gate: refused without the person's yes</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Catch-up after time away: date last seen to four short groups">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Catch-up after time away</text><text x="760" y="14" text-anchor="end" class="s mono">UC-42</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">date last seen</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="214.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="214.7" y="58" text-anchor="middle" style="font-size:8.8px">mail since</text>
+<path d="M293.3 48.0 H299.3" class="ln"/>
+<rect x="301.3" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Split</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.8px">needs you / answered / expired / info</text>
+<path d="M458.7 48.0 H464.7" class="ln"/>
+<rect x="466.7" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="545.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Bulk</text>
+<text x="545.3" y="58" text-anchor="middle" style="font-size:8.8px">counted, not shown</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">four short groups</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Spam rescue: the spam folder to candidates only · rescue on click">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Spam rescue</text><text x="760" y="14" text-anchor="end" class="s mono">UC-31</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">the spam folder</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="214.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="214.7" y="58" text-anchor="middle" style="font-size:8.8px">spam envelopes</text>
+<path d="M293.3 48.0 H299.3" class="ln"/>
+<rect x="301.3" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Score</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.8px">replied, auth, history</text>
+<path d="M458.7 48.0 H464.7" class="ln"/>
+<rect x="466.7" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="545.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Threshold</text>
+<text x="545.3" y="58" text-anchor="middle" style="font-size:8.8px">3 points</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="56" text-anchor="middle" style="font-size:8.6px">candidates only</text>
+<text x="701" y="67" text-anchor="middle" style="font-size:8.6px">rescue on click</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Search and threads: words, or one message to results with coverage · who is waiting on whom">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Search and threads</text><text x="760" y="14" text-anchor="end" class="s mono">UC-28 · UC-40</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">words, or one message</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="214.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Store</text>
+<text x="214.7" y="58" text-anchor="middle" style="font-size:8.8px">envelope search</text>
+<path d="M293.3 48.0 H299.3" class="ln"/>
+<rect x="301.3" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Threads</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.8px">by references</text>
+<path d="M458.7 48.0 H464.7" class="ln"/>
+<rect x="466.7" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="545.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Model</text>
+<text x="545.3" y="58" text-anchor="middle" style="font-size:8.8px">open questions in thread</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="56" text-anchor="middle" style="font-size:8.6px">results with coverage</text>
+<text x="701" y="67" text-anchor="middle" style="font-size:8.6px">who is waiting on whom</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Digest: schedule + week&#x27;s data to one email, or none">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Digest</text><text x="760" y="14" text-anchor="end" class="s mono">UC-36</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">schedule + week&#x27;s data</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="157.3" height="44" rx="3" class="box acc"/>
+<text x="214.7" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Worker</text>
+<text x="214.7" y="58" text-anchor="middle" style="font-size:8.8px">is it due?</text>
+<path d="M293.3 48.0 H299.3" class="ln"/>
+<rect x="301.3" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="380.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Brief</text>
+<text x="380.0" y="58" text-anchor="middle" style="font-size:8.8px">anything to say?</text>
+<path d="M458.7 48.0 H464.7" class="ln"/>
+<rect x="466.7" y="26" width="157.3" height="44" rx="3" class="box"/>
+<text x="545.3" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Connector</text>
+<text x="545.3" y="58" text-anchor="middle" style="font-size:8.8px">send to owner</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">one email, or none</text>
+<text x="0" y="90" class="s">reversible: no approval needed, every step recorded with its undo</text>
+</svg>
+<svg viewBox="0 0 760 96" role="img" aria-label="Disconnect a mailbox: the word &quot;disconnect&quot; to what stays, what is erased, what is lost">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker></defs>
+<text x="0" y="14" class="t">Disconnect a mailbox</text><text x="760" y="14" text-anchor="end" class="s mono">UC-13</text>
+<rect x="0" y="26" width="118" height="44" rx="3" class="box tint"/>
+<text x="59.0" y="44" text-anchor="middle" class="s">input</text>
+<text x="59.0" y="59" text-anchor="middle" style="font-size:9px">the word &quot;disconnect&quot;</text>
+<path d="M118 48.0 H134" class="ln"/>
+<rect x="136.0" y="26" width="116.0" height="44" rx="3" class="box warn"/>
+<text x="194.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Gate</text>
+<text x="194.0" y="58" text-anchor="middle" style="font-size:8.8px">literal confirm</text>
+<path d="M252.0 48.0 H258.0" class="ln"/>
+<rect x="260.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="318.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">DB</text>
+<text x="318.0" y="58" text-anchor="middle" style="font-size:8.8px">erase that mailbox&#x27;s rows</text>
+<path d="M376.0 48.0 H382.0" class="ln"/>
+<rect x="384.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="442.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Vault</text>
+<text x="442.0" y="58" text-anchor="middle" style="font-size:8.8px">erase credential</text>
+<path d="M500.0 48.0 H506.0" class="ln"/>
+<rect x="508.0" y="26" width="116.0" height="44" rx="3" class="box"/>
+<text x="566.0" y="44" text-anchor="middle" style="font-size:9.5px;font-weight:600">Mailbox</text>
+<text x="566.0" y="58" text-anchor="middle" style="font-size:8.8px">untouched</text>
+<path d="M624.0 48.0 H640" class="ln"/>
+<rect x="642" y="26" width="118" height="44" rx="3" class="box ok"/>
+<text x="701" y="44" text-anchor="middle" class="s">output</text>
+<text x="701" y="59" text-anchor="middle" style="font-size:8.6px">what stays, what is erased, what is lost</text>
+<text x="0" y="90" class="s">goes through the preview / confirm gate: refused without the person's yes</text>
+</svg>
+<p class="cap">The account screens (UC-01 to UC-03, UC-47 to UC-49) are frontend flows over the auth routes and are not drawn here.</p>
+
+<div class="sheet"></div>
+<h2>5 · How requests travel</h2>
+
+<h3>5.1 · Sign in and connect a mailbox</h3>
 <svg viewBox="0 0 760 250" role="img" aria-label="Sequence: frontend registers and logs in with the API, receives a session token, then connects a mailbox; the API verifies the app password against the mail server, stores it encrypted in the vault, records the mailbox, and the worker picks it up.">
 <defs>
 <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker>
@@ -152,7 +594,7 @@
 </svg>
 <p>The password never goes to the log, never goes to the database in the clear, and is only stored after the mail server accepted it. If the server refuses, the person gets the provider's real reason, not a generic error.</p>
 
-<h3>3.2 · One pass of the worker</h3>
+<h3>5.2 · One pass of the worker</h3>
 <div class="flow">for each connected mailbox (own connection, own store)
     new = mailbox.new_since(bookmark)          ← highest UID (IMAP) or history id (Gmail)
     if new:
@@ -166,7 +608,7 @@
 sleep 20 s</div>
 <p>The worker holds no approval, so it can only do reversible things. Everything it does is written to the actions table with how to undo it, before the call is made.</p>
 
-<h3>3.3 · An irreversible action</h3>
+<h3>5.3 · An irreversible action</h3>
 <svg viewBox="0 0 760 200" role="img" aria-label="Sequence: the frontend asks for a preview, the API returns the exact wording and a confirm token that is a hash of that wording; the frontend shows it to the person and, on yes, calls the action with the token; the API recomputes the hash, refuses on mismatch, otherwise executes through the connector and records the action.">
 <defs>
 <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#41525F"/></marker>
@@ -187,7 +629,7 @@ sleep 20 s</div>
 <p>The token is bound to the wording. If the pile changed between preview and confirm, the wording changes, the token no longer fits, and the request is refused. This applies to clearing, unsubscribing, sending, batch forwarding and creating rules. The same gate exists in the terminal version; the API reuses it rather than adding a second one.</p>
 
 <div class="sheet"></div>
-<h2>4 · Database architecture</h2>
+<h2>6 · Database architecture</h2>
 <p>Two layers. A small shared layer that knows <em>who</em> the customers are, and one private schema per account that holds everything <em>about</em> that person's mail.</p>
 
 <svg viewBox="0 0 760 330" role="img" aria-label="Database layout: the public schema holds accounts, sessions, confirmation tokens, mailboxes and credentials; each account has its own schema acct_id with the sixteen mail tables; the store sets the search path to the account's schema from the session.">
@@ -235,7 +677,7 @@ sleep 20 s</div>
 <table>
 <tr><th>Option</th><th>How it works</th><th>Why not / why yes</th></tr>
 <tr><td class="k">account_id column</td><td>All customers in the same tables, every query filtered by account_id.</td><td>Common and fast to set up. One forgotten WHERE exposes another customer's mail. Rejected for now because the privacy promise is the product.</td></tr>
-<tr><td class="k">One schema per account <span class="st draft">chosen</span></td><td>Same tables, one namespace per account. The connection is pointed at the account's schema once, from the session.</td><td>Separation is structural, not a habit. Every existing script keeps its SQL unchanged. Fine to several thousand accounts; would need revisiting far beyond that.</td></tr>
+<tr><td class="k">One schema per account <span class="st draft">proposed</span></td><td>Same tables, one namespace per account. The connection is pointed at the account's schema once, from the session.</td><td>Separation is structural, not a habit. Every existing script keeps its SQL unchanged. Fine to several thousand accounts; would need revisiting far beyond that.</td></tr>
 <tr><td class="k">One database per account</td><td>Full physical separation.</td><td>Strongest separation, but connection counts and migrations become a problem early. Too heavy for an MVP.</td></tr>
 </table>
 
@@ -249,7 +691,7 @@ sleep 20 s</div>
 </ul>
 
 <div class="sheet"></div>
-<h2>5 · Where things run</h2>
+<h2>7 · Where things run</h2>
 <table>
 <tr><th>Piece</th><th>Today</th><th>Proposed for the MVP</th></tr>
 <tr><td class="k">Database</td><td>Neon (hosted Postgres), US East. Measured from Pakistan: the same query took 1 s one moment and up to 39 s the next. Trimming the query helped; distance did not go away.</td><td>Neon project in Singapore or Frankfurt. Same schema, re-import takes minutes.</td></tr>
@@ -258,7 +700,7 @@ sleep 20 s</div>
 <tr><td class="k">Secrets</td><td>Environment variables on the laptop.</td><td>Environment on the server: database URL, model key, vault key. None in the repo, none in the database.</td></tr>
 </table>
 
-<h2 style="margin-top:6mm">6 · Open questions for this review</h2>
+<h2 style="margin-top:6mm">8 · Open questions for this review</h2>
 <ol>
 <li><b>Region.</b> Singapore or Frankfurt for the database and server? Depends on where the first users are.</li>
 <li><b>Per-user mailbox connections in the API.</b> The worker opens each user's mailbox from the vault. The API currently reuses one connection opened at startup, which is fine for one user and wrong for two. The fix is known (open from the vault per request, cache per account); it should be agreed before it is built.</li>
@@ -268,8 +710,8 @@ sleep 20 s</div>
 <li><b>Hosting.</b> Where the API and worker live, and who holds the environment secrets.</li>
 </ol>
 
-<h2 style="margin-top:6mm">7 · What exists right now, plainly</h2>
-<p>A working single-user version on one laptop, using this design: the schema is applied on Neon, one test account's mail has been imported, sign-up and sign-in work, the feature routes respond, and the worker completes a pass. It has been exercised by one person against one mailbox. It has not been used by two people at once, has not been deployed, and has not been pushed to a shared repository. It should be read as a first implementation of this draft, to be adjusted after this review.</p>
+<h2 style="margin-top:6mm">9 · What exists right now, plainly</h2>
+<p>This document is the main work product so far. To check that the design holds together, some exploratory code was written on one laptop against one test mailbox: the shared tables were applied to a hosted Postgres, a copy of the test mailbox was loaded, and the sign-in and a few of the routes were tried. That code is exploratory, not production quality, and is expected to be reshaped or replaced after this review. Nothing is deployed, nothing has been used by more than one person, and nothing has been pushed to a shared repository.</p>
 
 <div class="foot">Custodian · backend design draft 0.1 · 19 September 2026 · related: docs/API.md (route contract), poc/db/schema.sql (shared tables), Doc1 Components (pipeline and connectors)</div>
 </body>
