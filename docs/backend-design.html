@@ -700,7 +700,55 @@ sleep 20 s</div>
 <tr><td class="k">Secrets</td><td>Environment variables on the laptop.</td><td>Environment on the server: database URL, model key, vault key. None in the repo, none in the database.</td></tr>
 </table>
 
-<h2 style="margin-top:6mm">8 · Open questions for this review</h2>
+
+<div class="sheet"></div>
+<h2>8 · Resources: each model, at each size</h2>
+<p>What it takes to run Custodian for 10, 100, 1,000 and 10,000 people. Every figure below is an estimate from measurements on one laptop and one test mailbox, scaled by stated assumptions. Treat them as within a factor of two, not as quotes.</p>
+
+<h3>8.1 · The models in the system</h3>
+<table>
+<tr><th>Model</th><th>Job</th><th>Where it runs</th><th>Size</th><th>Measured</th></tr>
+<tr><td class="k">Classifier</td><td>Stage 8: what kind of message is this, does it need a reply (fixed label list)</td><td>Our CPU</td><td>278 M parameters · 550 MB on disk · ~1.7 GB RAM loaded</td><td>66 ms per message on a 12-core laptop; 49 s to load once</td></tr>
+<tr><td class="k">Name spotter</td><td>Stage 10: find names and personal details so they can be hidden before any hosted call</td><td>Our CPU</td><td>278 M parameters · 1.1 GB on disk · ~1 GB RAM loaded</td><td>69 ms per message; 12 s to load once</td></tr>
+<tr><td class="k">Hosted model (Gemini Flash-Lite)</td><td>Stage 7 deadline choice · stage 18 requests and promises · reply drafts on request · typed rules</td><td>Google, over the network, redacted text only</td><td>none of ours</td><td>1 to 3 s per call; priced per token</td></tr>
+<tr><td class="k">Voice profile</td><td>Stage 19: how the person writes</td><td>Our CPU</td><td>plain arithmetic, no model file</td><td>negligible</td></tr>
+<tr><td class="k">Chat understanding</td><td>Parked. Which feature, with which inputs</td><td>Undecided: our CPU or hosted</td><td>see 8.4</td><td>not built</td></tr>
+</table>
+
+<h3>8.2 · Assumptions per person per day</h3>
+<table>
+<tr><th>Assumption</th><th>Value</th><th>Why</th></tr>
+<tr><td class="k">Mail received</td><td>120 messages</td><td>typical for a working inbox; the test mailbox averages 60 to 150</td></tr>
+<tr><td class="k">Settled by rules alone</td><td>70 %, no model touched</td><td>bulk, automated, sensitive-by-sender, already-known senders</td></tr>
+<tr><td class="k">Through the two local models</td><td>36 messages</td><td>the remaining 30 %</td></tr>
+<tr><td class="k">Sent to the hosted model</td><td>18 request scans · 5 deadline picks · 3 drafts</td><td>personal mail only, and drafts only when asked</td></tr>
+<tr><td class="k">Hosted tokens</td><td>~42 k in · ~4.5 k out per day → ~1.3 M in · ~0.14 M out per month</td><td>prompt sizes measured in the POC</td></tr>
+<tr><td class="k">Database growth</td><td>~1 KB per message → ~20 MB per person in the first year</td><td>measured: 7,391 messages take 7.5 MB, bodies kept only for a short window</td></tr>
+<tr><td class="k">Mailbox polling</td><td>one IMAP check every 20 s, ~0.3 s each</td><td>measured on Gmail; push (IMAP IDLE) would remove most of this</td></tr>
+</table>
+
+<h3>8.3 · What each size needs</h3>
+<table>
+<tr><th>People</th><th>Servers (API + worker + local models)</th><th>Database</th><th>Hosted model</th><th>Rough monthly total</th></tr>
+<tr><td class="k">10</td><td>1 × 4 vCPU / 8 GB. The two local models take ~3 GB of it and sit idle most of the day.</td><td>Neon free tier, or the same server. &lt;1 GB.</td><td>Within Google's free tier, or ~$2</td><td><b>€15 – 25</b></td></tr>
+<tr><td class="k">100</td><td>Same one server. Local models: 100 × 36 × 0.15 s ≈ 9 CPU-minutes a day.</td><td>Neon Launch: ~2 GB storage, light compute. ~$15 – 25</td><td>~$20</td><td><b>€45 – 60</b></td></tr>
+<tr><td class="k">1,000</td><td>1 API server (4 vCPU / 8 GB) + 2 worker servers (8 vCPU / 16 GB), each worker watching ~500 mailboxes. Local models: ~1.5 CPU-hours a day, still small.</td><td>Neon: ~20 GB, 1 – 2 CU mostly on. ~$100 – 150. Or own Postgres on a server with backups: ~€20 + our time.</td><td>~$190</td><td><b>€300 – 400</b> · ~€0.35 per person</td></tr>
+<tr><td class="k">10,000</td><td>2 API servers + ~20 worker servers, or fewer with IMAP push. Local models moved to their own 2 servers (8 vCPU / 16 GB) serving everyone: ~15 CPU-hours a day.</td><td>~200 GB. Neon at this size ~$400 – 700; a dedicated Postgres server with replication is likely cheaper. One-schema-per-account needs revisiting at this size (160,000 tables).</td><td>~$1,900</td><td><b>€2,800 – 3,500</b> · ~€0.30 per person</td></tr>
+</table>
+<div class="note"><b>The main point.</b> The two local models are a fixed cost of about 3 GB of memory and a few CPU-minutes per hundred people. They do not get more expensive with users in any way that matters. The costs that do scale are the hosted model (about $0.19 per person per month at Flash-Lite prices) and watching mailboxes (one worker server per ~500 people while we poll). Push notification, where the provider supports it, is the single biggest saving at scale.</div>
+
+<h3>8.4 · Already-deployed models: cheaper or not?</h3>
+<table>
+<tr><th>Model</th><th>Run it ourselves</th><th>Rent it hosted</th><th>Verdict</th></tr>
+<tr><td class="k">Classifier</td><td>Loaded inside the worker. Marginal cost ≈ 0 once the server exists.</td><td>A dedicated CPU endpoint (Hugging Face) is ~$0.033 an hour ≈ $24 a month, billed 24/7 whether used or not, plus a network hop per message.</td><td><b>Ours.</b> Hosted costs more and adds latency.</td></tr>
+<tr><td class="k">Name spotter</td><td>Same as above.</td><td>Same: ~$24 a month per endpoint.</td><td><b>Ours.</b> Also the one model that must not leave the building, since its whole job is to find the private parts.</td></tr>
+<tr><td class="k">Reading and drafting (Gemini)</td><td>An open 7 – 8 B model on a rented GPU (L4, ~$0.80 an hour) ≈ $580 a month, any number of users. Quality unproven for our prompts.</td><td>Flash-Lite ≈ $0.19 per person per month. Free tier covers the first handful of people.</td><td><b>Hosted</b> until roughly 3,000 people, where the GPU rent breaks even. Revisit then with a blind quality comparison.</td></tr>
+<tr><td class="k">Chat (parked)</td><td>Our two small models retrained on example sentences. Marginal ≈ 0. Needs a few hundred labelled examples first.</td><td>Flash-Lite at ~10 turns a day ≈ $0.03 per person per month.</td><td><b>Undecided.</b> Cost is not the deciding factor at either size; privacy and dependency are. Decide by a fixed 50-sentence test.</td></tr>
+<tr><td class="k">Database</td><td>Postgres on our own server: ~€0 extra, our backups, our upgrades.</td><td>Neon: $0.35 per GB-month plus $0.106 per compute-unit-hour, scales to zero when idle.</td><td><b>Hosted</b> to 1,000 people, then compare.</td></tr>
+</table>
+<p class="cap">Prices as of September 2026: Gemini 2.5 Flash-Lite $0.10 in / $0.40 out per million tokens (batch mode half); Hugging Face dedicated CPU endpoints from $0.033/h, L4 GPU $0.80/h; Neon Launch $0.106/CU-hour and $0.35/GB-month; Hetzner CPX32 (4 vCPU / 8 GB) €10.99, CPX42 (8 vCPU / 16 GB) €19.99 after the June 2026 rise. All to be re-checked before purchase.</p>
+
+<h2 style="margin-top:6mm">9 · Open questions for this review</h2>
 <ol>
 <li><b>Region.</b> Singapore or Frankfurt for the database and server? Depends on where the first users are.</li>
 <li><b>Per-user mailbox connections in the API.</b> The worker opens each user's mailbox from the vault. The API currently reuses one connection opened at startup, which is fine for one user and wrong for two. The fix is known (open from the vault per request, cache per account); it should be agreed before it is built.</li>
@@ -708,9 +756,11 @@ sleep 20 s</div>
 <li><b>The chat.</b> Agreed that there is one. Not designed. It should call the same feature functions the routes call, and pass through the same gate; whether it is a route that returns text, or something streaming, is open.</li>
 <li><b>Retention.</b> How long message bodies are kept, and whether the person can choose.</li>
 <li><b>Hosting.</b> Where the API and worker live, and who holds the environment secrets.</li>
+<li><b>Chat understanding, parked.</b> Our retrained small models, a half-billion instruction model, or the hosted model. Recommendation: build a 50-sentence test set first and let it decide; lean small for privacy.</li>
+<li><b>Mailbox push.</b> Polling costs one worker server per ~500 people. IMAP IDLE and Gmail push cut that sharply; worth deciding before 1,000 people.</li>
 </ol>
 
-<h2 style="margin-top:6mm">9 · What exists right now, plainly</h2>
+<h2 style="margin-top:6mm">10 · What exists right now, plainly</h2>
 <p>This document is the main work product so far. To check that the design holds together, some exploratory code was written on one laptop against one test mailbox: the shared tables were applied to a hosted Postgres, a copy of the test mailbox was loaded, and the sign-in and a few of the routes were tried. That code is exploratory, not production quality, and is expected to be reshaped or replaced after this review. Nothing is deployed, nothing has been used by more than one person, and nothing has been pushed to a shared repository.</p>
 
 <div class="foot">Custodian · backend design draft 0.1 · 19 September 2026 · related: docs/API.md (route contract), poc/db/schema.sql (shared tables), Doc1 Components (pipeline and connectors)</div>
