@@ -36,7 +36,7 @@
 <table>
 <tr><th>Requirement</th><th>Where it comes from</th></tr>
 <tr><td class="k">Accounts</td><td>Sign up, sign in, reset. A session reaches an account, never a mailbox on its own (UC-01, UC-02).</td></tr>
-<tr><td class="k">Mailboxes</td><td>Connect Gmail, Outlook, Yahoo, Zoho, iCloud by app password or provider sign-in; disconnect cleanly (UC-04 to UC-13).</td></tr>
+<tr><td class="k">Mailboxes</td><td>Connect a mailbox by app password or provider sign-in; disconnect cleanly (UC-04 to UC-13). Target providers: Gmail (tested), Yahoo, Zoho and iCloud (standard IMAP, expected to work, not yet tried), Outlook (needs a Microsoft app registration and sign-in flow, not yet tried).</td></tr>
 <tr><td class="k">Always reading</td><td>New mail is noticed within seconds and passed through the pipeline without anyone at a keyboard.</td></tr>
 <tr><td class="k">Features</td><td>The 50 use cases: today's list, requests and promises, the pile, brands, unsubscribe, storage, spam rescue, reminders, rules, people, threads, search, digest, voice, calendar.</td></tr>
 <tr><td class="k">Safety</td><td>Nothing irreversible without the person seeing the exact wording and saying yes. Nothing is ever deleted. Credentials never in plain text. Model calls never see real names.</td></tr>
@@ -95,7 +95,7 @@
 <!-- mail servers -->
 <rect x="335" y="360" width="275" height="45" rx="4" class="box ok"/>
 <text x="472" y="379" text-anchor="middle" class="t">Mail servers</text>
-<text x="472" y="394" text-anchor="middle" class="s">Gmail · Outlook · Yahoo · Zoho · iCloud · any IMAP</text>
+<text x="472" y="394" text-anchor="middle" class="s">Gmail (tested) · Yahoo · Zoho · iCloud · Outlook (untested)</text>
 <!-- arrows -->
 <path d="M105 72 V118" class="ln"/>
 <text x="112" y="100" class="s">HTTPS + Bearer token</text>
