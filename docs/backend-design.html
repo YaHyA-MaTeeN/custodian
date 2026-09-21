@@ -748,13 +748,17 @@ sleep 20 s</div>
 <li><b>Chat model chosen by measurement.</b> A fixed 50-sentence test set first; the smallest model that passes wins. Parked until then.</li>
 <li><b>Local models stay local.</b> The classifier and name spotter run on our servers; the name spotter never leaves, since its job is to find the private parts.</li>
 </ol>
-<h3>9.2 · Needs your sign-off</h3>
-<ol>
-<li><b>Region.</b> Singapore or Frankfurt for the database and servers, depending on where the first users are.</li>
-<li><b>Hosting budget.</b> Section 8.3 gives the numbers per user count; which tier to start at.</li>
-<li><b>Outbound email service</b> for confirmations and resets, and the sending address.</li>
-<li><b>Retention.</b> How long message bodies are kept, and whether the person can choose.</li>
-</ol>
+<h3>9.2 · Proposed starting setup, cheapest that works</h3>
+<table>
+<tr><th>Item</th><th>Proposal</th><th>Cost</th><th>Why</th></tr>
+<tr><td class="k">Region</td><td>Singapore for database and server</td><td>—</td><td>nearest to the first users; Frankfurt if they turn out to be in Europe</td></tr>
+<tr><td class="k">Servers</td><td>one 4 vCPU / 8 GB server running API, worker and both local models</td><td>€11 / month</td><td>the 10-user row in 8.3; enough to 100 users</td></tr>
+<tr><td class="k">Database</td><td>Neon free tier, moved to Launch when storage passes 0.5 GB</td><td>€0, then usage-based</td><td>about 25 users' first year fit in the free tier</td></tr>
+<tr><td class="k">Hosted model</td><td>Gemini Flash-Lite, free tier</td><td>€0, then ~$0.19 / user / month</td><td>the free tier covers the first handful of users</td></tr>
+<tr><td class="k">Confirmation and reset emails</td><td>a free transactional tier (Brevo 300 / day or Resend 3,000 / month) from a no-reply address on our domain</td><td>€0</td><td>no server to run, sender reputation handled for us</td></tr>
+<tr><td class="k">Retention</td><td>message bodies kept 30 days, headers and decisions kept; user may shorten</td><td>—</td><td>what the POC already does; 30 days covers drafting and catch-up</td></tr>
+<tr><td class="k" style="font-weight:700">Total to start</td><td colspan="3"><b>about €11 – 15 / month</b> until roughly 25 users, then the 100-user row in 8.3</td></tr>
+</table>
 <h2 style="margin-top:6mm">10 · What exists right now, plainly</h2>
 <p>This design is drawn from the proof of concept and from exploratory backend work done to check it holds together, on one laptop against one test mailbox: the shared tables were applied to a hosted Postgres, a copy of the test mailbox was loaded, and the sign-in and a few of the routes were tried. That code is exploratory, not production quality, and is expected to be reshaped or replaced after this review. Nothing is deployed, nothing has been used by more than one person, and nothing has been pushed to a shared repository.</p>
 
