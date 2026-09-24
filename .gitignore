@@ -41,3 +41,8 @@ web/out/
 /*.html
 /*.txt
 !README.md
+
+# not part of the backend repo
+use_cases/
+web/
+docs/checklist-src/
