@@ -44,12 +44,36 @@ def _approval(action: str, wording: str, confirm: str) -> stage13_approval.Appro
     return ap
 
 
-def _conn(account: Optional[Account]):
-    """The account's live mailbox connection. Single-user: the API's own."""
-    import api
+def _conn(account: Optional[Account], address: str = ""):
+    """
+    This account's own mailbox connection, opened from the vault and pooled.
+    address empty → the account's first connected mailbox. Single-user mode:
+    the API's one mailbox, as before.
+    """
+    import mailboxes
+    return mailboxes.conn_for(account, store_for(account), address)
+
+
+def _conns(account: Optional[Account]):
+    """[(address, connection)] for every connected mailbox of this account."""
+    import mailboxes
     if account is None:
-        return api.conn()
-    return api.conn()          # MVP: one connected mailbox per process; see docs/API.md
+        c = _conn(None)
+        return [(c.account_email(), c)]
+    st = store_for(account)
+    out = []
+    for address, provider, route, level, state, at in st.mailboxes():
+        if state == "connected":
+            out.append((address, mailboxes.conn_for(account, st, address)))
+    if not out:
+        raise HTTPException(409, "Connect a mailbox first.")
+    return out
+
+
+def _conn_msg(account: Optional[Account], s, message_id: str):
+    """The connection for the mailbox a stored message arrived at."""
+    import mailboxes
+    return mailboxes.conn_for_message(account, s, message_id)
 
 
 def _live(conn, pid, mid):
@@ -94,7 +118,8 @@ def register(app):
         import asks
         s = store_for(account)
         before = len(s.open_requests())
-        asks.scan_incoming(_conn(account), s, account_email(account), days=body.days)
+        for addr, c in _conns(account):
+            asks.scan_incoming(c, s, addr, days=body.days)
         return {"found": len(s.open_requests()) - before}
 
     @app.post("/api/asks/promises/scan")
@@ -102,7 +127,8 @@ def register(app):
         import asks
         s = store_for(account)
         before = len(s.open_requests("promise"))
-        asks.scan_sent(_conn(account), s, account_email(account))
+        for addr, c in _conns(account):
+            asks.scan_sent(c, s, addr)
         closed = asks.close_delivered(s, account_email(account))
         return {"found": len(s.open_requests("promise")) - before, "closed": closed}
 
@@ -164,12 +190,13 @@ def register(app):
 
     @app.post("/api/catchup/mark-read")
     def catchup_mark_read(body: MarkRead, account: Optional[Account] = Depends(current_account)):
-        s = store_for(account); c = _conn(account); n = 0
+        s = store_for(account); n = 0
         for mid in body.messageIds[:500]:
             pid = s.one("SELECT provider_id FROM messages WHERE message_id=?", mid)
             if not pid:
                 continue
             try:
+                c = _conn_msg(account, s, mid)
                 c.mark_read(_live(c, pid, mid), mid)
                 s.record_action(mid, pid, "mark_read", "catch-up"); n += 1
             except Exception:
@@ -183,12 +210,13 @@ def register(app):
         """UC-25: redact → write in the user's voice → restore locally. Nothing sent."""
         import agent
         from pipeline import model
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         row = s.q("SELECT message_id, sender, sender_name, sender_domain, subject, account "
                   "FROM messages WHERE provider_id=?", provider_id)
         if not row:
             raise HTTPException(404, "no such message")
         mid, sender, sname, domain, subject, acct = row[0]
+        c = _conn(account, acct or "")
         if stage03_sensitive.check(sender, subject or "", domain or "")["sensitive"]:
             raise HTTPException(409, "This message is never opened — sensitive by sender and subject.")
         raw = connect.fetch_verified(c, provider_id, mid)
@@ -210,11 +238,12 @@ def register(app):
     @app.post("/api/messages/{provider_id}/drafts")
     def to_drafts(provider_id: str, body: DraftIn, account: Optional[Account] = Depends(current_account)):
         """Write the draft into the mailbox's own Drafts folder, threaded. Reversible."""
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         row = s.q("SELECT message_id, sender, subject, refs FROM messages WHERE provider_id=?", provider_id)
         if not row:
             raise HTTPException(404, "no such message")
         mid, sender, subject, refs = row[0]
+        c = _conn_msg(account, s, mid)
         d = c.create_draft(to=sender, subject=f"Re: {subject or ''}", body=body.body,
                            in_reply_to=mid, references=refs or mid)
         s.record_action(mid, provider_id, "draft", f"to {sender}", before=str(d.get("id", "")))
@@ -223,11 +252,12 @@ def register(app):
     @app.get("/api/messages/{provider_id}/quick")
     def quick(provider_id: str, account: Optional[Account] = Depends(current_account)):
         """UC-26: at most three fixed answers, no model."""
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         row = s.q("SELECT message_id, subject FROM messages WHERE provider_id=?", provider_id)
         if not row:
             raise HTTPException(404, "no such message")
         mid, subject = row[0]
+        c = _conn_msg(account, s, mid)
         text = s.body(mid) or stage02_strip.strip(connect.fetch_verified(c, provider_id, mid))["text"]
         out = [{"key": o["key"], "text": o["text"], "confirm": _confirm_token(o["text"])}
                for o in stage17_quick.suggest(text, subject or "")]
@@ -241,14 +271,15 @@ def register(app):
     def send(provider_id: str, body: SendIn, account: Optional[Account] = Depends(current_account)):
         """Sends only with the confirm token for THIS exact body, from the account it arrived at."""
         ap = _approval("send", body.body, body.confirm)
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         row = s.q("SELECT message_id, sender, subject, refs, thread_id, account FROM messages "
                   "WHERE provider_id=?", provider_id)
         if not row:
             raise HTTPException(404, "no such message")
         mid, sender, subject, refs, tid, acct = row[0]
-        if acct and account_email(account) and acct.lower() != account_email(account).lower():
+        if account is None and acct and account_email(None) and acct.lower() != account_email(None).lower():
             raise HTTPException(409, f"This message arrived at {acct}; a reply may only leave from there.")
+        c = _conn(account, acct or "")       # the reply leaves from the mailbox it arrived at
         if s.already_replied(mid):
             raise HTTPException(409, "You already replied to this message.")
         r = stage13_approval.execute(c, "send", _live(c, provider_id, mid), draft=body.body,
@@ -292,13 +323,14 @@ def register(app):
 
     @app.post("/api/forward-batch")
     def forward_batch(body: ForwardIn, account: Optional[Account] = Depends(current_account)):
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         to, rows, wording = _forward_plan(s, body, account_email(account))
         if body.confirm != _confirm_token(wording):
             raise HTTPException(409, "Not confirmed — send back the preview's confirm token.")
         written = []
         try:
             for pid, mid, snd, subject, date, acct in rows:
+                c = _conn(account, acct or "")
                 text = stage02_strip.strip(connect.fetch_verified(c, pid, mid))["text"]
                 content = (f"{body.note}\n\n" if body.note else "") + \
                           f"---------- Forwarded message ----------\nFrom: {snd}\nDate: {date}\n" \
@@ -379,12 +411,13 @@ def register(app):
 
     @app.post("/api/pile/clear")
     def pile_clear(body: Senders, account: Optional[Account] = Depends(current_account)):
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         chosen, n, wording = _pile_plan(s, account_email(account), body)
         ap = _approval("trash", wording, body.confirm)
         done = failed = 0
         for g in chosen:
             for pid, mid, subject in g["ids"]:
+                c = _conn_msg(account, s, mid)
                 r = stage13_approval.execute(c, "trash", _live(c, pid, mid), draft=wording, approval=ap)
                 if r["done"]:
                     s.record_action(mid, pid, "trash", (subject or "")[:70], before="INBOX"); done += 1
@@ -431,7 +464,7 @@ def register(app):
     @app.post("/api/brands/{company}/clear")
     def brand_clear(company: str, body: Confirm, account: Optional[Account] = Depends(current_account)):
         import brand
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         g = brand.companies(s, account_email(account)).get(company.lower())
         if not g:
             raise HTTPException(404, "not offered")
@@ -440,6 +473,7 @@ def register(app):
         ap = _approval("trash", wording, body.confirm)
         done = 0
         for snd, pid, mid, subject in go:
+            c = _conn_msg(account, s, mid)
             r = stage13_approval.execute(c, "trash", _live(c, pid, mid), draft=wording, approval=ap)
             if r["done"]:
                 s.record_action(mid, pid, "trash", (subject or "")[:70], before="INBOX"); done += 1
@@ -471,7 +505,7 @@ def register(app):
     @app.post("/api/unsubscribe")
     def unsub_do(body: Sender, account: Optional[Account] = Depends(current_account)):
         from pipeline import stage15_unsubscribe as unsub
-        s = store_for(account); c = _conn(account)
+        s = store_for(account)
         sender = body.sender.lower()
         wording = f"unsubscribe {sender}"
         ap = _approval("unsubscribe", wording, body.confirm)
@@ -484,7 +518,8 @@ def register(app):
         o = unsub.options(header, bool(one_click))
         if not o["can_one_click"]:
             raise HTTPException(409, "this sender only offers a web page; we will not open it for you")
-        pid = s.one("SELECT provider_id FROM messages WHERE sender=? ORDER BY date_iso DESC LIMIT 1", sender)
+        pid, mid = s.q("SELECT provider_id, message_id FROM messages WHERE sender=? ORDER BY date_iso DESC LIMIT 1", sender)[0]
+        c = _conn_msg(account, s, mid)
         r = stage13_approval.execute(c, "unsubscribe", pid, draft="", approval=ap,
                                      extra={"unsubscribe": header, "one_click": bool(one_click)})
         if not r["done"]:
@@ -528,18 +563,19 @@ def register(app):
     @app.get("/api/spam")
     def spam_view(account: Optional[Account] = Depends(current_account)):
         import spam_rescue
-        s = store_for(account); c = _conn(account); me = account_email(account)
+        s = store_for(account)
         out = []
-        for env in c.spam_envelopes(limit=100):
-            pts, why = spam_rescue.score(s, me, env)
-            if pts >= spam_rescue.THRESHOLD:
-                out.append({"providerId": env.provider_id, "messageId": env.message_id, "sender": env.sender,
-                            "subject": env.subject, "date": env.date, "reasons": why})
+        for addr, c in _conns(account):
+            for env in c.spam_envelopes(limit=100):
+                pts, why = spam_rescue.score(s, addr, env)
+                if pts >= spam_rescue.THRESHOLD:
+                    out.append({"providerId": env.provider_id, "messageId": env.message_id, "sender": env.sender,
+                                "subject": env.subject, "date": env.date, "reasons": why, "account": addr})
         return {"likely": out, "note": "Nothing here is presented as safe. Look before you act."}
 
     @app.post("/api/spam/{provider_id}/rescue")
-    def spam_rescue_do(provider_id: str, account: Optional[Account] = Depends(current_account)):
-        s = store_for(account); c = _conn(account)
+    def spam_rescue_do(provider_id: str, mailbox: str = "", account: Optional[Account] = Depends(current_account)):
+        s = store_for(account); c = _conn(account, mailbox)
         try:
             c.rescue_from_spam(provider_id)
         except Exception as e:
@@ -639,7 +675,7 @@ def register(app):
     @app.get("/api/threads/{message_id}")
     def thread_state(message_id: str, account: Optional[Account] = Depends(current_account)):
         import threads
-        s = store_for(account); c = _conn(account); me = account_email(account).lower()
+        s = store_for(account); me = account_email(account).lower()
         msgs = threads.thread_of(s, message_id)
         people_ = sorted({(sn or snd) for _, _, snd, sn, *_ in msgs})
         if len(msgs) < 3:
@@ -648,6 +684,7 @@ def register(app):
         asks_ = []
         for i, (m, pid, snd, sn, subject, date, to) in enumerate(msgs):
             try:
+                c = _conn_msg(account, s, m)
                 text = stage02_strip.strip(connect.fetch_verified(c, pid, m))["text"]
             except Exception:
                 continue
@@ -813,6 +850,9 @@ def register(app):
             s.conn.execute("UPDATE public.mailboxes SET state='disconnected' WHERE address=%s", (address,))
             s.conn.commit()
         s.record_action("", "", "disconnect", address)
+        if account is not None:
+            import mailboxes
+            mailboxes.drop(account.email, address)
         return {"ok": True, "erased": {"messages": n},
                 "willStay": ["every label", "every cleared message", "every draft already in the mailbox"],
                 "lost": lost,

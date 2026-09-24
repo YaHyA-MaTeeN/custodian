@@ -204,6 +204,17 @@ the token. Never store a token across sessions.
 
 Run `python api_smoke.py` from `poc/` to see every refusal happen.
 
+## Mailbox connections in accounts mode
+
+Every route that touches a mailbox opens the signed-in account's own mailbox
+with the app password from the credential vault (`CUSTODIAN_SECRET` must be
+set on the server). Connections are pooled per (account, address), checked
+before each use and closed after 10 minutes idle. A route acting on a stored
+message uses the mailbox that message arrived at; scans and the spam view
+cover every connected mailbox of the account. An account with no connected
+mailbox gets `409 Connect a mailbox first.` on those routes. Proof:
+`python mailbox_smoke.py` from `poc/`.
+
 ## The worker (always on, no browser)
 
 ```

@@ -32,6 +32,7 @@ import time
 from datetime import datetime, timedelta
 
 import connect
+from api_auth import accounts_mode
 from store import Store
 
 HOUSEKEEPING_EVERY = timedelta(hours=1)
@@ -121,7 +122,7 @@ def open_all(log) -> list:
     Accounts: every mailbox in public.mailboxes whose app password is in the
     vault — one connector each, with that account's own schema.
     """
-    if not os.environ.get("DATABASE_URL"):
+    if not accounts_mode():
         conn = connect.open_mailbox(quiet=True)
         return [Mailbox(conn.account_email(), conn, Store())]
 
@@ -174,7 +175,7 @@ def main():
             except Exception as e:
                 box.stats["errors"] += 1
                 log(f"{box.address}: {str(e)[:70]}")
-                if not os.environ.get("DATABASE_URL") and any(
+                if not accounts_mode() and any(
                         k in str(e) for k in ("socket", "EOF", "BYE", "closed")):
                     try:
                         box.conn = connect.open_mailbox(quiet=True)

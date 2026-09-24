@@ -33,7 +33,8 @@ _LOCK = threading.Lock()
 
 
 def accounts_mode() -> bool:
-    return bool(os.environ.get("DATABASE_URL"))
+    """Accounts are on when Postgres is the store. CUSTODIAN_STORE=sqlite forces single-user."""
+    return bool(os.environ.get("DATABASE_URL")) and         os.environ.get("CUSTODIAN_STORE", "pg").lower() != "sqlite"
 
 
 class Account(BaseModel):
