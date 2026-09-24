@@ -254,13 +254,59 @@ send the digest if due.
 **Run it.** `cd c:\mob_ai\poc` then `python worker.py`. Send yourself an
 email; within 20 seconds a line says "1 new".
 
-### 4.9 · The chat
+### 4.9 · The chat: where it stands
 
-**Status.** A terminal prototype exists, `poc/chat.py`: you type sentences,
-Gemini picks from a fixed menu of actions, the gate still applies. There is
-no chat route in the API yet. Parked until the model is chosen by a test
-with 50 real sentences. Recommendation: our two small models retrained,
-because the chat only has to pick a feature and pull out the details.
+**The decision.** There will be a chat. You and sir agreed that. It is not
+built for the website yet, and that is deliberate, not forgotten.
+
+**What exists today.** A terminal prototype, `poc/chat.py`. You type a
+sentence like "anything from linkedin?" or "email ali and ask if he got the
+report". Gemini is shown a fixed menu of actions our code allows right now
+and picks one. It cannot pick anything off the menu, and "send" is not on
+the menu until a draft exists. The gate still applies: nothing irreversible
+happens without the typed yes. What you type is treated as an instruction;
+what is inside an email is treated as data; the two never share a code path,
+so an email cannot talk the chat into doing something.
+
+**What does not exist.** A chat route in the API, so Umar has nothing to
+call yet. No memory of previous turns. No handling of two requests in one
+sentence.
+
+**How it will be built.** The chat is a receptionist for a building that
+already has fifteen rooms (the features). It has two jobs: hear which room
+the person wants, and hear the details (a name, a date, a sender). Then the
+backend walks them to the room; the room does the work. If the room is an
+irreversible one, the chat returns the preview wording and confirm token
+like every other route. Replies come from templates, not free-form writing.
+
+**The open question: which model does the hearing.** Three options:
+
+| Option | Cost | Needs | Handles messy sentences |
+|---|---|---|---|
+| Our two small models, retrained on example sentences | about nothing | a few hundred labelled example sentences first | well for short one-intent sentences; asks back on two-part ones |
+| A half-billion instruction model, local | a bigger server | no examples | better |
+| Gemini, hosted | about $0.03 per user per month | nothing | best |
+
+**Recommendation.** Go small. The menu is only fifteen rooms and the
+sentences people type to an email assistant are short. Small keeps the
+person's words on our server, costs nothing per message, and reuses models
+we have already trained once. Gemini stays for drafting replies, where
+writing quality matters.
+
+**How to decide honestly.** Write 50 real test sentences with the correct
+answer for each. Run all three. Pick the smallest that scores well enough
+(above about 90 percent on choosing the right room). This is why it is
+parked: choosing by measurement, not by opinion.
+
+**If sir asks "why not just use Gemini for the chat, it is cheap?"** Cost is
+not the reason. Privacy and dependency are: the person's typed words would
+leave our server on every turn, and the feature would stop if Google did.
+The test decides; if small scores badly, we move up one size.
+
+**If he asks "does it handle any sentence?"** It handles the sentences the
+product is for. Two-part sentences get a question back. Questions with no
+room behind them, like "why is Ali angry", get "I can't do that yet" rather
+than an invented answer.
 
 ---
 
@@ -406,8 +452,12 @@ cheapest.
 **"What is not done?"** Part 9, say it before he asks.
 
 **"What is next?"** Deploy to one small server in Singapore, connect the
-email service for confirmations, build the chat route after the model test,
-try the other providers.
+email service for confirmations, write the 50-sentence chat test and build
+the chat route on whichever model passes, try the other providers.
+
+**"Where is the chat?"** A terminal prototype exists and works with the
+gate. The website route is parked until the model is chosen by a
+50-sentence test. Recommendation is our own small models, retrained.
 
 ---
 
