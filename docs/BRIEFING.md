@@ -190,12 +190,16 @@ discover which emails have accounts. Failed logins are throttled. A password
 reset kills every session. Signing in gives access to the account only, not
 to any mailbox; connecting a mailbox is a separate step with its own password.
 
-**Honest limit.** No email is actually sent yet. The confirmation and reset
-tokens come back in the response. Sending them needs an email service (the
-proposal names a free tier).
+**Confirmation emails are real.** `poc/mailer.py` sends the confirmation
+and reset links over SMTP from a Custodian mailbox (for now, your Gmail on
+the free tier; a transactional service can replace the file later without
+touching anything else). When a sender is configured, the token is emailed
+and never returned in the response.
 
 **Proof.** `poc/auth_smoke.py`: 14 steps, all expected codes, output in
-`poc/test_runs/auth_smoke_*.txt`.
+`poc/test_runs/auth_smoke_*.txt`. `poc/mail_smoke.py`: registers with your
+own address, the email arrives in about 10 seconds, the link in it confirms
+the account, login works, output in `poc/test_runs/mail_smoke_*.txt`.
 
 ### 4.6 · The API and the gate
 
@@ -342,6 +346,7 @@ Every proof run is saved as text in `poc/test_runs/` with its date.
 | `poc/verify_doc.py` | Umar's IMAP-vs-API document, 16 claims checked | `verify_doc_*.txt` |
 | `poc/limits_imap.py` | IMAP rate and connection limits, 2.3 percent of the daily cap used | `limits_imap_*.txt` |
 | `poc/auth_smoke.py` | Accounts flow, 14 steps | `auth_smoke_*.txt` |
+| `poc/mail_smoke.py` | Register → real confirmation email → link confirms → login | `mail_smoke_*.txt` |
 | `poc/api_smoke.py` | Routes respond, gate refuses without a token | run it live |
 | `poc/mailbox_smoke.py` | Per-user mailbox from the vault, second account refused | `mailbox_smoke_*.txt` |
 | `poc/worker.py --once` | One pass of the worker: 3 older messages, 0 errors | run it live |
@@ -390,7 +395,7 @@ tier, a free email tier for confirmations, bodies kept 30 days. About €11 to
 
 - Only Gmail is tested. Yahoo, Zoho, iCloud should work over standard IMAP
   but have not been tried. Outlook needs a Microsoft app registration.
-- No confirmation emails are sent yet; tokens come back in the response.
+- Confirmation emails go out from our own Gmail for now, not a transactional service; fine to a few hundred users, then switch.
 - The chat has no API route; a terminal prototype only.
 - Search covers sender, subject and date, not message text.
 - IMAP cannot push or snooze; the worker polls every 20 seconds.
@@ -473,6 +478,7 @@ cd c:\mob_ai\poc
 |---|---|---|
 | The worker noticing mail | `python worker.py` then email yourself | "1 new" within 20 seconds; Ctrl+C to stop |
 | The accounts flow | `python auth_smoke.py` | 14 lines, all expected codes |
+| A real confirmation email | `python mail_smoke.py` | email arrives in ~10 s, link confirms, login 200 |
 | Per-user mailbox from the vault | `python mailbox_smoke.py` | connect 200, spam route 200 from the vault, other account 409 |
 | The gate refusing | `python api_smoke.py` | 409 on every action without a token |
 | Today's list | `python today.py` | the ordered list |

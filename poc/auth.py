@@ -85,8 +85,15 @@ def register(email: str, password: str) -> dict:
                   "VALUES (%s, %s, 'confirm', %s)",
                   (token, account_id, datetime.now(timezone.utc) + timedelta(days=CONFIRM_DAYS)))
         c.commit()
-    # The token would be emailed. Until there is an outbound mail service it
-    # is returned here for the caller to deliver.
+    # Emailed when a sender is configured (mailer.py). Otherwise, in
+    # development, returned here for the caller to deliver.
+    import mailer
+    if mailer.configured():
+        try:
+            mailer.send_confirmation(email, token)
+            return {"ok": True, "needsConfirmation": True, "detail": "Check your inbox for the confirmation link."}
+        except Exception as e:
+            return {"ok": False, "detail": f"Could not send the confirmation email ({type(e).__name__}). Try again in a minute."}
     return {"ok": True, "needsConfirmation": True, "confirmToken": token}
 
 
@@ -167,6 +174,14 @@ def request_reset(email: str) -> dict:
                       (token, r[0], datetime.now(timezone.utc) + timedelta(hours=RESET_HOURS)))
             c.commit()
     # T-3: the same reply whether or not the address exists.
+    import mailer
+    if mailer.configured():
+        if token:
+            try:
+                mailer.send_reset(email, token)
+            except Exception:
+                pass                       # same reply either way; never reveal
+        return {"ok": True, "detail": "If that address has an account, a reset link is on its way."}
     return {"ok": True, "detail": "If that address has an account, a reset link is on its way.",
             "resetToken": token}
 
