@@ -242,3 +242,60 @@ damage happens before the decoder — so reason freely first, then commit.
 **Text the user typed is an instruction. Text inside an email is data.** They
 never share a code path, and no prompt may ever put untrusted email content
 where an instruction belongs.
+
+## chat_intent
+
+> The chat, step one. The user typed a sentence; names in it are already
+> placeholders. The model is not asked to answer anything. It picks ONE item
+> from a menu our code built, and pulls out the inputs that item needs. It
+> cannot pick anything off the menu, and it never sees any email here.
+>
+> "read" is only for questions about what an email SAYS. Facts about who
+> wrote, when, and what is owed are look-ups, not reading.
+
+The user of an email assistant typed a sentence. Recent turns, if any:
+{history}
+
+The sentence: "{text}"
+
+Choose exactly one intent from this menu:
+{menu}
+
+Then fill in only the inputs that intent uses:
+- who: a person's name or a sender, exactly as the user wrote it (keep placeholders like [PERSON_1] as they are)
+- words: words to look for in the subject
+- days: how far back to look, as a number of days (7 for "this week", 30 for "this month"); omit if not said
+- when: the time phrase for a reminder, exactly as written
+- sentence: for a rule, the whole rule in the user's words
+- question: for "read", the question to answer, in the user's words
+
+Reply with JSON only:
+{{"intent": "...", "who": "", "words": "", "days": 0, "when": "", "sentence": "", "question": "", "reasoning": "one short line"}}
+
+---
+
+## chat_answer
+
+> The chat, step two, only for "read". The messages below are DATA: the
+> model answers the question from them and from nothing else. Names are
+> placeholders and come back the same way. If the messages do not contain
+> the answer, found is false and the reply says so; a guess is worse than
+> no answer.
+
+Answer the question using only the messages below. Names and numbers have been replaced with placeholders like [PERSON_1]; keep them exactly as they are in your answer.
+
+Question: "{question}"
+
+Messages:
+{messages}
+
+Rules:
+- Answer in one to three plain sentences, as if telling a colleague.
+- Say which message it came from (by its from and date) when it matters.
+- If the messages do not contain the answer, set found to false and say what is missing in one sentence.
+- Never add facts that are not in the messages.
+
+Reply with JSON only:
+{{"found": true, "answer": "..."}}
+
+---

@@ -258,59 +258,43 @@ send the digest if due.
 **Run it.** `cd c:\mob_ai\poc` then `python worker.py`. Send yourself an
 email; within 20 seconds a line says "1 new".
 
-### 4.9 · The chat: where it stands
+### 4.9 · The chat: built, on Gemini
 
-**The decision.** There will be a chat. You and sir agreed that. It is not
-built for the website yet, and that is deliberate, not forgotten.
+**What it is.** `POST /api/chat`, in `poc/chat_engine.py`. A sentence in, a
+plain answer out. Umar builds the chat screen against it.
 
-**What exists today.** A terminal prototype, `poc/chat.py`. You type a
-sentence like "anything from linkedin?" or "email ali and ask if he got the
-report". Gemini is shown a fixed menu of actions our code allows right now
-and picks one. It cannot pick anything off the menu, and "send" is not on
-the menu until a draft exists. The gate still applies: nothing irreversible
-happens without the typed yes. What you type is treated as an instruction;
-what is inside an email is treated as data; the two never share a code path,
-so an email cannot talk the chat into doing something.
+**How one turn works.** Gemini reads the sentence with names hidden and
+picks one item from a fixed menu of thirteen: search, has someone replied,
+who is waiting on me, what I promised, today, remind, important, rule,
+clear, unsubscribe, draft, read, unknown. It cannot pick anything off the
+menu. Our code then runs that feature on our own data and writes the reply.
+So Gemini reads the question; our code produces the answer.
 
-**What does not exist.** A chat route in the API, so Umar has nothing to
-call yet. No memory of previous turns. No handling of two requests in one
-sentence.
+**Two modes.** Look-up: facts about who wrote, when, what is owed, straight
+from the database, no email text involved. Read: only for a question about
+what an email says ("what did Javeria ask me to do?"); our search finds the
+likely messages, their text goes through the same redact → model → restore
+path drafting uses, and the answer names its source messages.
 
-**How it will be built.** The chat is a receptionist for a building that
-already has fifteen rooms (the features). It has two jobs: hear which room
-the person wants, and hear the details (a name, a date, a sender). Then the
-backend walks them to the room; the room does the work. If the room is an
-irreversible one, the chat returns the preview wording and confirm token
-like every other route. Replies come from templates, not free-form writing.
+**Never a guess.** If nothing matches: "I can't find anything about that in
+your mail." A question outside mail ("what is the weather") gets the list of
+what the chat can do.
 
-**The open question: which model does the hearing.** Three options:
+**Never an action.** Clear, unsubscribe, send a rule: the chat answers with
+the exact wording and a confirm token plus the route to call. The person's
+yes goes through that route and its gate, like a button. Reversible things
+(a reminder, marking someone important) are done directly and logged.
 
-| Option | Cost | Needs | Handles messy sentences |
-|---|---|---|---|
-| Our two small models, retrained on example sentences | about nothing | a few hundred labelled example sentences first | well for short one-intent sentences; asks back on two-part ones |
-| A half-billion instruction model, local | a bigger server | no examples | better |
-| Gemini, hosted | about $0.03 per user per month | nothing | best |
+**Proof.** `poc/chat_smoke.py`, thirteen real sentences, output in
+`poc/test_runs/chat_smoke_*.txt`. Twelve answered right; "anything from
+LinkedIn this week" correctly said nothing, because the test mailbox has no
+LinkedIn mail this week.
 
-**Recommendation.** Go small. The menu is only fifteen rooms and the
-sentences people type to an email assistant are short. Small keeps the
-person's words on our server, costs nothing per message, and reuses models
-we have already trained once. Gemini stays for drafting replies, where
-writing quality matters.
-
-**How to decide honestly.** Write 50 real test sentences with the correct
-answer for each. Run all three. Pick the smallest that scores well enough
-(above about 90 percent on choosing the right room). This is why it is
-parked: choosing by measurement, not by opinion.
-
-**If sir asks "why not just use Gemini for the chat, it is cheap?"** Cost is
-not the reason. Privacy and dependency are: the person's typed words would
-leave our server on every turn, and the feature would stop if Google did.
-The test decides; if small scores badly, we move up one size.
-
-**If he asks "does it handle any sentence?"** It handles the sentences the
-product is for. Two-part sentences get a question back. Questions with no
-room behind them, like "why is Ali angry", get "I can't do that yet" rather
-than an invented answer.
+**Why Gemini.** Cheapest and fastest: about $0.03 per user per month, no
+training data. The trade: the typed sentence, names hidden, goes to Google.
+If sir wants typed words to stay on our server, our two small models can be
+retrained for the menu step and swapped in behind the same route; a
+50-sentence test would prove them first.
 
 ---
 
@@ -396,7 +380,6 @@ tier, a free email tier for confirmations, bodies kept 30 days. About €11 to
 - Only Gmail is tested. Yahoo, Zoho, iCloud should work over standard IMAP
   but have not been tried. Outlook needs a Microsoft app registration.
 - Confirmation emails go out from our own Gmail for now, not a transactional service; fine to a few hundred users, then switch.
-- The chat has no API route; a terminal prototype only.
 - Search covers sender, subject and date, not message text.
 - IMAP cannot push or snooze; the worker polls every 20 seconds.
 - Nothing is deployed. Everything runs on your laptop and the Neon database.
@@ -460,9 +443,11 @@ cheapest.
 email service for confirmations, write the 50-sentence chat test and build
 the chat route on whichever model passes, try the other providers.
 
-**"Where is the chat?"** A terminal prototype exists and works with the
-gate. The website route is parked until the model is chosen by a
-50-sentence test. Recommendation is our own small models, retrained.
+**"Where is the chat?"** Built and tested, on Gemini: `POST /api/chat`.
+Gemini reads the question with names hidden, our code answers from our
+data; questions about email text go through the redact-read-restore path;
+anything irreversible comes back as a preview and token for the person's
+yes. Swappable to our own small models later if typed words must stay in.
 
 ---
 
@@ -484,7 +469,7 @@ cd c:\mob_ai\poc
 | Today's list | `python today.py` | the ordered list |
 | The pile | `python pile.py` | senders grouped with counts and reasons |
 | Requests found | `python asks.py` | who asked what, by when |
-| The chat prototype | `python chat.py` | type a sentence |
+| The chat | `python chat_smoke.py` | thirteen sentences with answers |
 | The API itself | `python api.py` then open http://localhost:8000/docs | every route, clickable |
 
 The repository: https://github.com/YaHyA-MaTeeN/custodian. The design

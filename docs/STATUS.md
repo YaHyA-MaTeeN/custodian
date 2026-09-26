@@ -1,6 +1,6 @@
 # Custodian backend — status
 
-One page. Updated 26 September 2026. Everything here has a file or a saved
+One page. Updated 26 September 2026, evening. Everything here has a file or a saved
 test run behind it; paths are relative to the repo root.
 
 ## Where it stands
@@ -16,10 +16,11 @@ confirming the exact wording. Repo: https://github.com/YaHyA-MaTeeN/custodian
 | Use cases | 40 of 50 built, 7 partly, 3 billing not started | `docs/Custodian-Backend-Review-Answers.pdf` §1 |
 | Accounts | sign-up, confirmation email, login, logout, reset | `poc/test_runs/auth_smoke_*`, `mail_smoke_*` |
 | Database | Postgres on Neon, one schema per customer, data migrated | `poc/db/schema.sql`, `docs/Custodian-Backend-Review-Answers.pdf` §4 |
-| API | 82 routes, confirm gate on every irreversible action | `poc/test_runs/`, `python api_smoke.py` |
+| API | 83 routes, confirm gate on every irreversible action | `poc/test_runs/`, `python api_smoke.py` |
 | Per-user mailboxes | opened from the encrypted vault, pooled | `poc/test_runs/mailbox_smoke_*` |
 | Worker | always on, reads and labels, never sends or clears | `python worker.py --once` |
 | IMAP | 47 operations proven on a live mailbox | `docs/Custodian-IMAP-Tests.pdf` |
+| Chat | built on Gemini: look-ups from our data, questions about email text via redact-read-restore, gated actions handed back as preview + token | `poc/test_runs/chat_smoke_*` |
 | Frontend fit | Umar's 30 screens checked route by route; all map except billing | `docs/API.md` |
 
 ## Documents, and which one to open
@@ -46,9 +47,9 @@ confirming the exact wording. Repo: https://github.com/YaHyA-MaTeeN/custodian
 ## Next, in order
 
 1. Deploy to one small server once the region is agreed.
-2. Chat: 50-sentence test set, pick the model, add the route.
-3. Outlook test the day the client ID arrives.
-4. Billing once a provider is chosen.
+2. Outlook test the day the client ID arrives.
+3. Billing once a provider is chosen.
+4. Chat: swap Gemini for our own small models only if sir wants typed words to stay on our server (50-sentence test first).
 
 ## Known limits, stated
 

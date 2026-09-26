@@ -767,6 +767,38 @@ def register(app):
         return {"suggestions": [{"n": i, "key": k, "title": t, "date": d, "source": src}
                                 for i, (k, t, d, src) in enumerate(calendar_sync.suggestions(store_for(account)), 1)]}
 
+
+    # ══════════════════════ the chat ═════════════════════════════════
+
+    class ChatIn(BaseModel):
+        text: str
+        history: list = []
+
+    @app.post("/api/chat")
+    def chat(body: ChatIn, account: Optional[Account] = Depends(current_account)):
+        """
+        One turn. Gemini reads the sentence (names hidden); our code answers.
+        Irreversible things come back as a preview + confirm token + the route
+        to call, never done here. See chat_engine.py.
+        """
+        import agent
+        import chat_engine
+        s = store_for(account)
+
+        def body_of(mid, pid):
+            c = _conn_msg(account, s, mid)
+            return connect.fetch_verified(c, pid, mid)
+
+        try:
+            out = chat_engine.handle(s, account_email(account), body.text, body.history[-8:],
+                                     body_of=body_of if not getattr(__import__("api"), "NO_MAILBOX", False) else None,
+                                     known_names=agent.known_names(s))
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(502, f"The chat could not answer just now ({type(e).__name__}).")
+        return out
+
     # ══════════════════════ mailboxes ═════════════════════════════════
 
     class Address(BaseModel):
