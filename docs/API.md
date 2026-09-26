@@ -62,7 +62,8 @@ All other routes require `Authorization: Bearer <token>`.
 | `POST /api/mailboxes/connect` | **live** | `{address, appPassword}` → `{ok, accessLevel, folders, scanQueued: true}` or 400 with the provider's real reason in `detail` (UC-04/06/07/08/09/10). Passwords are verified before they are stored, never logged. |
 | `DELETE /api/mailboxes/{address}` | **live** | `{confirm: "disconnect"}` → `{ok, willStay: [...], erased: [...], lost: [...]}` (UC-13) |
 | `POST /api/mailboxes/{address}/upgrade` | planned | → `{ok}` (UC-12; opens the provider's sign-in) |
-| `GET /api/mailboxes/{address}/scan` | planned | → `{state: "running"｜"done"｜"paused", read, total, reason}` (UC-14) |
+| `GET /api/mailboxes/{address}/scan` | **live** | → `{state: "running"｜"done"｜"paused"｜"waiting", read, total, reason}` (UC-14) |
+| `POST /api/mailboxes/{address}/pause` · `POST …/resume` | **live** | `{reason?}` → `{ok, state}`; paused mailboxes are skipped by the worker and their pooled connection is closed |
 | `GET /api/health` | **live** | → `{ok, mailbox, counts}` |
 
 ---
@@ -194,7 +195,7 @@ the token. Never store a token across sessions.
 
 | preview | action |
 |---|---|
-| `POST /api/pile/preview` | `POST /api/pile/clear` |
+| `POST /api/pile/preview` (`action: trash｜archive`) | `POST /api/pile/clear` (same body) |
 | `GET /api/brands/{company}` | `POST /api/brands/{company}/clear` |
 | `POST /api/unsubscribe/preview` | `POST /api/unsubscribe` |
 | `POST /api/forward-batch/preview` | `POST /api/forward-batch` (drafts only) |

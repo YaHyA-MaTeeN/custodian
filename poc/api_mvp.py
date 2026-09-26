@@ -393,37 +393,45 @@ def register(app):
         senders: list = []
         all: bool = False
         confirm: str = ""
+        action: str = "trash"          # trash (recoverable) or archive (reversible: out of the inbox, kept)
 
     def _pile_plan(s, me, body):
         import pile
+        if body.action not in ("trash", "archive"):
+            raise HTTPException(400, "action must be trash or archive")
         groups, held, excluded = pile.build(s, me)
         chosen = groups if body.all else [g for g in groups if g["sender"] in {x.lower() for x in body.senders}]
         n = sum(g["count"] for g in chosen)
-        wording = f"trash {n} messages from {len(chosen)} sender(s)" + ("" if body.all else ": " + ", ".join(g["sender"] for g in chosen))
+        wording = f"{body.action} {n} messages from {len(chosen)} sender(s)" + ("" if body.all else ": " + ", ".join(g["sender"] for g in chosen))
         return chosen, n, wording
 
     @app.post("/api/pile/preview")
     def pile_preview(body: Senders, account: Optional[Account] = Depends(current_account)):
         chosen, n, wording = _pile_plan(store_for(account), account_email(account), body)
-        return {"count": n, "senders": [g["sender"] for g in chosen], "wording": wording,
+        return {"count": n, "senders": [g["sender"] for g in chosen], "wording": wording, "action": body.action,
                 "confirm": _confirm_token(wording),
-                "note": "They go to your provider's trash, where you can still recover them."}
+                "note": ("They go to your provider's trash, where you can still recover them." if body.action == "trash"
+                         else "They leave the inbox but stay in the mailbox. Undo puts them back.")}
 
     @app.post("/api/pile/clear")
     def pile_clear(body: Senders, account: Optional[Account] = Depends(current_account)):
         s = store_for(account)
         chosen, n, wording = _pile_plan(s, account_email(account), body)
-        ap = _approval("trash", wording, body.confirm)
+        # Archive is reversible, so the gate does not demand a token for it —
+        # but the pile is thousands of messages, so this route does, always.
+        if body.confirm != _confirm_token(wording):
+            raise HTTPException(409, "Not confirmed. Ask for the preview again and send back its confirm token.")
+        ap = _approval(body.action, wording, body.confirm)
         done = failed = 0
         for g in chosen:
             for pid, mid, subject in g["ids"]:
                 c = _conn_msg(account, s, mid)
-                r = stage13_approval.execute(c, "trash", _live(c, pid, mid), draft=wording, approval=ap)
+                r = stage13_approval.execute(c, body.action, _live(c, pid, mid), draft=wording, approval=ap)
                 if r["done"]:
-                    s.record_action(mid, pid, "trash", (subject or "")[:70], before="INBOX"); done += 1
+                    s.record_action(mid, pid, body.action, (subject or "")[:70], before="INBOX"); done += 1
                 else:
                     failed += 1
-        return {"moved": done, "failed": failed}
+        return {"moved": done, "failed": failed, "action": body.action}
 
     class Sender(BaseModel):
         sender: str
@@ -813,6 +821,63 @@ def register(app):
                     "threads": c.supports_threads, "send": c.supports_send},
                 "promise": "We never delete your email, and nothing is sent without your yes.",
                 "warning": "If you change your account password, this connection will stop. You would just need a new app password."}
+
+    @app.get("/api/mailboxes/{address}/scan")
+    def scan_progress(address: str, account: Optional[Account] = Depends(current_account)):
+        """
+        UC-14. How far the first read of this mailbox has got. Counted from
+        the decisions table, so it is true even after a restart.
+        """
+        import scan as backlog
+        s = store_for(account); address = address.lower()
+        total = s.one("SELECT COUNT(*) FROM messages WHERE in_inbox=1 AND LOWER(COALESCE(account,''))=?", address) or 0
+        if not total:
+            return {"state": "waiting", "read": 0, "total": 0, "reason": "no messages indexed yet for this mailbox"}
+        left = sum(1 for r in backlog.unscanned(s, 100000)
+                   if (s.one("SELECT LOWER(COALESCE(account,'')) FROM messages WHERE message_id=?", r[1]) or "") == address) \
+            if total < 2000 else \
+            (s.one("""SELECT COUNT(*) FROM messages m WHERE m.in_inbox=1 AND LOWER(COALESCE(m.account,''))=?
+                        AND NOT EXISTS (SELECT 1 FROM decisions d WHERE d.message_id=m.message_id AND d.stage='9')""", address) or 0)
+        read = total - left
+        state_row = None
+        if hasattr(s, "conn"):
+            state_row = s.conn.execute("SELECT state, state_reason FROM public.mailboxes WHERE address=%s", (address,)).fetchone()
+        state = ("paused" if state_row and state_row[0] == "paused" else "done" if left == 0 else "running")
+        return {"state": state, "read": read, "total": total,
+                "reason": (state_row[1] if state_row and state_row[1] else
+                           "the worker reads three older messages every pass when nothing new arrives")}
+
+    class PauseIn(BaseModel):
+        reason: str = ""
+
+    @app.post("/api/mailboxes/{address}/pause")
+    def mailbox_pause(address: str, body: PauseIn, account: Optional[Account] = Depends(current_account)):
+        """Stop reading and acting on this mailbox. Nothing is erased; resume picks up where it left off."""
+        s = store_for(account); address = address.lower()
+        if not hasattr(s, "conn"):
+            raise HTTPException(409, "Single-user mode has no pause; stop the worker instead.")
+        n = s.conn.execute("UPDATE public.mailboxes SET state='paused', state_reason=%s WHERE address=%s AND account_id=%s",
+                           (body.reason or "paused by you", address, s.account_id)).rowcount
+        s.conn.commit()
+        if not n:
+            raise HTTPException(404, "not one of your mailboxes")
+        import mailboxes
+        mailboxes.drop(account.email, address)
+        s.record_action("", "", "pause", address)
+        return {"ok": True, "state": "paused", "note": "Labels already applied stay. The worker skips this mailbox until you resume."}
+
+    @app.post("/api/mailboxes/{address}/resume")
+    def mailbox_resume(address: str, account: Optional[Account] = Depends(current_account)):
+        s = store_for(account); address = address.lower()
+        if not hasattr(s, "conn"):
+            raise HTTPException(409, "Single-user mode has no pause.")
+        n = s.conn.execute("UPDATE public.mailboxes SET state='connected', state_reason=NULL "
+                           "WHERE address=%s AND account_id=%s AND state='paused'", (address, s.account_id)).rowcount
+        s.conn.commit()
+        if not n:
+            raise HTTPException(404, "not a paused mailbox of yours")
+        s.record_action("", "", "resume", address)
+        return {"ok": True, "state": "connected"}
 
     @app.get("/api/mailboxes")
     def mailboxes(account: Optional[Account] = Depends(current_account)):
