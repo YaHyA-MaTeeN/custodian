@@ -37,5 +37,4 @@ happens without the person confirming the exact wording.
 |---|---|---|
 | Microsoft app registration under our Microsoft 365 (15 minutes, free); only the client ID is needed back | our Microsoft 365 admin | Outlook |
 | Payment provider | you | billing |
-| Where to host: which country the server and database sit in. Proposal: Singapore, one small server, about €15 a month to start | you | deployment |
 | One test address each for Yahoo, Zoho, iCloud | anyone | testing those three providers |
