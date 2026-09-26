@@ -42,9 +42,25 @@ MENU = {
     "unsubscribe": "stop a sender's mailings: who",
     "draft":       "draft a reply to a person's latest message: who",
     "read":        "a question about what an email actually SAYS (did I attend, what did they decide, what is the price): question, who, words, days",
+    "storage":     "what is taking up space / largest emails / reclaim storage",
+    "brands":      "which companies send the most bulk mail, or clear one company's advertising: company",
+    "catchup":     "catch up after time away / what did I miss / summary of what arrived: days",
+    "person":      "everything about one person (their addresses, what is owed both ways, recent mail): who",
+    "forward":     "forward messages to someone: who (whose messages), words, to (the recipient address the user typed)",
+    "voice":       "how my drafts sound / my writing voice / make my replies shorter, more formal, etc.: sentence",
+    "digest":      "the weekly summary email: turn it on or off, or change how often: when (daily, weekly, monthly, never)",
+    "calendar":    "what is on my calendar today, or dates from mail worth adding",
     "unknown":     "none of the above, or not about the person's mail",
 }
-ARGS = ("who", "words", "days", "when", "sentence", "question")
+ARGS = ("who", "words", "days", "when", "sentence", "question", "to", "company")
+GENERIC = {"the", "a", "an", "junk", "spam", "bulk", "company", "companies", "brand", "brands", "most", "mail", "email",
+           "emails", "newsletters", "advertising", "ads", "senders", "everything", "all", "me", "my"}
+
+# Nouns that name one feature and nothing else. Seen in the sentence, they
+# settle the intent without a model call: cheaper, and never misrouted.
+KEYWORDS = (("digest", "digest"), ("weekly summary", "digest"), ("calendar", "calendar"),
+            ("unsubscribe", "unsubscribe"), ("storage", "storage"), ("taking up space", "storage"),
+            ("writing voice", "voice"), ("my voice", "voice"))
 
 
 def _clean(v):
@@ -181,7 +197,14 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
     if not text:
         return {"reply": "Type something and I'll look.", "intent": "unknown"}
     known_names = known_names or []
-    it = read_intent(text, history or [], known_names)
+    low = text.lower()
+    hit = next((i for k, i in KEYWORDS if k in low), "")
+    if hit in ("digest", "calendar", "storage", "voice"):
+        it = {"intent": hit, "args": {"when": low, "sentence": text}}
+    else:
+        it = read_intent(text, history or [], known_names)
+        if hit == "unsubscribe" and it["intent"] in ("clear", "unknown", "search"):
+            it["intent"] = "unsubscribe"
     intent, a = it["intent"], it["args"]
     me = (me or "").lower()
 
@@ -308,7 +331,8 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
                 "wording": wording, "confirm": stage13_approval.draft_hash(wording),
                 "action": {"method": "POST", "route": "/api/typed-rules", "body": {"sentence": sentence, "confirm": stage13_approval.draft_hash(wording)}}}
 
-    if intent == "clear":
+    def clear_sender():
+        """Sender-level clear through the pile: reply + token + route, never done here."""
         import pile
         p, err = person()
         if err:
@@ -318,12 +342,15 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
         if not g:
             why = excluded.get(p["address"])
             return {"reply": (f"I won't offer to clear {p['name']}: {why}." if why else
-                              f"{p['name']} isn't in the pile: their mail doesn't look like bulk mail, so I don't clear it in one go."), "intent": intent}
+                              f"{p['name']} isn't in the pile: their mail doesn't look like bulk mail, so I don't clear it in one go."), "intent": "clear"}
         wording = f"trash {g['count']} messages from 1 sender(s): {g['sender']}"
         return {"reply": f"{g['count']} messages from {p['name']} ({g['reason']}). They go to your provider's trash, recoverable. Clear them?",
-                "intent": intent, "wording": wording, "confirm": stage13_approval.draft_hash(wording),
+                "intent": "clear", "wording": wording, "confirm": stage13_approval.draft_hash(wording),
                 "action": {"method": "POST", "route": "/api/pile/clear",
                            "body": {"senders": [g["sender"]], "action": "trash", "confirm": stage13_approval.draft_hash(wording)}}}
+
+    if intent == "clear":
+        return clear_sender()
 
     if intent == "unsubscribe":
         from pipeline import stage15_unsubscribe as unsub
@@ -354,6 +381,141 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
         return {"reply": f"I can draft a reply to {p['name']}'s message \"{(subject or '')[:50]}\" from {(date or '')[:10]}. You'll see it before anything is sent. Go ahead?",
                 "intent": intent, "items": [_item(rows[0])],
                 "action": {"method": "POST", "route": f"/api/messages/{pid}/draft", "body": {}}}
+
+    if intent == "storage":
+        import storage
+        MB = 1024 * 1024
+        total = store.one("SELECT COALESCE(SUM(size),0) FROM messages") or 0
+        rows = store.q("SELECT sender, MAX(sender_name), MAX(sender_domain), COUNT(*), SUM(size) FROM messages "
+                       "GROUP BY sender ORDER BY SUM(size) DESC LIMIT 5")
+        lines = []
+        for snd, nm, dom, n, sz in rows:
+            prot = " (kept: you correspond with them)" if store.history(snd, me)["replied"] > 0 or store.is_protected(snd, dom) else ""
+            lines.append(f"{(nm or snd)[:26]}: {sz / MB:.0f} MB in {n} messages{prot}")
+        return {"reply": f"Your mail takes about {total / MB:.0f} MB. The biggest senders:\n" + "\n".join(lines)
+                         + "\nThe Storage page lets you clear a sender's large mail after a preview.", "intent": intent,
+                "items": [{"sender": r[0], "name": r[1], "messages": r[3], "mb": round(r[4] / MB)} for r in rows]}
+
+    if intent == "brands":
+        import brand
+        cs = brand.companies(store, me)
+        key = _clean(a.get("company") or a.get("who") or "").lower()
+        if key in GENERIC or len(key) < 3:
+            key = ""
+        if key:
+            g = cs.get(key) or next((v for k, v in cs.items()
+                                     if key == k.split(".")[0] or re.search(rf"(^|[.\-]){re.escape(key)}([.\-]|$)", k)), None)
+            if not g:
+                # not offered as a company (you correspond with one of its addresses):
+                # fall back to the busiest bulk sender under that name, one sender at a time
+                a["who"] = key
+                return clear_sender()
+            company = next(k for k, v in cs.items() if v is g)
+            go, keep = brand.split(g)
+            wording = f"trash {len(go)} advertising messages from {company}"
+            return {"reply": f"{company}: {g['n']} messages from {len(g['addresses'])} address(es). {len(go)} are advertising, {len(keep)} look like receipts or records and would be kept. Clear the {len(go)}?",
+                    "intent": intent, "wording": wording, "confirm": stage13_approval.draft_hash(wording),
+                    "action": {"method": "POST", "route": f"/api/brands/{company}/clear", "body": {"confirm": stage13_approval.draft_hash(wording)}}}
+        top = sorted(cs.items(), key=lambda kv: -kv[1]["n"])[:6]
+        if not top:
+            return {"reply": "No company sends you bulk mail that I could group.", "intent": intent, "items": []}
+        return {"reply": f"{len(cs)} companies send you bulk mail. The biggest:\n" + "\n".join(f"{k}: {v['n']} messages" for k, v in top)
+                         + "\nSay \"clear <company>\" and I'll show what would go.", "intent": intent,
+                "items": [{"company": k, "messages": v["n"]} for k, v in top]}
+
+    if intent == "catchup":
+        import catchup
+        since = _since(a.get("days")) or catchup.infer_since(store)
+        if not since:
+            return {"reply": "I can't tell when you were last here. Say how many days, e.g. \"what did I miss in the last 5 days\".", "intent": intent, "needs": "days"}
+        g = catchup.groups(store, me, since)
+        arrived = sum(len(g[k]) for k in ("needs", "answered", "expired", "info")) + g["bulk"]
+        lines = [f"{len(g['needs'])} still need you", f"{len(g['answered'])} answered by someone else",
+                 f"{len(g['expired'])} expired", f"{len(g['info'])} for information", f"{g['bulk']} newsletters and offers, counted not listed"]
+        needs = "\n".join(f"  {(sn or snd)[:22]}: {(sub or '')[:50]}" for mid, snd, sn, sub, d in g["needs"][:6])
+        return {"reply": f"Since {since[:10]}, {arrived} messages arrived: " + ", ".join(lines) + "." + (f"\nStill need you:\n{needs}" if needs else ""),
+                "intent": intent, "items": [{"messageId": mid, "sender": snd, "senderName": sn, "subject": sub, "date": (d or '')[:10]} for mid, snd, sn, sub, d in g["needs"][:6]]}
+
+    if intent == "person":
+        p, err = person()
+        if err:
+            return err
+        addrs = store.addresses_of(store.person_of(p["address"])) or [(p["address"], "", 0)]
+        alist = [x for x, _, _ in addrs]
+        owe = [r for r in store.open_requests("ask") if r[8] in alist and r[4] == "me"]
+        prom = [r for r in store.open_requests("promise") if r[4] in alist]
+        q = ",".join("?" * len(alist))
+        recent = store.q(f"SELECT subject, date_iso FROM messages WHERE sender IN ({q}) ORDER BY date_iso DESC LIMIT 4", *alist)
+        h = store.history(p["address"], me)
+        lines = [f"{p['name']}: {len(alist)} address(es), {h['sent']} messages from them, {h['replied']} from you to them."]
+        if owe:
+            lines.append("You owe them: " + "; ".join(f"{r[3][:40]}" + (f" by {r[5][:10]}" if r[5] else "") for r in owe[:3]))
+        if prom:
+            lines.append("You promised: " + "; ".join(f"{r[3][:40]}" + (f" by {r[5][:10]}" if r[5] else "") for r in prom[:3]))
+        if store.is_protected(p["address"], p["address"].split("@")[-1]):
+            lines.append("Marked important.")
+        if recent:
+            lines.append("Recent: " + "; ".join(f"{(su or '')[:40]} ({(d or '')[:10]})" for su, d in recent))
+        return {"reply": "\n".join(lines), "intent": intent, "person": p["address"]}
+
+    if intent == "forward":
+        to = _clean(a.get("to", "")).lower()
+        if not re.match(r"^[\w.+-]+@[\w-]+\.[\w.]+$", to):
+            return {"reply": "Who should I forward them to? Type the address; I never take one out of an email.", "intent": intent, "needs": "to"}
+        who = a.get("who", ""); addr = dom = ""
+        if who:
+            p, err = person(allow_domain=True)
+            if err:
+                return err
+            addr, dom = p.get("address", ""), p.get("domain", "")
+        rows = find_messages(store, words=a.get("words", ""), days=a.get("days"), address=addr, domain=dom, limit=25)
+        if not rows:
+            return {"reply": "I couldn't find the messages you mean. Say who they are from, or a word from the subject.", "intent": intent, "needs": "who"}
+        mids = [r[0] for r in rows]
+        wording = f"forward {len(mids)} to {to}"
+        return {"reply": f"{len(rows)} message(s) to forward to {to}, as drafts you review first; nothing is sent by me:\n"
+                         + "\n".join(_line(r) for r in rows[:6]) + ("\n…" if len(rows) > 6 else "") + "\nPrepare them?",
+                "intent": intent, "wording": wording, "confirm": stage13_approval.draft_hash(wording), "items": [_item(r) for r in rows],
+                "action": {"method": "POST", "route": "/api/forward-batch", "body": {"messageIds": mids, "to": to, "confirm": stage13_approval.draft_hash(wording)}}}
+
+    if intent == "voice":
+        from pipeline.stage19_voice import StyleStore, describe
+        st = StyleStore()
+        prof = st.profile("")
+        return {"reply": ("Your drafts currently " + describe(prof) + "." if prof else "I haven't learned your writing voice yet; it comes from your sent mail.")
+                         + " You can change greeting, sign-off, length, formality and contractions on the Voice page, per group of people.",
+                "intent": intent, "profile": prof}
+
+    if intent == "digest":
+        import digest
+        cfg = digest.load()
+        when = _clean(a.get("when", "")).lower()
+        choice = next((k for k in ("daily", "weekly", "monthly", "never", "off", "on") if k in when or k in text.lower()), "")
+        if choice in ("off", "never"):
+            cfg["digest"] = "never"; digest.save(cfg)
+            return {"reply": "Digest turned off. Never is a fully supported choice; nothing else changes.", "intent": intent}
+        if choice == "on":
+            cfg["digest"] = "weekly"; digest.save(cfg)
+            return {"reply": "Digest on, weekly. Say daily or monthly to change it.", "intent": intent}
+        if choice:
+            cfg["digest"] = choice; digest.save(cfg)
+            return {"reply": f"Digest set to {choice}. It only goes out when there is something to say.", "intent": intent}
+        return {"reply": f"Your digest is {cfg.get('digest', 'weekly')}" + (f", last sent {cfg['digest_last'][:10]}" if cfg.get("digest_last") else ", not sent yet")
+                         + ". Say daily, weekly, monthly or never to change it.", "intent": intent}
+
+    if intent == "calendar":
+        import calendar_sync
+        sug = calendar_sync.suggestions(store)
+        sug_lines = "\n".join(f"  {t} on {d[:10]} ({src})" for k, t, d, src in sug[:5])
+        if not calendar_sync.TOKEN.exists():
+            return {"reply": "No calendar is connected. Connect one on the Calendar page." + (f"\nDates from your mail worth adding:\n{sug_lines}" if sug else ""),
+                    "intent": intent, "connected": False}
+        try:
+            ev = calendar_sync.today(calendar_sync.service())
+        except Exception as e:
+            return {"reply": f"Your calendar isn't responding ({str(e)[:40]}). Your mail features still work.", "intent": intent}
+        ev_lines = "\n".join(f"  {w}  {t}" for w, t in ev) or "  nothing"
+        return {"reply": f"Today:\n{ev_lines}" + (f"\nDates from your mail worth adding:\n{sug_lines}" if sug else ""), "intent": intent, "connected": True}
 
     # ── mode 2 ──────────────────────────────────────────────────────
     if intent == "read":
@@ -402,5 +564,7 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
         return {"reply": f"{answer}\n(from: {src})", "intent": intent, "items": [_item(r) for r in rows]}
 
     return {"reply": "I can't help with that from your mail. I can search, check who has replied, list what you owe or promised, "
-                     "set reminders, mark people important, clear or unsubscribe bulk senders, draft replies, or answer a question about what an email says.",
+                     "show today or catch you up, set reminders, mark people important, tell you about a person, clear or unsubscribe "
+                     "bulk senders or a whole company, show what takes up space, forward messages as drafts, draft a reply, "
+                     "describe your writing voice, set the digest, check your calendar, or answer a question about what an email says.",
             "intent": "unknown"}

@@ -211,8 +211,9 @@ Run `python api_smoke.py` from `poc/` to see every refusal happen.
 `{reply, intent, items?, action?, wording?, confirm?, needs?}`
 
 Gemini reads the sentence with names hidden and picks one item from a fixed
-menu (search, replied, waiting, promised, today, remind, important, rule,
-clear, unsubscribe, draft, read, unknown). Our code runs that feature on our
+menu of twenty-one (search, replied, waiting, promised, today, remind, important,
+rule, clear, unsubscribe, draft, read, storage, brands, catchup, person, forward,
+voice, digest, calendar, unknown). Our code runs that feature on our
 data and writes `reply`. For `read` (a question about what an email says) the
 likely messages go through the same redact → model → restore path drafting
 uses, and the answer names its source messages. Anything irreversible is not
@@ -220,7 +221,7 @@ done here: the reply asks, and `action` carries the route and body (with the
 `confirm` token) the frontend calls on the person's yes, through that route's
 own gate. `needs` = "who" | "when" | "sentence" means the chat is asking a
 follow-up. Never a guess: "I can't find anything about that in your mail."
-Proof: `python chat_smoke.py` from `poc/`.
+Proof: `python chat_smoke.py` from `poc/`, twenty-two sentences.
 
 ## Mailbox connections in accounts mode
 

@@ -30,6 +30,15 @@ SENTENCES = [
     "remind me about the latest linkedin message on friday",
     "what did javeria hunain ask me to do?",
     "what did the google workspace email say?",
+    "what is taking up space in my mailbox?",
+    "which companies send me the most junk?",
+    "clear linkedin's advertising",
+    "what did I miss in the last 30 days?",
+    "tell me about javeria hunain",
+    "forward javeria hunain's emails to me@example.com",
+    "how do my replies sound?",
+    "turn the digest off",
+    "what's on my calendar today?",
     "what is the weather tomorrow",
 ]
 

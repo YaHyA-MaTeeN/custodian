@@ -268,9 +268,11 @@ Then fill in only the inputs that intent uses:
 - when: the time phrase for a reminder, exactly as written
 - sentence: for a rule, the whole rule in the user's words
 - question: for "read", the question to answer, in the user's words
+- to: for "forward", the recipient address exactly as the user typed it (never invent one)
+- company: for "brands", the company name the user said
 
 Reply with JSON only:
-{{"intent": "...", "who": "", "words": "", "days": 0, "when": "", "sentence": "", "question": "", "reasoning": "one short line"}}
+{{"intent": "...", "who": "", "words": "", "days": 0, "when": "", "sentence": "", "question": "", "to": "", "company": "", "reasoning": "one short line"}}
 
 ---
 

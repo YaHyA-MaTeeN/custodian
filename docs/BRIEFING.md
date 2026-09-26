@@ -264,9 +264,10 @@ email; within 20 seconds a line says "1 new".
 plain answer out. Umar builds the chat screen against it.
 
 **How one turn works.** Gemini reads the sentence with names hidden and
-picks one item from a fixed menu of thirteen: search, has someone replied,
+picks one item from a fixed menu of twenty-one: search, has someone replied,
 who is waiting on me, what I promised, today, remind, important, rule,
-clear, unsubscribe, draft, read, unknown. It cannot pick anything off the
+clear, unsubscribe, draft, read, storage, brands, catch-up, one person,
+forward, voice, digest, calendar, unknown. Every feature is reachable by typing. It cannot pick anything off the
 menu. Our code then runs that feature on our own data and writes the reply.
 So Gemini reads the question; our code produces the answer.
 
@@ -285,10 +286,10 @@ the exact wording and a confirm token plus the route to call. The person's
 yes goes through that route and its gate, like a button. Reversible things
 (a reminder, marking someone important) are done directly and logged.
 
-**Proof.** `poc/chat_smoke.py`, thirteen real sentences, output in
-`poc/test_runs/chat_smoke_*.txt`. Twelve answered right; "anything from
-LinkedIn this week" correctly said nothing, because the test mailbox has no
-LinkedIn mail this week.
+**Proof.** `poc/chat_smoke.py`, twenty-two real sentences, output in
+`poc/test_runs/chat_smoke_*.txt`. All answered; "anything from LinkedIn
+this week" correctly said nothing, because the test mailbox has no LinkedIn
+mail this week.
 
 **Why Gemini.** Cheapest and fastest: about $0.03 per user per month, no
 training data. The trade: the typed sentence, names hidden, goes to Google.
@@ -469,7 +470,7 @@ cd c:\mob_ai\poc
 | Today's list | `python today.py` | the ordered list |
 | The pile | `python pile.py` | senders grouped with counts and reasons |
 | Requests found | `python asks.py` | who asked what, by when |
-| The chat | `python chat_smoke.py` | thirteen sentences with answers |
+| The chat | `python chat_smoke.py` | twenty-two sentences with answers |
 | The API itself | `python api.py` then open http://localhost:8000/docs | every route, clickable |
 
 The repository: https://github.com/YaHyA-MaTeeN/custodian. The design
