@@ -3,6 +3,36 @@
 2 October 2026. Written for whoever continues this work. Read this first,
 then `README.md` (how to run it) and `docs/API.md` (the route contract).
 
+## At a glance
+
+**To run it:** see `HOW-TO-RUN.md` (one page).
+
+**Done** — working and tested:
+
+- Mail over IMAP, tested on Gmail (47 operations)
+- The 16-step pipeline that reads and labels every email
+- 41 of the 50 use cases: cleanup, unsubscribe, reminders, requests and
+  promises, catch-up, today's list, replies, rules, people, calendar, and more
+- Accounts: sign-up with a real confirmation email, login, reset
+- The API: 94 routes; nothing permanent without the person's confirmation
+- Each user's own mailbox, password encrypted
+- The worker: reads new mail all day, never sends or deletes
+- The chat: every feature reachable by typing
+- Subscriptions: trial, confirm, plan change, pause, cancel (logic only)
+- Calendar: Google, iCloud, Yahoo, Zoho and others
+
+**Left** — in order:
+
+1. Connect a real payment company (subscription logic is ready; 3 functions to fill)
+2. Deploy to a server (nothing is deployed)
+3. Outlook: the company registers the app with Microsoft, then test it
+4. Test Yahoo, Zoho, iCloud with one real account each
+5. "Sign in with Google / Microsoft" for the account
+6. Moving a user's data between regions (request is recorded; the move is manual)
+7. Search inside message text (today: sender, subject, date)
+
+---
+
 ## 1 · What you are receiving
 
 The server side of an email assistant. A person signs up, connects a mailbox

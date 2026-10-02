@@ -7,6 +7,7 @@ the person confirming the exact wording.
 
 - API contract for the frontend: [`docs/API.md`](docs/API.md)
 - Design: [`docs/Custodian-Backend-Design-v0.1.pdf`](docs/Custodian-Backend-Design-v0.1.pdf)
+- **How to run, one page: [`HOW-TO-RUN.md`](HOW-TO-RUN.md)**
 - Handover notes: [`HANDOVER.md`](HANDOVER.md)
 - One-page status: [`docs/STATUS.md`](docs/STATUS.md)
 
