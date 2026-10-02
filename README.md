@@ -7,7 +7,8 @@ the person confirming the exact wording.
 
 - API contract for the frontend: [`docs/API.md`](docs/API.md)
 - Design: [`docs/Custodian-Backend-Design-v0.1.pdf`](docs/Custodian-Backend-Design-v0.1.pdf)
-- Plain-words guide to everything: [`docs/BRIEFING.md`](docs/BRIEFING.md)
+- Handover notes: [`HANDOVER.md`](HANDOVER.md)
+- One-page status: [`docs/STATUS.md`](docs/STATUS.md)
 
 ## Run it locally in single-user mode (what the frontend needs)
 
@@ -59,6 +60,7 @@ Every test writes its output to `poc/test_runs/`. From `poc/`:
 | `python auth_smoke.py` | sign-up → confirm → login → logout → reset, 14 steps (accounts mode) |
 | `python mail_smoke.py` | a real confirmation email arrives and its link confirms the account |
 | `python mailbox_smoke.py` | each account opens its own mailbox from the vault; another account is refused |
+| `python billing_smoke.py` | the whole subscription life, 21 checks (accounts mode) |
 | `python chat_smoke.py` | twenty-two real sentences through the chat; gated ones come back as preview + token |
 | `python audit_imap.py` | 47 IMAP operations on the live mailbox, inbox count unchanged |
 | `python worker.py --once` | one pass of the always-on worker |

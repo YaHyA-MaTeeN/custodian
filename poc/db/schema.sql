@@ -88,3 +88,47 @@ CREATE TABLE IF NOT EXISTS schema_versions (
 INSERT INTO schema_versions (version, note)
     VALUES (2, 'v2 — one schema per account; public holds accounts, sessions, mailboxes, credentials')
     ON CONFLICT (version) DO NOTHING;
+
+-- ── v3: subscriptions (UC-03, UC-48, UC-49) and region moves (UC-47) ────
+-- One row per account. The state machine lives in billing.py; this table is
+-- its memory. `customer` is the payment provider's reference, never a card.
+CREATE TABLE IF NOT EXISTS subscriptions (
+    account_id    BIGINT PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+    plan          TEXT NOT NULL,                 -- personal | work
+    state         TEXT NOT NULL,                 -- trial | awaiting_confirm | active | paused | cancelled | ended
+    customer      TEXT,                          -- provider reference
+    trial_ends_at TIMESTAMPTZ,
+    period_end    TIMESTAMPTZ,                   -- the paid-up-to date
+    next_plan     TEXT,                          -- a downgrade waiting for the billing date (UC-48)
+    paused_at     TIMESTAMPTZ,
+    grace_until   TIMESTAMPTZ,                   -- 15 days to pay (UC-03)
+    cancel_at     TIMESTAMPTZ,                   -- runs to here, then ends (UC-49)
+    anchor_day    INTEGER NOT NULL DEFAULT 1,    -- the billing day of the month; never moves
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS billing_events (
+    id          BIGSERIAL PRIMARY KEY,
+    account_id  BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    kind        TEXT NOT NULL,
+    detail      TEXT
+);
+
+-- UC-47: a request to move an account's data to another region. The move
+-- itself is an operations task (copy the schema, verify, switch, erase the
+-- old copy: all or nothing); this records that it was asked and its outcome.
+CREATE TABLE IF NOT EXISTS region_moves (
+    id           BIGSERIAL PRIMARY KEY,
+    account_id   BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    from_region  TEXT NOT NULL,
+    to_region    TEXT NOT NULL,
+    state        TEXT NOT NULL DEFAULT 'requested',   -- requested | done | failed | withdrawn
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at  TIMESTAMPTZ,
+    note         TEXT
+);
+
+INSERT INTO schema_versions (version, note)
+    VALUES (3, 'v3 — subscriptions, billing_events, region_moves')
+    ON CONFLICT (version) DO NOTHING;

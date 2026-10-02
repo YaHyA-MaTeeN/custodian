@@ -76,6 +76,21 @@ def _conn_msg(account: Optional[Account], s, message_id: str):
     return mailboxes.conn_for_message(account, s, message_id)
 
 
+def _require(account: Optional[Account], what: str) -> None:
+    """
+    The subscription gate (UC-03). what = "clean" (clearing needs an active
+    subscription) or "act" (anything that changes a mailbox is refused while
+    the account is paused or ended). Single-user mode has no subscription.
+    402 Payment Required carries the sentence to show the person.
+    """
+    if account is None:
+        return
+    import billing
+    ok, why = billing.entitled(account.id, what)
+    if not ok:
+        raise HTTPException(402, why)
+
+
 def _live(conn, pid, mid):
     return connect.live_id(conn, pid, mid) or pid
 
@@ -270,6 +285,7 @@ def register(app):
     @app.post("/api/messages/{provider_id}/send")
     def send(provider_id: str, body: SendIn, account: Optional[Account] = Depends(current_account)):
         """Sends only with the confirm token for THIS exact body, from the account it arrived at."""
+        _require(account, "act")
         ap = _approval("send", body.body, body.confirm)
         s = store_for(account)
         row = s.q("SELECT message_id, sender, subject, refs, thread_id, account FROM messages "
@@ -323,6 +339,7 @@ def register(app):
 
     @app.post("/api/forward-batch")
     def forward_batch(body: ForwardIn, account: Optional[Account] = Depends(current_account)):
+        _require(account, "act")
         s = store_for(account)
         to, rows, wording = _forward_plan(s, body, account_email(account))
         if body.confirm != _confirm_token(wording):
@@ -415,6 +432,7 @@ def register(app):
 
     @app.post("/api/pile/clear")
     def pile_clear(body: Senders, account: Optional[Account] = Depends(current_account)):
+        _require(account, "clean")
         s = store_for(account)
         chosen, n, wording = _pile_plan(s, account_email(account), body)
         # Archive is reversible, so the gate does not demand a token for it —
@@ -471,6 +489,7 @@ def register(app):
 
     @app.post("/api/brands/{company}/clear")
     def brand_clear(company: str, body: Confirm, account: Optional[Account] = Depends(current_account)):
+        _require(account, "clean")
         import brand
         s = store_for(account)
         g = brand.companies(s, account_email(account)).get(company.lower())
@@ -512,6 +531,7 @@ def register(app):
 
     @app.post("/api/unsubscribe")
     def unsub_do(body: Sender, account: Optional[Account] = Depends(current_account)):
+        _require(account, "clean")
         from pipeline import stage15_unsubscribe as unsub
         s = store_for(account)
         sender = body.sender.lower()
@@ -610,6 +630,7 @@ def register(app):
 
     @app.post("/api/typed-rules")
     def rule_create(body: Sentence, account: Optional[Account] = Depends(current_account)):
+        _require(account, "act")
         import rules
         r = rules.interpret(body.sentence)
         if "unclear" in r:
@@ -767,6 +788,128 @@ def register(app):
         return {"suggestions": [{"n": i, "key": k, "title": t, "date": d, "source": src}
                                 for i, (k, t, d, src) in enumerate(calendar_sync.suggestions(store_for(account)), 1)]}
 
+
+
+    # ══════════════════════ subscription (UC-03, 48, 49) ═════════════
+
+    def _acct(account: Optional[Account]) -> Account:
+        if account is None:
+            raise HTTPException(409, "Subscriptions exist only in accounts mode.")
+        return account
+
+    @app.get("/api/billing")
+    def billing_status(account: Optional[Account] = Depends(current_account)):
+        import billing
+        a = _acct(account)
+        return {**billing.status(a.id), "plans": [{"id": k, **v} for k, v in billing.PLANS.items()],
+                "currency": billing.CURRENCY, "provider": billing.provider().name, "events": billing.events(a.id, 10)}
+
+    class TrialIn(BaseModel):
+        card: str
+        plan: str = "personal"
+
+    @app.post("/api/billing/start")
+    def billing_start(body: TrialIn, account: Optional[Account] = Depends(current_account)):
+        """Card first, then 7 days. `card` is the provider's token for the card, never a card number."""
+        import billing
+        r = billing.start_trial(_acct(account).id, body.card, body.plan)
+        if not r.get("ok"):
+            raise HTTPException(400, r["detail"])
+        return r
+
+    @app.post("/api/billing/confirm")
+    def billing_confirm(account: Optional[Account] = Depends(current_account)):
+        """The day-7 yes. The first charge happens here and nowhere else."""
+        import billing
+        r = billing.confirm(_acct(account).id)
+        if not r.get("ok"):
+            raise HTTPException(402 if "payment" in r["detail"].lower() else 409, r["detail"])
+        return r
+
+    class PlanIn(BaseModel):
+        plan: str
+
+    @app.post("/api/billing/plan")
+    def billing_plan(body: PlanIn, account: Optional[Account] = Depends(current_account)):
+        """Up now, down at the next billing date; the date never moves."""
+        import billing
+        r = billing.change_plan(_acct(account).id, body.plan)
+        if not r.get("ok"):
+            raise HTTPException(402 if "payment" in r["detail"].lower() else 400, r["detail"])
+        return r
+
+    class CancelIn(BaseModel):
+        confirm: str = ""
+
+    @app.post("/api/billing/cancel")
+    def billing_cancel(body: CancelIn, account: Optional[Account] = Depends(current_account)):
+        import billing
+        if body.confirm != "cancel":
+            raise HTTPException(409, "Send confirm: \"cancel\" to proceed.")
+        r = billing.cancel(_acct(account).id)
+        if not r.get("ok"):
+            raise HTTPException(409, r["detail"])
+        return r
+
+    @app.post("/api/billing/keep")
+    def billing_keep(account: Optional[Account] = Depends(current_account)):
+        import billing
+        r = billing.keep(_acct(account).id)
+        if not r.get("ok"):
+            raise HTTPException(409, r["detail"])
+        return r
+
+    class RestoreIn(BaseModel):
+        card: str = ""
+
+    @app.post("/api/billing/restore")
+    def billing_restore(body: RestoreIn, account: Optional[Account] = Depends(current_account)):
+        """Pay within the 15 days: everything comes back in one click."""
+        import billing
+        r = billing.restore(_acct(account).id, body.card)
+        if not r.get("ok"):
+            raise HTTPException(402 if "payment" in r["detail"].lower() else 409, r["detail"])
+        return r
+
+    # ── UC-47: where my data is stored ────────────────────────────────
+
+    REGIONS = {"us-east": "the United States", "eu-central": "Europe", "ap-southeast": "Asia-Pacific"}
+
+    @app.get("/api/privacy/region")
+    def region_get(account: Optional[Account] = Depends(current_account)):
+        a = _acct(account)
+        s = store_for(account)
+        cur = s.conn.execute("SELECT data_region FROM public.accounts WHERE id=%s", (a.id,)).fetchone()[0]
+        mv = s.conn.execute("SELECT to_region, state, requested_at FROM public.region_moves WHERE account_id=%s "
+                            "ORDER BY id DESC LIMIT 1", (a.id,)).fetchone()
+        return {"region": cur, "sentence": f"Your data is stored in {REGIONS.get(cur, cur)}.",
+                "available": [{"id": k, "name": v} for k, v in REGIONS.items()],
+                "move": ({"to": mv[0], "state": mv[1], "requestedAt": mv[2].isoformat()} if mv else None),
+                "note": "We keep an index of your mail (about 1 KB per message), never the mail itself, so a move is small. It is all or nothing."}
+
+    class MoveIn(BaseModel):
+        to: str
+        confirm: str = ""
+
+    @app.post("/api/privacy/region")
+    def region_move(body: MoveIn, account: Optional[Account] = Depends(current_account)):
+        a = _acct(account)
+        if body.to not in REGIONS:
+            raise HTTPException(400, f"regions: {', '.join(REGIONS)}")
+        if body.confirm != "move":
+            raise HTTPException(409, "Send confirm: \"move\" to proceed.")
+        s = store_for(account)
+        cur = s.conn.execute("SELECT data_region FROM public.accounts WHERE id=%s", (a.id,)).fetchone()[0]
+        if cur == body.to:
+            raise HTTPException(409, "Your data is already stored there.")
+        open_ = s.conn.execute("SELECT 1 FROM public.region_moves WHERE account_id=%s AND state='requested'", (a.id,)).fetchone()
+        if open_:
+            raise HTTPException(409, "A move is already requested. One at a time.")
+        s.conn.execute("INSERT INTO public.region_moves (account_id, from_region, to_region) VALUES (%s,%s,%s)", (a.id, cur, body.to))
+        s.conn.commit()
+        return {"ok": True, "state": "requested",
+                "note": f"Requested. Your data stays in {REGIONS.get(cur, cur)} and everything keeps working until the move is complete; "
+                        "if any part fails, nothing moves."}
 
     # ══════════════════════ the chat ═════════════════════════════════
 

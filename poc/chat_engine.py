@@ -56,6 +56,8 @@ ARGS = ("who", "words", "days", "when", "sentence", "question", "to", "company")
 GENERIC = {"the", "a", "an", "junk", "spam", "bulk", "company", "companies", "brand", "brands", "most", "mail", "email",
            "emails", "newsletters", "advertising", "ads", "senders", "everything", "all", "me", "my"}
 
+RULE_SHAPE = re.compile(r"^(please\s+)?((put|move|file|label|send|keep).+(under|into|in|as|to)|always|never|from now on|whenever)")
+
 # Nouns that name one feature and nothing else. Seen in the sentence, they
 # settle the intent without a model call: cheaper, and never misrouted.
 KEYWORDS = (("digest", "digest"), ("weekly summary", "digest"), ("calendar", "calendar"),
@@ -201,6 +203,10 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
     hit = next((i for k, i in KEYWORDS if k in low), "")
     if hit in ("digest", "calendar", "storage", "voice"):
         it = {"intent": hit, "args": {"when": low, "sentence": text}}
+    elif RULE_SHAPE.search(low):
+        # "put X under Y", "always …", "never touch …": a standing rule, in the
+        # person's own words. rules.interpret reads the whole sentence itself.
+        it = {"intent": "rule", "args": {"sentence": text}}
     else:
         it = read_intent(text, history or [], known_names)
         if hit == "unsubscribe" and it["intent"] in ("clear", "unknown", "search"):

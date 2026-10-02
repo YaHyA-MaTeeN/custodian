@@ -1,6 +1,6 @@
 # Custodian backend — status
 
-26 September 2026. Everything below is tested, and the test outputs are saved
+2 October 2026. Everything below is tested, and the test outputs are saved
 in the repo.
 
 ## Where it stands
@@ -13,10 +13,11 @@ happens without the person confirming the exact wording.
 
 | Area | State |
 |---|---|
-| Use cases | 40 of 50 built, 7 partly, 3 billing not started |
+| Use cases | 40 of 50 built, 10 partly, none unstarted |
 | Accounts | sign-up, confirmation email, login, logout, reset; tested end to end |
 | Database | Postgres, one private schema per customer, test data migrated |
-| API | 83 routes; every irreversible action needs the person's confirmation |
+| API | 92 routes; every irreversible action needs the person's confirmation |
+| Subscriptions | trial, cleanup lock, day-7 confirm, plan change, pause with 15-day grace, cancel; tested through 21 checks with a stand-in payment provider |
 | Per-user mailboxes | each account opens its own mailbox with its own encrypted password; tested with two accounts |
 | Worker | always on, reads and labels, never sends or clears |
 | Chat | one route, every feature reachable by typing; 22 real sentences tested |
@@ -36,5 +37,5 @@ happens without the person confirming the exact wording.
 | Decision | From | Unblocks |
 |---|---|---|
 | Microsoft app registration under our Microsoft 365 (15 minutes, free); only the client ID is needed back | our Microsoft 365 admin | Outlook |
-| Payment provider | you | billing |
+| Payment provider (the subscription logic is built; this is only who takes the money) | you | real charges |
 | One test address each for Yahoo, Zoho, iCloud | anyone | testing those three providers |

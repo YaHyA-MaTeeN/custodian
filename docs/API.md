@@ -205,6 +205,30 @@ the token. Never store a token across sessions.
 
 Run `python api_smoke.py` from `poc/` to see every refusal happen.
 
+## Subscription (live; stand-in payment provider)
+
+`402 Payment Required` on a route means the subscription does not allow it;
+`detail` is the sentence to show. Clearing routes (`/api/pile/clear`,
+`/api/brands/{company}/clear`, `/api/unsubscribe`) need an active
+subscription. Action routes (send, forward-batch, create a rule) are refused
+while paused or ended. Reading always works until the subscription has ended.
+
+| Route | Body | Returns |
+|---|---|---|
+| `GET /api/billing` | | `{state, plan, price, currency, trialEndsAt, periodEnd, nextPlan, cancelAt, graceUntil, canRead, canClean, message, plans, provider, events}` — `state` is `none｜trial｜awaiting_confirm｜active｜paused｜cancelled｜ended` |
+| `POST /api/billing/start` | `{card, plan}` | card first, then a 7-day trial. `card` is the provider's token, never a card number |
+| `POST /api/billing/confirm` | | the day-7 yes; the first charge happens here only. 402 if the payment fails |
+| `POST /api/billing/plan` | `{plan}` | `when: "now"` for an upgrade, `"next billing date"` for a downgrade; the billing date never moves |
+| `POST /api/billing/cancel` | `{confirm: "cancel"}` | runs to the end of the paid period |
+| `POST /api/billing/keep` | | withdraws a cancellation before the period ends |
+| `POST /api/billing/restore` | `{card?}` | pays a failed renewal within the 15 days; everything resumes |
+| `GET /api/privacy/region` | | `{region, sentence, available, move}` (UC-47) |
+| `POST /api/privacy/region` | `{to, confirm: "move"}` | records the request; the move is all-or-nothing |
+
+The payment provider is a stand-in that moves no money (any `card` token is
+accepted; the token `fail` declines). Set `CUSTODIAN_BILLING=off` to turn the
+gate off. Proof: `python billing_smoke.py` from `poc/`.
+
 ## The chat (live)
 
 `POST /api/chat` `{text, history: [{role: "user"|"assistant", text}]}` →

@@ -25,3 +25,8 @@ protobuf
 # the JSON API behind the web app (api.py)
 fastapi
 uvicorn
+httpx
+
+# accounts mode: Postgres store, credential vault
+psycopg[binary]
+cryptography

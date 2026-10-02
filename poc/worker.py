@@ -131,11 +131,21 @@ def open_all(log) -> list:
     import api_mvp
     root = PgStore()                       # public tables only, no account yet
     rows = root.conn.execute(
-        "SELECT a.email, m.id, m.address, m.provider FROM public.mailboxes m "
+        "SELECT a.email, m.id, m.address, m.provider, a.id FROM public.mailboxes m "
         "JOIN public.accounts a ON a.id=m.account_id "
         "WHERE m.state='connected' ORDER BY m.id").fetchall()
+    # UC-03: a paused or ended subscription stops the work. Nothing is deleted;
+    # the mailbox is simply not read until the account is paid for again.
+    import billing
+    moved = billing.tick()
+    if any(moved.values()):
+        log(f"billing: {moved}")
+    allowed = billing.working_accounts() if billing.enforced() else None
     out = []
-    for account_email, mailbox_id, address, provider in rows:
+    for account_email, mailbox_id, address, provider, account_id in rows:
+        if allowed is not None and account_id not in allowed:
+            log(f"{address}: skipped — subscription paused or ended")
+            continue
         try:
             secret = api_mvp.vault_get(root, mailbox_id)
             if not secret:

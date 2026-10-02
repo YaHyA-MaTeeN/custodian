@@ -3,7 +3,7 @@ Custodian, as a conversation. Type sentences, not commands.
 
     python chat.py
 
-    you > email ferozxdev@gmail.com and ask if he got the report
+    you > email colleague@example.com and ask if he got the report
     you > what's in my inbox
     you > sort my mail
     you > anything from linkedin?
@@ -209,7 +209,7 @@ def do_discard(conn, store, state):
 def do_help(conn, store, state):
     say("Say things like:")
     print()
-    for line in ["email ferozxdev@gmail.com and ask about the report",
+    for line in ["email colleague@example.com and ask about the report",
                  "what's in my inbox",
                  "sort my mail",
                  "anything from linkedin?",

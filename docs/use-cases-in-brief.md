@@ -10,14 +10,14 @@ Full review with problems and verdicts: `Custodian-Use-Case-Review.pdf`.
 
 ---
 
-## Getting an account — not POC work
+## Getting an account
 
-1. **Register Account** — Make an account with email + password, or Google/Microsoft just to prove who you are. *(not POC)*
-2. **Sign In** — Four ways in, all reaching the same account. Signing in never gives mailbox access. *(not POC)*
-3. **Start a Subscription** — Card first, 7-day trial, cleanup locked until paid. Miss a payment: stop, don't delete. *(not POC)*
-47. **Where My Data Is Stored** — One line in settings; move on request. *(not POC)*
-48. **Change Plan** — Upgrade now, downgrade next billing date. *(not POC)*
-49. **Cancel Subscription** — Runs to the end of the paid period; nothing in the mailbox undone. *(not POC)*
+1. **Register Account** — Make an account with email + password, or Google/Microsoft just to prove who you are. *(built — email + password, real confirmation email; provider sign-in not built)*
+2. **Sign In** — Four ways in, all reaching the same account. Signing in never gives mailbox access. *(partly — email + password with sessions; Google/Microsoft sign-in not built)*
+3. **Start a Subscription** — Card first, 7-day trial, cleanup locked until paid. Miss a payment: stop, don't delete. *(partly — `billing.py`: trial, cleanup lock, day-7 confirm, pause, 15-day grace, end; no real payment provider)*
+47. **Where My Data Is Stored** — One line in settings; move on request. *(partly — region shown, move request recorded; the move itself is manual)*
+48. **Change Plan** — Upgrade now, downgrade next billing date. *(partly — up now, down at the billing date, date fixed; no real payment provider)*
+49. **Cancel Subscription** — Runs to the end of the paid period; nothing in the mailbox undone. *(partly — runs to period end, then disconnects; no real payment provider)*
 
 ## Connecting a mailbox
 
@@ -84,12 +84,17 @@ Full review with problems and verdicts: `Custodian-Use-Case-Review.pdf`.
 
 ---
 
-## Where it stands after 19 September
+## Where it stands, 2 October 2026
 
-- **38 built** (some with stated limits: Outlook and the calendar need a real sign-in to exercise; UC-22 is API-door only).
-- **4 partly** — the Yahoo / Zoho / iCloud flows and manual server entry: the servers are known, the guided screens are not.
-- **6 not POC** — accounts, sign-in, billing, plan changes, data region.
-- **2 decisions still open** — sending (UC-25 vs UC-26 vs sir's brief) and chat (UC-38 vs sir's text-input mandate). Both paths exist in the code; nothing was removed.
+- **40 built** and tested on a live Gmail mailbox.
+- **10 partly** — subscriptions (UC-03, 48, 49: the logic is complete, no real
+  payment provider), Outlook, Yahoo, Zoho, iCloud (written, no real account
+  tested), provider sign-in to the account, calendars other than Google, and
+  the data-region move.
+- **0 not started.**
+
+Every feature is reachable through the API (`docs/API.md`) and by typing in
+the chat (`POST /api/chat`).
 
 ## New commands
 

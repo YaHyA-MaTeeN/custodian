@@ -1,8 +1,8 @@
 """
 Send a mail on the user's behalf — through the real gate, not around it.
 
-    python send_mail.py ferozxdev@gmail.com "Subject here" "what to say"
-    python send_mail.py ferozxdev@gmail.com            # asks for the rest
+    python send_mail.py colleague@example.com "Subject here" "what to say"
+    python send_mail.py colleague@example.com            # asks for the rest
     python send_mail.py --verbatim ...                 # send my exact words
 
 ⚠️ THIS IS THE ONLY SCRIPT THAT PUTS MAIL INTO THE WORLD.

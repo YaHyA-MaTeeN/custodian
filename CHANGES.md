@@ -111,7 +111,7 @@ Fixed before you ever saw them: a dashboard chip reading "undefined days", and t
 - Installed `fastapi` and `uvicorn` with pip
 - Deleted `poc/token.json` (the Gmail API sign-in, which had expired)
 
-Because `token.json` is gone and `IMAP_PASSWORD` is set, the POC now connects through **IMAP** as login47015@gmail.com. That works and doesn't expire. To go back to the Gmail API door: `python inbox.py --api`.
+Because `token.json` is gone and `IMAP_PASSWORD` is set, the POC now connects through **IMAP** as test-mailbox@example.com. That works and doesn't expire. To go back to the Gmail API door: `python inbox.py --api`.
 
 Cleaned up: the temporary `_scratch` and `_tmp_export` folders created during the work were deleted.
 

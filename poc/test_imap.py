@@ -57,7 +57,7 @@ def main():
   3. Google shows 16 letters. Copy them.
   4. In PowerShell:
 
-     {C['c']}setx IMAP_USER "login47015@gmail.com"{C['0']}
+     {C['c']}setx IMAP_USER "test-mailbox@example.com"{C['0']}
      {C['c']}setx IMAP_PASSWORD "the16letters"{C['0']}
 
   5. Close the terminal, open a new one, run this again.

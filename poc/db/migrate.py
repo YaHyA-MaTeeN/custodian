@@ -54,7 +54,7 @@ def main():
         conn.commit()
         after = conn.execute("SELECT count(*) FROM information_schema.tables WHERE table_schema='public'").fetchone()[0]
         v = conn.execute("SELECT max(version) FROM schema_versions").fetchone()[0]
-        print(f"  tables: {before} → {after}   schema version: {v}\n")
+        print(f"  tables: {before} -> {after}   schema version: {v}\n")
 
 
 if __name__ == "__main__":

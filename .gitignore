@@ -46,3 +46,7 @@ web/out/
 use_cases/
 web/
 docs/checklist-src/
+
+# personal prep notes, not part of the project
+docs/BRIEFING.md
+docs/meeting-brief.md
