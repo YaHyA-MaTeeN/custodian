@@ -76,7 +76,7 @@ Full review with problems and verdicts: `Custodian-Use-Case-Review.pdf`.
 30. **Undo an Action** — Every action reversible, log in plain words. *(built — both doors)*
 31. **Receive the Weekly Digest** — One message on your schedule; silence when nothing. *(built — `digest.py --frequency / --run / --schedule`; sent from the owner's mailbox, not our own address — stated)*
 32. **Export or Erase My Data** — Everything we hold, or nothing. *(built)*
-34. **Connect a Calendar** — Read today; add important dates after "Add this?"; never change or delete. *(built for Google — `calendar_sync.py`, calendar scope only; CalDAV for other providers not built; live sign-in not exercised here)*
+34. **Connect a Calendar** — Read today; add important dates after "Add this?"; never change or delete. *(built — Google, plus iCloud/Yahoo/Zoho/others over CalDAV with the mailbox's app password; read and add only; Outlook calendar waits on the Microsoft registration)*
 37. **Set a Follow-Up Reminder** — Not snooze; the message never moves. *(built — `remind.py`)*
 38. **Create a Rule in Plain English** — One sentence, interpretation shown back, confirmed, then no AI. *(built — `rules.py`; "clear" and "forward" become approval items; the sorter obeys label rules)*
 44. **Mark a Person as Important** — Never in the pile, never unsubscribed, always at the top. *(built — `important.py`; every stage consults it)*
@@ -86,11 +86,10 @@ Full review with problems and verdicts: `Custodian-Use-Case-Review.pdf`.
 
 ## Where it stands, 2 October 2026
 
-- **40 built** and tested on a live Gmail mailbox.
-- **10 partly** — subscriptions (UC-03, 48, 49: the logic is complete, no real
-  payment provider), Outlook, Yahoo, Zoho, iCloud (written, no real account
-  tested), provider sign-in to the account, calendars other than Google, and
-  the data-region move.
+- **41 built** and tested (mail features on a live Gmail mailbox; CalDAV calendars against a real calendar server).
+- **9 partly** — subscriptions (UC-03, 48, 49: the logic is complete, no real
+  payment provider), Outlook, Yahoo, Zoho, iCloud mail (written, no real account
+  tested), provider sign-in to the account, and the data-region move.
 - **0 not started.**
 
 Every feature is reachable through the API (`docs/API.md`) and by typing in

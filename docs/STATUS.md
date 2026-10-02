@@ -13,15 +13,16 @@ happens without the person confirming the exact wording.
 
 | Area | State |
 |---|---|
-| Use cases | 40 of 50 built, 10 partly, none unstarted |
+| Use cases | 41 of 50 built, 9 partly, none unstarted |
 | Accounts | sign-up, confirmation email, login, logout, reset; tested end to end |
 | Database | Postgres, one private schema per customer, test data migrated |
-| API | 92 routes; every irreversible action needs the person's confirmation |
+| API | 94 routes; every irreversible action needs the person's confirmation |
 | Subscriptions | trial, cleanup lock, day-7 confirm, plan change, pause with 15-day grace, cancel; tested through 21 checks with a stand-in payment provider |
 | Per-user mailboxes | each account opens its own mailbox with its own encrypted password; tested with two accounts |
 | Worker | always on, reads and labels, never sends or clears |
 | Chat | one route, every feature reachable by typing; 22 real sentences tested |
 | IMAP | 47 operations proven on a live mailbox |
+| Calendar | Google, plus iCloud, Yahoo, Zoho and others through CalDAV with the mailbox's own password; read and add only; 20 checks against a real calendar server |
 | Frontend fit | the 30 designed screens checked against the API; all map except billing |
 
 ## Documents in the repo

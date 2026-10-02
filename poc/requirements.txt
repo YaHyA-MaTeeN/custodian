@@ -30,3 +30,8 @@ httpx
 # accounts mode: Postgres store, credential vault
 psycopg[binary]
 cryptography
+
+# calendars other than Google (UC-34)
+caldav
+# test only: a local CalDAV server for calendar_smoke.py
+radicale

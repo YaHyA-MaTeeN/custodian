@@ -17,10 +17,11 @@ confirming the exact wording.
 | Mail connectors: IMAP + SMTP for all providers, Gmail API as an option | `poc/connectors/` | Gmail tested (47 operations); others untested |
 | Store: one SQL, SQLite for dev and Postgres for multi-user | `poc/store.py`, `poc/pg_store.py`, `poc/db/` | built; schema version 3 |
 | Accounts: sign-up, confirmation email, login, reset | `poc/auth.py`, `poc/api_auth.py`, `poc/mailer.py` | built, tested end to end |
-| API, 92 routes, confirm gate on irreversible actions | `poc/api.py`, `poc/api_mvp.py` | built, tested |
+| API, 94 routes, confirm gate on irreversible actions | `poc/api.py`, `poc/api_mvp.py` | built, tested |
 | Per-user mailbox connections from an encrypted vault | `poc/mailboxes.py` | built, tested with two accounts |
 | Always-on worker | `poc/worker.py` | built; reads and labels, never sends or clears |
 | Chat, every feature reachable by typing | `poc/chat_engine.py` | built on Gemini, 22 sentences tested |
+| Calendar: Google, plus CalDAV for iCloud, Yahoo, Zoho and others | `poc/calendar_sync.py`, `poc/calendar_caldav.py` | built; CalDAV tested against a local Radicale server, not yet against a real iCloud/Yahoo account |
 | Subscriptions: trial, confirm, plan change, pause, cancel | `poc/billing.py` | state machine built and tested; **no real payment provider connected** |
 | The 50 use cases as scripts | `poc/*.py` (one per feature) | see `docs/use-cases-in-brief.md` |
 
@@ -59,6 +60,7 @@ history you receive. **You must create your own of each.**
 | `CUSTODIAN_BILLING=off` | turning the subscription gate off | default is on in accounts mode |
 | `PLAN_PERSONAL_PRICE`, `PLAN_WORK_PRICE`, `PLAN_CURRENCY` | plan prices | placeholders: 12.00, 20.00, GBP |
 | `STRIPE_SECRET_KEY` | selects the real payment provider | the provider class is a stub; see section 5 |
+| `CALDAV_URL`, `CALDAV_USER`, `CALDAV_PASSWORD` | single-user calendar on a CalDAV server | optional; by default the calendar uses the mailbox address and app password. In accounts mode the vault credential is used |
 
 ## 4 · First hour: get it running and prove it
 
@@ -81,6 +83,12 @@ python auth_smoke.py            sign-up → confirm → login → reset
 python mail_smoke.py            a real confirmation email arrives
 python mailbox_smoke.py         per-account mailbox isolation
 python billing_smoke.py         the whole subscription life, 21 checks
+```
+
+With no setup at all:
+
+```
+python calendar_smoke.py        CalDAV calendar against a local server, 20 checks
 ```
 
 Each test deletes what it created. Outputs are written to `poc/test_runs/`.
@@ -110,12 +118,15 @@ Each test deletes what it created. Outputs are written to `poc/test_runs/`.
 6. **Data region move (UC-47).** The request is recorded
    (`/api/privacy/region`); the move itself is a manual operations task:
    copy the account's schema to the new region, verify, switch, erase the old.
-7. **Search inside message text.** Search covers sender, subject and date.
-8. **Push instead of polling.** The worker polls each mailbox every 20
+7. **Calendar on real CalDAV accounts and Outlook.** CalDAV is proven against a
+   standard server; one real iCloud or Yahoo account would confirm it. Outlook's
+   calendar needs Microsoft Graph, after the same registration as Outlook mail.
+8. **Search inside message text.** Search covers sender, subject and date.
+9. **Push instead of polling.** The worker polls each mailbox every 20
    seconds. IMAP IDLE and Gmail push would cut the server count at scale.
-9. **Rule conflicts.** Two typed rules that disagree about the same message
+10. **Rule conflicts.** Two typed rules that disagree about the same message
    are not detected.
-10. **Cosmetic, chat.** In answers that quote an email, a restored name is
+11. **Cosmetic, chat.** In answers that quote an email, a restored name is
     sometimes shortened or doubled by the redaction round trip.
 
 ## 6 · Registering the app with Microsoft (for Outlook)
@@ -174,7 +185,8 @@ poc/
   <feature>.py      one script per use case: pile, brand, unsubscribe,
                     storage, spam_rescue, remind, important, asks, people,
                     forward_batch, rules, threads, catchup, today, cleanup,
-                    digest, voice, calendar_sync, upgrade, outlook, my_data
+                    digest, voice, calendar_sync (+ calendar_caldav),
+                    upgrade, outlook, my_data
   *_smoke.py        the tests listed in section 4
 docs/
   API.md                               the route contract
@@ -187,7 +199,7 @@ docs/
 
 ## 9 · Use-case coverage
 
-40 built and tested on a live mailbox. 10 partly:
+41 built and tested. 9 partly:
 
 | Use case | What exists | What is missing |
 |---|---|---|
@@ -197,5 +209,4 @@ docs/
 | UC-49 Cancel | runs to period end, then disconnects, nothing undone | same |
 | UC-05 Outlook | sign-in flow and token login written | Microsoft registration; a test |
 | UC-06, 07, 08 Yahoo, Zoho, iCloud | servers known, password-shape checks | a real account of each to test |
-| UC-34 Calendar | Google Calendar | other calendars (CalDAV) |
 | UC-47 Data region | region shown, move request recorded | the move itself |

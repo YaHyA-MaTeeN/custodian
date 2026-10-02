@@ -26,7 +26,8 @@ the paid annual security assessment Gmail's mail scope does — confirm before
 budgeting (UC-34 open question). This is not the mail upgrade in UC-12.
 
 Other providers (iCloud, Yahoo, Zoho, company servers) speak CalDAV with the
-same app password. That route is not built yet; this file is the Google half.
+same app password: calendar_caldav.py. connected() / today_events() /
+add_event() below choose the right one, so callers never need to know which.
 """
 
 import json
@@ -90,16 +91,88 @@ def today(svc) -> list:
     return out
 
 
-def declined() -> set:
+def declined(store=None) -> set:
+    """Suggestions the person said No to. Kept per account in the store; the
+    file is the single-user fallback from before."""
     try:
-        return set(json.loads(DECLINED.read_text(encoding="utf-8")))
+        out = set(json.loads(DECLINED.read_text(encoding="utf-8")))
     except Exception:
-        return set()
+        out = set()
+    if store is not None:
+        out |= {r[0] for r in store.q("SELECT message_id FROM reported WHERE kind='calendar_declined'")}
+    return out
+
+
+def decline(store, key: str) -> None:
+    store.mark_reported(key, "calendar_declined")
+
+
+# ── which calendar: CalDAV (most providers) or Google ───────────────────
+
+def _caldav_login(address: str = "", password: str = ""):
+    """(address, password) for CalDAV in single-user mode, or ("", "")."""
+    import calendar_caldav
+    address = address or os.environ.get("CALDAV_USER") or os.environ.get("IMAP_USER", "")
+    password = password or os.environ.get("CALDAV_PASSWORD") or os.environ.get("IMAP_PASSWORD", "")
+    if not address or not password:
+        return "", ""
+    if calendar_caldav.route_for(address) != "caldav" and not os.environ.get("CALDAV_URL"):
+        return "", ""
+    return address, password
+
+
+def backend(address: str = "", password: str = ""):
+    """
+    ('caldav', calendar) | ('google', service) | ('microsoft', None) | (None, None).
+    CalDAV first, because it needs nothing beyond the mailbox's own password.
+    """
+    import calendar_caldav
+    a, pw = _caldav_login(address, password)
+    if a:
+        return "caldav", calendar_caldav.open_for(a, pw)
+    target = address or os.environ.get("IMAP_USER", "")
+    if TOKEN.exists():
+        return "google", service()
+    if calendar_caldav.route_for(target) == "microsoft":
+        return "microsoft", None
+    return None, None
+
+
+def connected(address: str = "", password: str = "") -> bool:
+    if _caldav_login(address, password)[0]:
+        return True
+    return TOKEN.exists()
+
+
+def today_events(address: str = "", password: str = "") -> list:
+    kind, cal = backend(address, password)
+    if kind == "caldav":
+        return cal.today()
+    if kind == "google":
+        return today(cal)
+    return []
+
+
+def add_event(store, key: str, title: str, start: datetime, address: str = "", password: str = "") -> str:
+    """Add one approved event, record it, never ask about it again. Returns the event id."""
+    kind, cal = backend(address, password)
+    if kind == "caldav":
+        ev_id = cal.add(title, start)
+    elif kind == "google":
+        body = {"summary": title, "description": "Added by Custodian after your approval.",
+                "start": {"dateTime": start.isoformat(), "timeZone": "UTC"},
+                "end": {"dateTime": (start + timedelta(hours=1)).isoformat(), "timeZone": "UTC"}}
+        ev_id = cal.events().insert(calendarId="primary", body=body).execute().get("id", "")
+    else:
+        raise LookupError("no calendar connected")
+    store.record_action("", "", "calendar_add", title[:70], before=ev_id)
+    decline(store, key)                       # added: never suggested again
+    return ev_id
 
 
 def suggestions(store) -> list:
     """(key, title, date_iso, source) — only from the sources BR-219 allows."""
-    out, seen = [], declined()
+    out, seen = [], declined(store)
     for mid, pid, kind, due, subject, why in store.pending_reminders():
         key = f"reminder:{mid}"
         if key in seen or not due:
@@ -153,24 +226,16 @@ def main():
                 d = declined(); d.add(key)
                 DECLINED.write_text(json.dumps(sorted(d)), encoding="utf-8")
                 print("  not added, and we will not ask about this one again.\n"); return
-            svc = service()
-            start = datetime.fromisoformat(date[:19])
-            body = {"summary": title, "description": "Added by Custodian after your approval.",
-                    "start": {"dateTime": start.isoformat(), "timeZone": "UTC"},
-                    "end": {"dateTime": (start + timedelta(hours=1)).isoformat(), "timeZone": "UTC"}}
-            ev = svc.events().insert(calendarId="primary", body=body).execute()
-            store.record_action("", "", "calendar_add", title[:70], before=ev.get("id", ""))
-            d = declined(); d.add(key)                        # never asked again
-            DECLINED.write_text(json.dumps(sorted(d)), encoding="utf-8")
+            add_event(store, key, title, datetime.fromisoformat(date[:19]))
             print(f"  {C['g']}added.{C['0']} We will never change or delete it — that is yours.\n")
         else:
             print(f"\n  {C['dim']}python calendar_sync.py --add N   adds one, after your yes.{C['0']}\n")
         return
     # --today, or no flag
-    if not TOKEN.exists():
+    if not connected():
         print("\n  calendar not connected.  python calendar_sync.py --connect\n"); return
     try:
-        evs = today(service())
+        evs = today_events()
     except Exception as e:
         print(f"\n  {C['y']}calendar isn't responding. Your mail features still work.{C['0']} "
               f"{C['dim']}({str(e)[:50]}){C['0']}\n"); return

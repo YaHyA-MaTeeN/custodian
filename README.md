@@ -61,6 +61,7 @@ Every test writes its output to `poc/test_runs/`. From `poc/`:
 | `python mail_smoke.py` | a real confirmation email arrives and its link confirms the account |
 | `python mailbox_smoke.py` | each account opens its own mailbox from the vault; another account is refused |
 | `python billing_smoke.py` | the whole subscription life, 21 checks (accounts mode) |
+| `python calendar_smoke.py` | calendars over CalDAV against a local calendar server, 20 checks |
 | `python chat_smoke.py` | twenty-two real sentences through the chat; gated ones come back as preview + token |
 | `python audit_imap.py` | 47 IMAP operations on the live mailbox, inbox count unchanged |
 | `python worker.py --once` | one pass of the always-on worker |

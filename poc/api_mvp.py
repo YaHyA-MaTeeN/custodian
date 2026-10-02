@@ -772,21 +772,81 @@ def register(app):
         s_ = digest.load(); s_["digest"] = body.frequency; digest.save(s_)
         return {"ok": True}
 
+    def _cal_login(account):
+        """(address, password) for this account's calendar: its first CalDAV-capable mailbox, from the vault."""
+        if account is None:
+            return "", ""
+        import calendar_caldav, mailboxes
+        st = store_for(account)
+        for mid, address, provider, state in mailboxes._rows(st):
+            if state == "connected" and calendar_caldav.route_for(address) == "caldav":
+                from api_mvp import vault_get
+                return address, vault_get(st, mid)
+        return "", ""
+
     @app.get("/api/calendar/today")
     def calendar_today(account: Optional[Account] = Depends(current_account)):
+        """UC-34. Read only; the events are shown and not kept."""
         import calendar_sync
-        if not calendar_sync.TOKEN.exists():
+        a, pw = _cal_login(account)
+        if not calendar_sync.connected(a, pw):
             return {"connected": False}
         try:
-            return {"connected": True, "events": [{"when": w, "title": t} for w, t in calendar_sync.today(calendar_sync.service())]}
+            return {"connected": True, "events": [{"when": w, "title": t} for w, t in calendar_sync.today_events(a, pw)]}
         except Exception as e:
             return {"connected": True, "error": f"calendar isn't responding ({str(e)[:40]}). Your mail features still work."}
 
+    def _cal_suggestion(account, key):
+        import calendar_sync
+        for k, t, d, src in calendar_sync.suggestions(store_for(account)):
+            if k == key:
+                return t, d
+        raise HTTPException(404, "no such suggestion (already added or declined?)")
+
     @app.get("/api/calendar/suggestions")
     def calendar_suggestions(account: Optional[Account] = Depends(current_account)):
+        """Important dates from mail (BR-219). Each carries the wording and token to add it."""
         import calendar_sync
-        return {"suggestions": [{"n": i, "key": k, "title": t, "date": d, "source": src}
-                                for i, (k, t, d, src) in enumerate(calendar_sync.suggestions(store_for(account)), 1)]}
+        out = []
+        for i, (k, t, d, src) in enumerate(calendar_sync.suggestions(store_for(account)), 1):
+            wording = f"add '{t}' on {d[:16].replace('T', ' ')} to your calendar"
+            out.append({"n": i, "key": k, "title": t, "date": d, "source": src,
+                        "wording": wording, "confirm": _confirm_token(wording)})
+        return {"suggestions": out}
+
+    class CalAddIn(BaseModel):
+        key: str
+        confirm: str = ""
+
+    @app.post("/api/calendar/add")
+    def calendar_add(body: CalAddIn, account: Optional[Account] = Depends(current_account)):
+        """Add one suggested event, only with the token for that exact event (BR-221). Never changed afterwards."""
+        import calendar_sync
+        _require(account, "act")
+        title, date = _cal_suggestion(account, body.key)
+        wording = f"add '{title}' on {date[:16].replace('T', ' ')} to your calendar"
+        if body.confirm != _confirm_token(wording):
+            raise HTTPException(409, "Not confirmed. Ask for the suggestions again and send back its confirm token.")
+        a, pw = _cal_login(account)
+        if not calendar_sync.connected(a, pw):
+            raise HTTPException(409, "No calendar is connected.")
+        try:
+            ev = calendar_sync.add_event(store_for(account), body.key, title, datetime.fromisoformat(date[:19]), a, pw)
+        except Exception as e:
+            raise HTTPException(502, f"calendar isn't responding ({str(e)[:50]}). Nothing was added.")
+        return {"ok": True, "eventId": ev, "note": "Added. We never change or delete it; it is yours."}
+
+    class CalKeyIn(BaseModel):
+        key: str
+
+    @app.post("/api/calendar/decline")
+    def calendar_decline(body: CalKeyIn, account: Optional[Account] = Depends(current_account)):
+        """A No is remembered: this suggestion is never offered again."""
+        import calendar_sync
+        _cal_suggestion(account, body.key)
+        calendar_sync.decline(store_for(account), body.key)
+        return {"ok": True}
+
 
 
 

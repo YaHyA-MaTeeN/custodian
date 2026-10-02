@@ -513,11 +513,11 @@ def handle(store, me: str, text: str, history: list = None, body_of=None, known_
         import calendar_sync
         sug = calendar_sync.suggestions(store)
         sug_lines = "\n".join(f"  {t} on {d[:10]} ({src})" for k, t, d, src in sug[:5])
-        if not calendar_sync.TOKEN.exists():
+        if not calendar_sync.connected():
             return {"reply": "No calendar is connected. Connect one on the Calendar page." + (f"\nDates from your mail worth adding:\n{sug_lines}" if sug else ""),
                     "intent": intent, "connected": False}
         try:
-            ev = calendar_sync.today(calendar_sync.service())
+            ev = calendar_sync.today_events()
         except Exception as e:
             return {"reply": f"Your calendar isn't responding ({str(e)[:40]}). Your mail features still work.", "intent": intent}
         ev_lines = "\n".join(f"  {w}  {t}" for w, t in ev) or "  nothing"

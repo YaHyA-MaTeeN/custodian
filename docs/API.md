@@ -205,6 +205,21 @@ the token. Never store a token across sessions.
 
 Run `python api_smoke.py` from `poc/` to see every refusal happen.
 
+## Calendar (live)
+
+| Route | Body | Returns |
+|---|---|---|
+| `GET /api/calendar/today` | | `{connected, events: [{when, title}]}` — cancelled and declined events left out; nothing is stored |
+| `GET /api/calendar/suggestions` | | `{suggestions: [{key, title, date, source, wording, confirm}]}` — dated commitments and requests from mail |
+| `POST /api/calendar/add` | `{key, confirm}` | adds that one event, only with its token; no attendees, so no invite is sent |
+| `POST /api/calendar/decline` | `{key}` | that suggestion is never offered again |
+
+Google Calendar uses its own one-time sign-in. iCloud, Yahoo, Zoho and other
+providers use CalDAV with the mailbox's own app password (from the vault in
+accounts mode), so connecting the mailbox connects the calendar. Outlook's
+calendar needs the Microsoft registration. The calendar can only read and add:
+there is no way to change or delete an event. Proof: `python calendar_smoke.py`.
+
 ## Subscription (live; stand-in payment provider)
 
 `402 Payment Required` on a route means the subscription does not allow it;

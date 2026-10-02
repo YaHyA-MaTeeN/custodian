@@ -38,12 +38,13 @@ The backend is the server side and does all the thinking. The frontend
 | The pipeline | 16 steps every email goes through to decide what it is. Mostly fixed rules; AI only where rules can't decide |
 | Database | Stores what Custodian knows about the mail (not the mail itself). Each customer has their own private section |
 | Accounts | Sign up, confirmation email, log in, log out, reset password |
-| API | 92 routes: one for everything the screens need |
+| API | 94 routes: one for everything the screens need |
 | The gate | Every permanent action needs the person's confirmation of the exact wording |
 | Per-user mailboxes | Each user's mailbox password is stored encrypted; each user's requests open only their own mailbox |
 | The worker | Runs all day with nobody watching. Checks every mailbox every 20 seconds, reads and labels new mail. Can never send or delete |
 | The chat | The person types a sentence and the app does the right thing. Every feature can be reached by typing |
 | Subscriptions | Free trial, confirm before charging, change plan, pause if a payment fails, cancel |
+| Calendar | Shows today's events and adds dates from mail after a yes. Works with Google, and with iCloud, Yahoo, Zoho and others using the mailbox's own password. Can never change or delete an event |
 | Handover | Handover document, personal data removed from the code, clean copy ready |
 
 ### How the chat works
@@ -81,7 +82,7 @@ labelled example sentences first.
 
 ## 4 · All 50 use cases
 
-**40 built and tested, 10 partly done, none untouched.** "Built" means the
+**41 built and tested, 9 partly done, none untouched.** "Built" means the
 backend logic exists and was run on a real Gmail mailbox. The screens are
 the frontend's work.
 
@@ -164,7 +165,7 @@ the frontend's work.
 | 30 | Undo an Action | Everything reversible, log in plain words | Built | |
 | 31 | Weekly Digest | One summary on your schedule | Built | Nothing sent when there's nothing to say |
 | 32 | Export or Erase My Data | Everything we hold, or nothing | Built | |
-| 34 | Connect a Calendar | Read today, add dates after "add this?" | Partly | Google Calendar only |
+| 34 | Connect a Calendar | Read today, add dates after "add this?" | Built | Google Calendar, plus iCloud, Yahoo, Zoho and other providers through the common calendar standard (CalDAV), using the mailbox's own app password. Can only read and add, never change or delete. Tested against a real calendar server. Outlook's calendar waits on the same Microsoft registration as Outlook mail |
 | 37 | Follow-Up Reminder | Remind without moving the message | Built | |
 | 38 | Rule in Plain English | One sentence becomes a rule | Built | Interpretation shown back before saving |
 | 44 | Mark a Person Important | Never cleared, always on top | Built | |
@@ -172,7 +173,7 @@ the frontend's work.
 
 ---
 
-## 5 · Why 10 use cases are only partly done
+## 5 · Why 9 use cases are only partly done
 
 None of them is waiting on more coding from our side alone. Each one needs
 something from outside.
@@ -183,7 +184,6 @@ something from outside.
 | **5** Outlook | A Microsoft app registration | The company's Microsoft 365 admin, about 15 minutes, free. Only the "client ID" is needed back |
 | **6, 7, 8** Yahoo, Zoho, iCloud | A real test | One test account for each. About an afternoon of testing |
 | **2** Sign in with Google / Microsoft | The sign-in button for the account itself | A Google and Microsoft login setup for the website. Email and password already work |
-| **34** Calendar | Calendars other than Google | Outlook and Apple calendars use a different standard; not started |
 | **47** Data region | Moving the data | Done by hand by whoever runs the servers: copy, check, switch, erase old copy |
 
 ---
@@ -202,6 +202,7 @@ mailbox, real emails) and cleans up after itself. Each one can be re-run.
 | API test | Every permanent action is refused without the confirmation |
 | Chat test | 22 real sentences, every feature, all answered correctly |
 | Subscription test | The whole life of a subscription, 21 checks: trial, lock, confirm, upgrade, downgrade, failed payment, pause, restore, cancel, end |
+| Calendar test | 20 checks against a real calendar server: today's events (cancelled and declined ones left out), adding only with confirmation, no invites sent, a No remembered, no way to change or delete |
 | Worker | One full pass reading and labelling mail |
 
 ---
@@ -292,8 +293,7 @@ About €0.30 per user per month at scale.
 4. **Test Yahoo, Zoho, iCloud** with one real account each.
 5. **Sign in with Google / Microsoft** for the account.
 6. **Search inside message text** (today: sender, subject, date).
-7. **Calendars other than Google.**
-8. **Google's security review**, only if the optional Google sign-in door is
+7. **Google's security review**, only if the optional Google sign-in door is
    offered to the public (Google charges for it, several thousand dollars a
    year). The default IMAP connection does not need it.
 
