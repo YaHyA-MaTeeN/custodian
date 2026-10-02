@@ -1,0 +1,1024 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Custodian Final Report</title>
+<style>@page { size: A4; margin: 16mm 15mm 14mm; }
+:root{
+  --ink:#16202C; --mid:#41525F; --soft:#6D7D8A; --rule:#D9E1E7;
+  --paper:#fff; --tint:#F3F6F8; --tint2:#E9EFF3;
+  --pass:#1C6647; --pass-bg:#E4F1EA; --fail:#A0341E; --fail-bg:#FAE7E1;
+  --part:#8A6516; --part-bg:#F8EEDA; --accent:#1B4F8A; --accent-bg:#E6EEF7;
+}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);background:var(--paper);
+  font:10.5pt/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+h1,h2,h3,h4{font-family:Georgia,"Times New Roman",serif;font-weight:600;
+  letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:26pt;line-height:1.15}
+h2{font-size:15.5pt;margin:0 0 3mm;padding-bottom:2mm;border-bottom:1.5pt solid var(--ink)}
+h3{font-size:12pt;margin:7mm 0 2mm}
+h4{font-size:10.5pt;margin:4mm 0 1.5mm;color:var(--accent)}
+p{margin:0 0 2.6mm}
+.lead{font-size:11.5pt;color:var(--mid);max-width:155mm}
+code,kbd,.mono{font-family:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace}
+code{font-size:9pt;background:var(--tint);padding:.3mm 1.2mm;border-radius:1mm}
+.sheet{page-break-before:always}
+.cover{padding-top:6mm;border-bottom:3pt solid var(--ink);padding-bottom:6mm;margin-bottom:7mm}
+.eyebrow{font-family:"Cascadia Mono",Consolas,monospace;font-size:8pt;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--soft);margin-bottom:3mm}
+.meta{margin-top:4mm;font-size:9pt;color:var(--soft);font-family:"Cascadia Mono",Consolas,monospace}
+table{width:100%;border-collapse:collapse;margin:2mm 0 4mm}
+th{text-align:left;font-size:8pt;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);
+  font-weight:600;padding:0 3mm 1.5mm 0;border-bottom:1pt solid var(--rule)}
+td{padding:1.8mm 3mm 1.8mm 0;border-bottom:.5pt solid var(--rule);vertical-align:top;font-size:9.5pt}
+tr:last-child td{border-bottom:none}
+td.k{width:34mm;font-weight:600;color:var(--mid)}
+td.n{width:12mm;color:var(--soft);font-family:"Cascadia Mono",Consolas,monospace;font-size:8.5pt}
+.tag{display:inline-block;font-family:"Cascadia Mono",Consolas,monospace;font-size:7.5pt;font-weight:600;
+  letter-spacing:.04em;padding:.7mm 2mm;border-radius:1mm;white-space:nowrap}
+.rules{background:var(--accent-bg);color:var(--accent)}
+.models{background:var(--part-bg);color:var(--part)}
+.yes{background:var(--pass-bg);color:var(--pass)}
+.no{background:var(--fail-bg);color:var(--fail)}
+.na{background:var(--tint2);color:var(--soft)}
+.note{background:var(--tint);border-left:2.5pt solid var(--accent);padding:3.2mm 4mm;margin:3.5mm 0;
+  border-radius:0 1.5mm 1.5mm 0;font-size:9.5pt}
+.note b{color:var(--accent)}
+.warn{background:var(--fail-bg);border-left-color:var(--fail)} .warn b{color:var(--fail)}
+.quote{border-left:2.5pt solid var(--ink);padding:1mm 0 1mm 4mm;margin:3.5mm 0;
+  font-family:Georgia,serif;font-size:11pt;font-style:italic;color:var(--mid)}
+.cmd{background:#111A24;color:#DDE6EE;border-radius:1.5mm;padding:3mm 4mm;
+  font-family:"Cascadia Mono",Consolas,monospace;font-size:8.8pt;line-height:1.55;margin:2.5mm 0;
+  overflow-x:auto;white-space:pre}
+.cmd .c{color:#7FB0DE} .cmd .d{color:#7E93A5}
+.box{border:1pt solid var(--rule);border-radius:1.5mm;padding:3.5mm 4.5mm;margin:3mm 0}
+.box h4{margin-top:0}
+.qa{margin:2.5mm 0 3.5mm}
+.qa dt{font-weight:600;color:var(--accent);font-size:9pt;letter-spacing:.06em;text-transform:uppercase;
+  margin-top:2.4mm}
+.qa dd{margin:.6mm 0 0 0}
+ul,ol{margin:0 0 3mm;padding-left:5mm} li{margin-bottom:1.3mm}
+.figs{display:flex;border:1pt solid var(--rule);border-radius:1.5mm;overflow:hidden;margin:5mm 0}
+.fig{flex:1;padding:3.5mm 4mm;border-right:1pt solid var(--rule)} .fig:last-child{border-right:none}
+.fig b{display:block;font-family:"Cascadia Mono",Consolas,monospace;font-size:17pt;line-height:1;letter-spacing:-.03em}
+.fig span{display:block;margin-top:1.4mm;font-size:8.3pt;color:var(--soft)}
+.toc td{padding:1.2mm 3mm 1.2mm 0;border:none;font-size:9.5pt}
+.tree{font-family:"Cascadia Mono",Consolas,monospace;font-size:8.6pt;line-height:1.5;white-space:pre;
+  background:var(--tint);padding:3mm 4mm;border-radius:1.5mm;overflow-x:auto}
+.foot{margin-top:8mm;padding-top:3mm;border-top:1pt solid var(--rule);font-size:8.5pt;color:var(--soft);
+  font-family:"Cascadia Mono",Consolas,monospace}
+.flow{font-family:"Cascadia Mono",Consolas,monospace;font-size:8.6pt;line-height:1.5;white-space:pre;
+  border:1pt solid var(--rule);padding:3mm 4mm;border-radius:1.5mm;overflow-x:auto}
+
+h1{margin-bottom:4mm} h2{margin-top:8mm} h3{margin-top:5mm}
+table{page-break-inside:auto} tr{page-break-inside:avoid}
+hr{border:none;border-top:1pt solid var(--rule);margin:6mm 0}
+</style></head><body><h1>Custodian backend — final report</h1>
+<p>October 2026. Everything in one place: what was built, what was tested, every
+use case and its state, why some are unfinished, costs, hosting, and what is
+left. Written in plain words.</p>
+<hr />
+<h2>1 · What Custodian is</h2>
+<p>An email assistant. A person connects their mailbox. Custodian reads every
+email, decides what it is (a person asking for something, a newsletter, a
+receipt, spam that is really important), labels it, and shows a short list
+of what needs attention.</p>
+<p>It can clean out bulk mail, unsubscribe from senders, set reminders, track
+what people asked of you and what you promised, draft replies in your own
+writing style, and answer questions you type.</p>
+<p>Two promises run through all of it:</p>
+<ul>
+<li><strong>Nothing is ever deleted.</strong> "Clear" moves mail to the provider's trash,
+  where it can be recovered.</li>
+<li><strong>Nothing permanent happens without a yes.</strong> Before clearing, unsubscribing
+  or sending, the person sees the exact action ("trash 360 messages from
+  LinkedIn") and must confirm it. The server refuses otherwise.</li>
+</ul>
+<p>The backend is the server side and does all the thinking. The frontend
+(the screens) is built separately and talks to the backend.</p>
+<hr />
+<h2>2 · What was built</h2>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it does, simply</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mail connection (IMAP)</td>
+<td>Logs in to the mailbox and reads, labels, archives, moves to trash, sends, undoes</td>
+</tr>
+<tr>
+<td>The pipeline</td>
+<td>16 steps every email goes through to decide what it is. Mostly fixed rules; AI only where rules can't decide</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>Stores what Custodian knows about the mail (not the mail itself). Each customer has their own private section</td>
+</tr>
+<tr>
+<td>Accounts</td>
+<td>Sign up, confirmation email, log in, log out, reset password</td>
+</tr>
+<tr>
+<td>API</td>
+<td>92 routes: one for everything the screens need</td>
+</tr>
+<tr>
+<td>The gate</td>
+<td>Every permanent action needs the person's confirmation of the exact wording</td>
+</tr>
+<tr>
+<td>Per-user mailboxes</td>
+<td>Each user's mailbox password is stored encrypted; each user's requests open only their own mailbox</td>
+</tr>
+<tr>
+<td>The worker</td>
+<td>Runs all day with nobody watching. Checks every mailbox every 20 seconds, reads and labels new mail. Can never send or delete</td>
+</tr>
+<tr>
+<td>The chat</td>
+<td>The person types a sentence and the app does the right thing. Every feature can be reached by typing</td>
+</tr>
+<tr>
+<td>Subscriptions</td>
+<td>Free trial, confirm before charging, change plan, pause if a payment fails, cancel</td>
+</tr>
+<tr>
+<td>Handover</td>
+<td>Handover document, personal data removed from the code, clean copy ready</td>
+</tr>
+</tbody>
+</table>
+<h3>How the chat works</h3>
+<ol>
+<li>The person types, for example, "has Ali replied to me?"</li>
+<li>Gemini (Google's AI) reads the sentence with names hidden and says which
+   feature it means: "check replies, person Ali". That is all Gemini does.</li>
+<li>Our own code looks it up in our database and writes the answer:
+   "No. You wrote to Ali on Tuesday and nothing has come back."</li>
+</ol>
+<p>For a question about what an email says ("what did Ali ask me to do?"), the
+email text goes to Gemini with names hidden, and the answer names the email
+it came from. If the answer is not in the mail, the chat says so instead of
+guessing. The chat never clears, unsubscribes or sends by itself: it shows
+what would happen and waits for the yes, same as a button.</p>
+<p>Gemini was chosen for the chat because it costs about $0.03 per user per
+month and needs no training. Running our own model would need a few hundred
+labelled example sentences first.</p>
+<hr />
+<h2>3 · Mail providers: what is actually tested</h2>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>State</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Gmail</strong></td>
+<td><strong>Working and tested</strong></td>
+<td>47 operations proven on a real mailbox: read every folder, label, archive, trash, rescue from spam, mark read, send, draft, forward, undo. Inbox count unchanged after the test</td>
+</tr>
+<tr>
+<td><strong>Outlook / Hotmail</strong></td>
+<td><strong>Not working yet</strong></td>
+<td>Microsoft stopped accepting passwords in 2022. It needs a sign-in token, and for that the app must be registered with Microsoft once. Only a company Microsoft account can register it; personal accounts are refused (tried twice). The code is written and waits for the company's registration</td>
+</tr>
+<tr>
+<td><strong>Yahoo</strong></td>
+<td>Written, not tested</td>
+<td>Uses the same standard as Gmail, so it should work. No real Yahoo account has been connected</td>
+</tr>
+<tr>
+<td><strong>Zoho</strong></td>
+<td>Written, not tested</td>
+<td>Same</td>
+</tr>
+<tr>
+<td><strong>iCloud</strong></td>
+<td>Written, not tested</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>Any other provider</td>
+<td>Written, not tested</td>
+<td>The server is worked out from the email address automatically</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>4 · All 50 use cases</h2>
+<p><strong>40 built and tested, 10 partly done, none untouched.</strong> "Built" means the
+backend logic exists and was run on a real Gmail mailbox. The screens are
+the frontend's work.</p>
+<h3>Getting an account</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Register Account</td>
+<td>Make an account with email and password</td>
+<td>Built</td>
+<td>A real confirmation email is sent and its link confirms the account. Tested</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Sign In</td>
+<td>Log in; signing in never gives mailbox access by itself</td>
+<td>Partly</td>
+<td>Email and password work. "Sign in with Google / Microsoft" not built</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Start a Subscription</td>
+<td>Card first, 7-day trial, cleanup locked until paid</td>
+<td>Partly</td>
+<td>All the rules work. No real payment company connected</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Where My Data Is Stored</td>
+<td>Show which region; move on request</td>
+<td>Partly</td>
+<td>Region shown, move request recorded. The move itself is done by hand</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Change Plan</td>
+<td>Upgrade now, downgrade at the next billing date</td>
+<td>Partly</td>
+<td>Rules work. No real payment company</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Cancel Subscription</td>
+<td>Runs to end of paid period; nothing in mailbox undone</td>
+<td>Partly</td>
+<td>Rules work. No real payment company</td>
+</tr>
+</tbody>
+</table>
+<h3>Connecting a mailbox</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4</td>
+<td>Gmail by App Password</td>
+<td>16-character app password, connect over IMAP</td>
+<td>Built</td>
+<td>The default connection. Tested</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Outlook by Microsoft Sign-In</td>
+<td>Sign in on Microsoft's page, get a token</td>
+<td>Partly</td>
+<td>Code written. Waiting on Microsoft registration</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Yahoo by App Password</td>
+<td>Same as Gmail, Yahoo's steps</td>
+<td>Partly</td>
+<td>Written, not tested</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Zoho by App Password</td>
+<td>IMAP switched on in Zoho first</td>
+<td>Partly</td>
+<td>Written, not tested</td>
+</tr>
+<tr>
+<td>8</td>
+<td>iCloud by App-Specific Password</td>
+<td>abcd-efgh-ijkl-mnop style password</td>
+<td>Partly</td>
+<td>Written, not tested</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Any Other IMAP Mailbox</td>
+<td>Work out the server from the address</td>
+<td>Built</td>
+<td>From the address ending, then the domain's mail records</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Establish Mailbox Connection</td>
+<td>Check the password, find folders, note what's allowed</td>
+<td>Built</td>
+<td>Checks the password for real before storing it, encrypted</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Gmail by Google Sign-In</td>
+<td>Google's own door</td>
+<td>Built</td>
+<td>Optional second door. Public use needs Google's paid security review</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Upgrade to Google Sign-In</td>
+<td>Switch doors without losing anything</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>Disconnect a Mailbox</td>
+<td>Erase our copy, list what is lost</td>
+<td>Built</td>
+<td>Mailbox itself untouched</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Identify the Mail Provider</td>
+<td>Which company runs this address</td>
+<td>Built</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>The cleanup</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>Scan Mailbox History</td>
+<td>Read all old mail headers, resumable</td>
+<td>Built</td>
+<td>Progress shown: "read 1,200 of 7,300"</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Review and Clear the Pile</td>
+<td>Bulk senders grouped with reasons</td>
+<td>Built</td>
+<td>Trash or archive, after confirmation. Test mailbox: 6,683 messages in 91 groups</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Clear a Brand's Mail</td>
+<td>A company's many addresses as one</td>
+<td>Built</td>
+<td>Adverts cleared, receipts kept. Test mailbox: 68 companies</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Unsubscribe</td>
+<td>One-click unsubscribe, then watch</td>
+<td>Built</td>
+<td>Checks for 14 days whether they really stopped</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Reclaim Storage Space</td>
+<td>Largest messages, grouped</td>
+<td>Built</td>
+<td>Protected senders marked</td>
+</tr>
+<tr>
+<td>46</td>
+<td>The First Cleanup</td>
+<td>Unsubscribe, pile, brands, space in order</td>
+<td>Built</td>
+<td>One confirmation each</td>
+</tr>
+</tbody>
+</table>
+<h3>New mail every day</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>19</td>
+<td>Prioritise New Mail</td>
+<td>Person or machine, what they want, labelled</td>
+<td>Built</td>
+<td>Every decision stored with its reason</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Recover Mail from Spam</td>
+<td>Find real mail wrongly in spam</td>
+<td>Built</td>
+<td>Never moved automatically</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Inspect a Suspicious Message</td>
+<td>Text only, real link destinations</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>22</td>
+<td>Track Unanswered Outgoing Mail</td>
+<td>Your questions nobody answered</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>23</td>
+<td>Commitments from Structured Mail</td>
+<td>Bookings, orders, invoices become dates</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>24</td>
+<td>Deadline Warnings</td>
+<td>Reminder ahead of a deadline</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>33</td>
+<td>Requests and Their Deadlines</td>
+<td>What was asked, of whom, by when</td>
+<td>Built</td>
+<td>Test mailbox: 12 requests found</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Resurface Unread Important Mail</td>
+<td>One line, once</td>
+<td>Built</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>Replying</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>25</td>
+<td>Generate a Reply Draft</td>
+<td>Draft in your own style</td>
+<td>Built</td>
+<td>Names hidden from the AI; sent only after yes</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Send a Quick Answer</td>
+<td>Three fixed short answers</td>
+<td>Built</td>
+<td>No AI used</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Forward a Batch</td>
+<td>Up to 25 messages as drafts</td>
+<td>Built</td>
+<td>Recipient only from what the user types</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Tune My Writing Voice</td>
+<td>See and change how drafts sound</td>
+<td>Built</td>
+<td>Learned from sent mail</td>
+</tr>
+</tbody>
+</table>
+<h3>Seeing your mail</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>27</td>
+<td>Unified Inbox</td>
+<td>All mailboxes in one list</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>28</td>
+<td>Search</td>
+<td>Across all mailboxes</td>
+<td>Built</td>
+<td>Sender, subject, date. Not inside message text</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Catch Up After Time Away</td>
+<td>Needs you / answered / expired / info</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>40</td>
+<td>Where a Conversation Stands</td>
+<td>Who asked what, who waits on whom</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>41</td>
+<td>Everything About One Person</td>
+<td>Their addresses, what is owed both ways</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>43</td>
+<td>Work Through Today</td>
+<td>One ordered list</td>
+<td>Built</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3>Control and trust</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Use case</th>
+<th>What it means</th>
+<th>State</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>29</td>
+<td>Correct a Decision</td>
+<td>Overrule any decision</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>30</td>
+<td>Undo an Action</td>
+<td>Everything reversible, log in plain words</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>31</td>
+<td>Weekly Digest</td>
+<td>One summary on your schedule</td>
+<td>Built</td>
+<td>Nothing sent when there's nothing to say</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Export or Erase My Data</td>
+<td>Everything we hold, or nothing</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>34</td>
+<td>Connect a Calendar</td>
+<td>Read today, add dates after "add this?"</td>
+<td>Partly</td>
+<td>Google Calendar only</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Follow-Up Reminder</td>
+<td>Remind without moving the message</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>38</td>
+<td>Rule in Plain English</td>
+<td>One sentence becomes a rule</td>
+<td>Built</td>
+<td>Interpretation shown back before saving</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Mark a Person Important</td>
+<td>Never cleared, always on top</td>
+<td>Built</td>
+<td></td>
+</tr>
+<tr>
+<td>45</td>
+<td>Track What You Promised</td>
+<td>"I'll send it Friday" from sent mail</td>
+<td>Built</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5 · Why 10 use cases are only partly done</h2>
+<p>None of them is waiting on more coding from our side alone. Each one needs
+something from outside.</p>
+<table>
+<thead>
+<tr>
+<th>Use cases</th>
+<th>What is missing</th>
+<th>What it needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>3, 48, 49</strong> Subscription, change plan, cancel</td>
+<td>Taking real money</td>
+<td>A payment company (e.g. Stripe) chosen and an account opened. All the rules are already built and tested; connecting the company is three functions to fill in</td>
+</tr>
+<tr>
+<td><strong>5</strong> Outlook</td>
+<td>A Microsoft app registration</td>
+<td>The company's Microsoft 365 admin, about 15 minutes, free. Only the "client ID" is needed back</td>
+</tr>
+<tr>
+<td><strong>6, 7, 8</strong> Yahoo, Zoho, iCloud</td>
+<td>A real test</td>
+<td>One test account for each. About an afternoon of testing</td>
+</tr>
+<tr>
+<td><strong>2</strong> Sign in with Google / Microsoft</td>
+<td>The sign-in button for the account itself</td>
+<td>A Google and Microsoft login setup for the website. Email and password already work</td>
+</tr>
+<tr>
+<td><strong>34</strong> Calendar</td>
+<td>Calendars other than Google</td>
+<td>Outlook and Apple calendars use a different standard; not started</td>
+</tr>
+<tr>
+<td><strong>47</strong> Data region</td>
+<td>Moving the data</td>
+<td>Done by hand by whoever runs the servers: copy, check, switch, erase old copy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>6 · How everything was tested</h2>
+<p>Every test runs against real systems (the real database, a real Gmail
+mailbox, real emails) and cleans up after itself. Each one can be re-run.</p>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>What it proves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IMAP audit</td>
+<td>47 mailbox operations on a real Gmail, inbox count unchanged</td>
+</tr>
+<tr>
+<td>Accounts test</td>
+<td>Sign-up → confirmation → login → logout → reset, 14 steps</td>
+</tr>
+<tr>
+<td>Email test</td>
+<td>A real confirmation email arrives in about 10 seconds and its link works</td>
+</tr>
+<tr>
+<td>Mailbox test</td>
+<td>Each account opens only its own mailbox; a second account is refused</td>
+</tr>
+<tr>
+<td>API test</td>
+<td>Every permanent action is refused without the confirmation</td>
+</tr>
+<tr>
+<td>Chat test</td>
+<td>22 real sentences, every feature, all answered correctly</td>
+</tr>
+<tr>
+<td>Subscription test</td>
+<td>The whole life of a subscription, 21 checks: trial, lock, confirm, upgrade, downgrade, failed payment, pause, restore, cancel, end</td>
+</tr>
+<tr>
+<td>Worker</td>
+<td>One full pass reading and labelling mail</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>7 · Costs</h2>
+<p>All figures are estimates from real measurements on one laptop and one test
+mailbox, then scaled up. Treat them as within a factor of two.</p>
+<h3>The AI models</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Job</th>
+<th>Runs on</th>
+<th>Size</th>
+<th>Speed per email</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classifier</td>
+<td>What kind of email, does it need a reply</td>
+<td>Our server</td>
+<td>550 MB, 1.7 GB memory</td>
+<td>66 ms</td>
+</tr>
+<tr>
+<td>Name spotter</td>
+<td>Finds names to hide before anything goes to Google</td>
+<td>Our server</td>
+<td>1.1 GB, 1 GB memory</td>
+<td>69 ms</td>
+</tr>
+<tr>
+<td>Gemini Flash-Lite</td>
+<td>Reading requests, drafting replies, rules, chat</td>
+<td>Google</td>
+<td>none of ours</td>
+<td>1–3 seconds</td>
+</tr>
+</tbody>
+</table>
+<p>About 70% of email is handled by rules alone, with no AI.</p>
+<h3>One user, one day (assumed)</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Emails received</td>
+<td>120</td>
+</tr>
+<tr>
+<td>Handled by rules only</td>
+<td>84</td>
+</tr>
+<tr>
+<td>Through our own models</td>
+<td>36</td>
+</tr>
+<tr>
+<td>Sent to Gemini</td>
+<td>26 calls</td>
+</tr>
+<tr>
+<td>Database growth</td>
+<td>120 KB (measured: 7,391 emails = 7.5 MB)</td>
+</tr>
+</tbody>
+</table>
+<h3>By number of users, per month</h3>
+<table>
+<thead>
+<tr>
+<th>Users</th>
+<th>Servers</th>
+<th>Memory</th>
+<th>Database</th>
+<th>Gemini cost</th>
+<th><strong>Total</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td>1</td>
+<td>8 GB</td>
+<td>0.2 GB</td>
+<td>$0–2</td>
+<td><strong>€15–25</strong></td>
+</tr>
+<tr>
+<td>100</td>
+<td>1</td>
+<td>8 GB</td>
+<td>2 GB</td>
+<td>$20</td>
+<td><strong>€45–60</strong></td>
+</tr>
+<tr>
+<td>1,000</td>
+<td>3</td>
+<td>40 GB</td>
+<td>20 GB</td>
+<td>$190</td>
+<td><strong>€300–400</strong></td>
+</tr>
+<tr>
+<td>10,000</td>
+<td>24</td>
+<td>380 GB</td>
+<td>200 GB</td>
+<td>$1,900</td>
+<td><strong>€2,800–3,500</strong></td>
+</tr>
+</tbody>
+</table>
+<p>About €0.30 per user per month at scale.</p>
+<h3>Using an AI service vs running AI ourselves</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Cheaper option</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classifier and name spotter</td>
+<td><strong>Run ourselves</strong></td>
+<td>They fit on the server we already need, costing nothing extra. Renting them costs about $48 a month even when idle. The name spotter must stay with us anyway: its job is to hide private details before anything leaves</td>
+</tr>
+<tr>
+<td>Gemini (reading, drafting, chat)</td>
+<td><strong>Use Google's service</strong></td>
+<td>Running our own equivalent needs a graphics server at about $580 a month, used or not. Google's service is cheaper until roughly 20,000 users</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Users</th>
+<th>Everything as a service</th>
+<th>Everything ourselves</th>
+<th><strong>Mixed (chosen)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td>€60</td>
+<td>€560</td>
+<td><strong>€15</strong></td>
+</tr>
+<tr>
+<td>100</td>
+<td>€85</td>
+<td>€570</td>
+<td><strong>€50</strong></td>
+</tr>
+<tr>
+<td>1,000</td>
+<td>€400</td>
+<td>€850</td>
+<td><strong>€350</strong></td>
+</tr>
+<tr>
+<td>10,000</td>
+<td>€2,900</td>
+<td>€4,500</td>
+<td><strong>€2,900</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>Cheapest way to start</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Choice</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server</td>
+<td>One 4-core, 8 GB server running everything</td>
+<td>about €11 a month</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>Free tier of a hosted Postgres</td>
+<td>€0 to start</td>
+</tr>
+<tr>
+<td>Gemini</td>
+<td>Free tier</td>
+<td>€0 to start</td>
+</tr>
+<tr>
+<td>Confirmation emails</td>
+<td>Free tier of an email service</td>
+<td>€0</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td></td>
+<td><strong>about €11–15 a month</strong> until roughly 25 users</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>8 · Hosting</h2>
+<ul>
+<li><strong>Today:</strong> nothing is deployed. Everything runs on a laptop, with the
+  database on a hosted Postgres service.</li>
+<li><strong>To go live:</strong> one small server running the API and the worker, with the
+  database in the same region as the server so they are close to each
+  other. Where to host is the company's choice.</li>
+<li><strong>One thing measured:</strong> with the database far from the server, a single
+  page could wait 1 to 3 seconds on the network. Putting both in the same
+  region removes this.</li>
+<li><strong>At larger scale:</strong> the worker checks each mailbox every 20 seconds. Push
+  notifications from the providers, where they offer them, would cut the
+  number of servers needed at 1,000+ users.</li>
+</ul>
+<hr />
+<h2>9 · What is left</h2>
+<ol>
+<li><strong>Connect a payment company</strong> for subscriptions.</li>
+<li><strong>Deploy</strong> to a server.</li>
+<li><strong>Microsoft registration</strong> for Outlook, then test it.</li>
+<li><strong>Test Yahoo, Zoho, iCloud</strong> with one real account each.</li>
+<li><strong>Sign in with Google / Microsoft</strong> for the account.</li>
+<li><strong>Search inside message text</strong> (today: sender, subject, date).</li>
+<li><strong>Calendars other than Google.</strong></li>
+<li><strong>Google's security review</strong>, only if the optional Google sign-in door is
+   offered to the public (Google charges for it, several thousand dollars a
+   year). The default IMAP connection does not need it.</li>
+</ol>
+<hr />
+<h2>10 · Safety rules the system keeps</h2>
+<ul>
+<li>Nothing is ever deleted from a mailbox. Trash is a move.</li>
+<li>Nothing permanent happens without the person confirming the exact wording.
+  This is enforced by the server, not just the screen.</li>
+<li>Names and private details are hidden before any text goes to Google.</li>
+<li>Bank, doctor, lawyer and HR emails are never opened at all.</li>
+<li>What the person types is an instruction; what an email says is only data.
+  An email cannot instruct the system.</li>
+<li>Each customer's data sits in its own private section of the database.</li>
+<li>Passwords are never stored readable. Mailbox passwords are encrypted with
+  a key that is not in the database.</li>
+<li>The worker and the chat never do anything permanent on their own.</li>
+</ul>
+<hr />
+<h2>11 · Where everything is</h2>
+<ul>
+<li><strong>Code:</strong> the GitHub repository, plus a clean copy with no history for the
+  company.</li>
+<li><strong>Handover document:</strong> <code>HANDOVER.md</code> — what was personal and must be
+  recreated under company accounts, how to run and check everything in an
+  hour, what is unfinished.</li>
+<li><strong>Route contract for the frontend:</strong> <code>docs/API.md</code>.</li>
+<li><strong>Design document:</strong> <code>docs/Custodian-Backend-Design.pdf</code>.</li>
+</ul></body></html>
